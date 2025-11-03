@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Sidebar</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Tailwind Config (Kept as is)
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'lgu-bg': '#f2f7f5',
+                        'lgu-headline': '#00473e',
+                        'lgu-paragraph': '#475d5b',
+                        'lgu-button': '#faae2b',
+                        'lgu-button-text': '#00473e',
+                        'lgu-stroke': '#00332c',
+                        'lgu-main': '#f2f7f5',
+                        'lgu-highlight': '#faae2b',
+                        'lgu-secondary': '#ffa8ba',
+                        'lgu-tertiary': '#fa5246'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-lgu-bg">
+    <div id="admin-sidebar" class="fixed left-0 top-0 h-full w-64 bg-lgu-headline shadow-2xl transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out z-50 overflow-hidden flex flex-col">
+        <div class="flex items-center justify-between p-4 border-b border-lgu-stroke">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-full overflow-hidden border-2 border-lgu-highlight">
+                    <img src="{{ asset('image/logo.jpg') }}" alt="LGU Logo" class="w-full h-full object-cover">
+                </div>
+                <div>
+                    <h2 class="text-white font-bold text-sm">Local Government Unit</h2>
+                    <p class="text-gray-300 text-xs">LGU1</p>
+                </div>
+            </div>
+            <div class="relative">
+                <button id="settings-button" class="p-2 text-lgu-paragraph text-white">
+                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"></path>
+                    </svg>
+                </button>
+            <div id="settings-dropdown" class="hidden absolute right-0 mt-3 w-48 bg-white rounded-md shadow-lg py-1 z-50">
+                <form method="POST" action="{{ route('logout') }}" class="block" id="adminLogoutForm">
+                    @csrf
+                    <button type="button" onclick="confirmAdminLogout()" class="w-full text-left px-4 py-2 text-sm text-lgu-tertiary hover:bg-lgu-bg flex items-center">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                        </svg>
+                        Logout
+                    </button>
+                </form>
+            </div>
+            </div>
+            <button id="sidebar-close" class="lg:hidden text-white hover:text-lgu-highlight">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+
+        <div class="p-6 border-b border-lgu-stroke">
+            <div class="text-center">
+                @php
+                    // --- Admin Authentication Logic Refactor ---
+                    $admin = null;
+
+                    // 1. Try Laravel Auth first (if working)
+                    try {
+                        if (class_exists('Illuminate\Support\Facades\Auth')) {
+                            $authUser = Auth::user();
+                            if ($authUser && ($authUser->role === 'admin' || $authUser->role === 'staff')) {
+                                $admin = $authUser;
+                            }
+                        }
+                    } catch (Exception $e) {
+                        // Laravel Auth failed, continue
+                    }
+
+                    // 2. If no auth user found, create default admin for admin routes
+                    if (!$admin && str_contains(request()->url(), '/admin/')) {
+                        $admin = (object) [
+                            'id' => 1,
+                            'name' => 'Administrator',
+                            'email' => 'admin@lgu1.com',
+                            'role' => 'admin'
+                        ];
+                    }
+
+                    // Generate admin initials if admin is authenticated
+                    $adminInitials = 'AD'; // Default
+                    if ($admin) {
+                        $nameParts = explode(' ', $admin->name);
+                        $firstName = $nameParts[0] ?? 'A';
+                        $lastName = end($nameParts);
+                        $adminInitials = strtoupper(
+                            substr($firstName, 0, 1) .
+                            (($lastName !== $firstName) ? substr($lastName, 0, 1) : 'D')
+                        );
+                    }
+                @endphp
+
+                @if($admin && ($admin->role === 'admin' || $admin->role === 'staff'))
+                    <div class="w-20 h-20 bg-lgu-highlight rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg border-2 border-lgu-button">
+                        <span class="text-lgu-button-text font-bold text-2xl">{{ $adminInitials }}</span>
+                    </div>
+
+                    <div class="space-y-2">
+                        <h3 class="text-white font-semibold text-base leading-tight">{{ $admin->name }}</h3>
+                        <p class="text-gray-300 text-sm">{{ $admin->email }}</p>
+
+                        <div class="flex items-center justify-center mt-3">
+                            <div class="flex items-center px-3 py-1 rounded-full bg-blue-900/30">
+                                <svg class="w-3 h-3 text-blue-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                </svg>
+                                <span class="text-blue-400 text-xs font-medium">{{ ucfirst($admin->role) }} Administrator</span>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+            </div>
+        </div>
+
+        <nav class="flex-1 overflow-y-auto overflow-x-hidden py-4">
+            <div class="px-4 mb-6">
+                <h4 class="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-3">Main</h4>
+                <ul class="space-y-1">
+                    <li>
+                        <a href="{{ route('admin.dashboard') }}" class="sidebar-link flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors duration-200">
+                            <svg class="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"/>
+                            </svg>
+                            Dashboard
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ route('admin.reservations.index') }}" class="sidebar-link flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors duration-200">
+                            <svg class="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/>
+                            </svg>
+                            Reservation Review
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ route('admin.payment-slips.index') }}" class="sidebar-link flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors duration-200">
+                            <svg class="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z"/>
+                            </svg>
+                            Payment Management
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="px-4 mb-6">
+                <h4 class="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-3">City Event Management</h4>
+                <ul class="space-y-1">
+                    <li>
+                        <button class="sidebar-dropdown w-full flex items-center justify-between px-3 py-2 text-sm font-medium text-gray-300 hover:text-white hover:bg-lgu-stroke rounded-lg transition-colors duration-200">
+                            <div class="flex items-center">
+                                <svg class="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M5 4a1 1 0 00-1 1v10a1 1 0 001 1h10a1 1 0 001-1V5a1 1 0 00-1-1H5zm0 2v6h10V6H5z" clip-rule="evenodd"/>
+                                    <path d="M3 4a2 2 0 012-2h10a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V4z"/>
+                                </svg>
+                                Official City Events
+                            </div>
+                            <svg class="w-4 h-4 transform transition-transform duration-200" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                            </svg>
+                        </button>
+                        <ul class="sidebar-submenu hidden ml-8 mt-2 space-y-1">
+                            <li><a href="{{ route('admin.city-events.create') }}" class="sidebar-link flex items-center px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg"><svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>Create City Event</a></li>
+                            <li><a href="{{ route('admin.city-events.index') }}" class="sidebar-link flex items-center px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg"><svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm3 1h6v4H7V5zm6 6H7v2h6v-2z" clip-rule="evenodd"/></svg>View All City Events</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="px-4 mb-6">
+                <h4 class="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-3">Citizen Reservation Management</h4>
+                <ul class="space-y-1">
+                    <li>
+                        <button class="sidebar-dropdown w-full flex items-center justify-between px-3 py-2 text-sm font-medium text-gray-300 hover:text-white hover:bg-lgu-stroke rounded-lg transition-colors duration-200">
+                            <div class="flex items-center">
+                                <svg class="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                </svg>
+                                Approval & Oversight
+                            </div>
+                            <svg class="w-4 h-4 transform transition-transform duration-200" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                            </svg>
+                        </button>
+                        <ul class="sidebar-submenu hidden ml-8 mt-2 space-y-1">
+                            <li><a href="{{ route('bookings.approval') }}" class="sidebar-link flex items-center px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg"><svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>Pending Approvals</a></li>
+                            <li><a href="{{ route('reservation.status') }}" class="sidebar-link flex items-center px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg"><svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/></svg>All Reservations</a></li>
+                            <li><a href="{{ route('admin.schedule.conflicts') }}" class="sidebar-link flex items-center px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg"><svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>Schedule Conflicts</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="px-4 mb-6">
+                <h4 class="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-3">Facility Administration</h4>
+                <ul class="space-y-1">
+                    <li>
+                        <button class="sidebar-dropdown w-full flex items-center justify-between px-3 py-2 text-sm font-medium text-gray-300 hover:text-white hover:bg-lgu-stroke rounded-lg transition-colors duration-200">
+                            <div class="flex items-center">
+                                <svg class="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M4 16a2 2 0 002 2h8a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v10zM6 6h8v10H6V6z" clip-rule="evenodd"/>
+                                    <path d="M2 8a2 2 0 012-2h1V4a2 2 0 012-2h6a2 2 0 012 2v2h1a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V8z"/>
+                                </svg>
+                                Facility Management
+                            </div>
+                            <svg class="w-4 h-4 transform transition-transform duration-200" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                            </svg>
+                        </button>
+                        <ul class="sidebar-submenu hidden ml-8 mt-2 space-y-1">
+                            <li><a href="{{ route('facility.list') }}" class="sidebar-link flex items-center px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg"><svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm3 1h6v4H7V5zm6 6H7v2h6v-2z" clip-rule="evenodd"/></svg>Manage Facilities</a></li>
+                            <li><a href="{{ route('calendar') }}" class="sidebar-link flex items-center px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg"><svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/></svg>Calendar Overview</a></li>
+                            <li><a href="{{ route('admin.maintenance-logs.index') }}" class="sidebar-link flex items-center px-3 py-2 text-sm text-gray-400 hover:text-white rounded-lg"><svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clip-rule="evenodd"/></svg>Maintenance Logs</a></li>
+                        </ul>
+                    </li>
+
+
+                </ul>
+            </div>
+
+
+            <div class="px-4 mb-6">
+                <h4 class="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-3">Reports</h4>
+                <ul class="space-y-1">
+                    <li>
+                        <a href="{{ route('forecast') }}" class="sidebar-link flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors duration-200">
+                            <svg class="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/>
+                            </svg>
+                            Usage Analytics
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ route('admin.monthly-reports.index') }}" class="sidebar-link flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors duration-200">
+                            <svg class="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V4a2 2 0 00-2-2H6zm1 2a1 1 0 000 2h6a1 1 0 100-2H7zm6 7a1 1 0 01-1 1H8a1 1 0 110-2h4a1 1 0 011 1zm-1 4a1 1 0 100-2H8a1 1 0 100 2h4z" clip-rule="evenodd"/>
+                            </svg>
+                            Monthly Reports
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ route('admin.feedback.index') }}" class="sidebar-link flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors duration-200">
+                            <svg class="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clip-rule="evenodd"/>
+                            </svg>
+                            Citizen Feedback
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+    </div>
+
+    <div id="sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden hidden"></div>
+
+    <button id="sidebar-toggle" class="fixed top-4 left-4 z-50 lg:hidden bg-lgu-headline text-white p-2 rounded-lg shadow-lg hover:bg-lgu-stroke transition-colors duration-200">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+        </svg>
+    </button>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebar = document.getElementById('admin-sidebar');
+            const sidebarToggle = document.getElementById('sidebar-toggle');
+            const sidebarClose = document.getElementById('sidebar-close');
+            const sidebarOverlay = document.getElementById('sidebar-overlay');
+            const dropdownButtons = document.querySelectorAll('.sidebar-dropdown');
+            const sidebarLinks = document.querySelectorAll('.sidebar-link');
+            const settingsButton = document.getElementById('settings-button');
+            const settingsDropdown = document.getElementById('settings-dropdown');
+
+
+            // Set active link based on current URL
+            function setActiveLink() {
+                const currentPath = window.location.pathname.replace(/\/$/, ''); // Normalize: remove trailing slash
+                
+                // Remove active from all links first
+                sidebarLinks.forEach(link => link.classList.remove('active'));
+                
+                let activeFound = false;
+                
+                // Iterate backwards to prioritize more specific/later matches if needed
+                for (let i = sidebarLinks.length - 1; i >= 0; i--) {
+                    const link = sidebarLinks[i];
+                    const linkHref = new URL(link.href).pathname.replace(/\/$/, ''); // Normalize link href path
+                    
+                    if (currentPath === linkHref) {
+                        link.classList.add('active');
+                        activeFound = true;
+                        
+                        // If a link inside a submenu is active, expand its parent dropdown
+                        let parentSubmenu = link.closest('.sidebar-submenu');
+                        if (parentSubmenu) {
+                            parentSubmenu.classList.remove('hidden');
+                            // Find and rotate the parent dropdown button's arrow
+                            let parentButton = parentSubmenu.previousElementSibling;
+                            if (parentButton) {
+                                let arrow = parentButton.querySelector('svg:last-child');
+                                if (arrow) arrow.classList.add('rotate-180');
+                            }
+                        }
+                        break; // Stop after finding the most specific match
+                    }
+                }
+            }
+
+            // Set active link on page load
+            setActiveLink();
+
+            // Mobile sidebar toggle functionality
+            function toggleSidebar() {
+                sidebar.classList.toggle('-translate-x-full');
+                sidebarOverlay.classList.toggle('hidden');
+            }
+
+            function closeSidebar() {
+                sidebar.classList.add('-translate-x-full');
+                sidebarOverlay.classList.add('hidden');
+            }
+
+            // Event listeners for mobile sidebar
+            if (sidebarToggle) sidebarToggle.addEventListener('click', toggleSidebar);
+            if (sidebarClose) sidebarClose.addEventListener('click', closeSidebar);
+            if (sidebarOverlay) sidebarOverlay.addEventListener('click', closeSidebar);
+
+
+            // Dropdown functionality
+            dropdownButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const submenu = this.nextElementSibling;
+                    const arrow = this.querySelector('svg:last-child');
+                    const isOpening = submenu.classList.contains('hidden');
+                    
+                    // Close other dropdowns
+                    dropdownButtons.forEach(otherButton => {
+                        if (otherButton !== this) {
+                            const otherSubmenu = otherButton.nextElementSibling;
+                            const otherArrow = otherButton.querySelector('svg:last-child');
+                            otherSubmenu.classList.add('hidden');
+                            otherArrow.classList.remove('rotate-180');
+                        }
+                    });
+
+                    // Toggle current submenu
+                    submenu.classList.toggle('hidden');
+                    
+                    // Rotate arrow
+                    arrow.classList.toggle('rotate-180', isOpening);
+                });
+            });
+
+            // Active link functionality - Simplified
+            sidebarLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    const href = this.getAttribute('href');
+                    
+                    // Don't prevent default for actual routes - let Laravel handle navigation
+                    if (href && !href.startsWith('#')) {
+                        // The setActiveLink() will handle the 'active' class on page load after navigation
+                        
+                        // Close sidebar on mobile after clicking a link
+                        if (window.innerWidth < 1024) {
+                            closeSidebar();
+                        }
+                        
+                        return true;
+                    } else {
+                        // For hash links or non-route links, prevent default
+                        e.preventDefault();
+                    
+                        // Manually set active class for non-route links (though links should be routes)
+                        sidebarLinks.forEach(l => l.classList.remove('active'));
+                        this.classList.add('active');
+                    
+                        // Close sidebar on mobile after clicking a link
+                        if (window.innerWidth < 1024) {
+                            closeSidebar();
+                        }
+
+                        // Smooth scrolling for anchor links (Kept the original logic)
+                        if (href && href.startsWith('#')) {
+                            const targetElement = document.querySelector(href);
+                            if (targetElement) {
+                                targetElement.scrollIntoView({
+                                    behavior: 'smooth',
+                                    block: 'start'
+                                });
+                            }
+                        }
+                        
+                        console.log('Non-route link clicked:', href);
+                    }
+                });
+            });
+
+            // Admin SweetAlert2 logout confirmation
+            window.confirmAdminLogout = function() {
+                // Check if Swal is defined before using it
+                if (typeof Swal === 'undefined') {
+                    console.error("SweetAlert2 (Swal) is required for confirmAdminLogout but not found.");
+                    document.getElementById('adminLogoutForm').submit(); // Fallback logout
+                    return;
+                }
+
+                Swal.fire({
+                    title: 'Sign Out?',
+                    text: "You will be logged out of the administrative system.",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#fa5246',
+                    cancelButtonColor: '#6b7280',
+                    confirmButtonText: 'Yes, sign me out',
+                    cancelButtonText: 'Cancel',
+                    background: '#ffffff',
+                    customClass: {
+                        title: 'text-gray-900',
+                        content: 'text-gray-600',
+                        confirmButton: 'bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg',
+                        cancelButton: 'bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg'
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Show logout success message
+                        Swal.fire({
+                            title: 'Signing out...',
+                            text: 'Thank you for using the LGU1 Admin Portal!',
+                            icon: 'success',
+                            timer: 1500,
+                            showConfirmButton: false
+                        }).then(() => {
+                            // Submit the logout form
+                            document.getElementById('adminLogoutForm').submit();
+                        });
+                    }
+                });
+            };
+
+            // Responsive sidebar behavior
+            const handleResize = () => {
+                if (window.innerWidth >= 1024) {
+                    sidebar.classList.remove('-translate-x-full');
+                    sidebarOverlay.classList.add('hidden');
+                } else {
+                    sidebar.classList.add('-translate-x-full');
+                }
+            };
+            window.addEventListener('resize', handleResize);
+            handleResize(); // Initial call
+
+            // Notification badge updates (simulate real-time updates) - Kept as is
+            function updateNotificationBadges() {
+                const badges = document.querySelectorAll('.sidebar-link span');
+                badges.forEach(badge => {
+                    if (badge.textContent && !isNaN(badge.textContent)) {
+                        // Simulate random updates for demo purposes
+                        if (Math.random() > 0.8) {
+                            const currentCount = parseInt(badge.textContent);
+                            badge.textContent = currentCount + Math.floor(Math.random() * 3);
+                        }
+                    }
+                });
+            }
+
+            // Update badges every 30 seconds (for demo purposes)
+            setInterval(updateNotificationBadges, 30000);
+        });
+
+        // --- Settings Dropdown --- (Moved outside DOMContentLoaded but kept original logic)
+        const settingsButton = document.getElementById('settings-button');
+        const settingsDropdown = document.getElementById('settings-dropdown');
+
+        if (settingsButton) {
+            settingsButton.addEventListener('click', function(event) {
+                event.stopPropagation();
+                settingsDropdown.classList.toggle('hidden');
+            });
+        }
+
+        // Close dropdown settings
+        window.addEventListener('click', function(event) {
+            if (settingsDropdown && !settingsDropdown.classList.contains('hidden') && settingsButton && !settingsButton.contains(event.target)) {
+                settingsDropdown.classList.add('hidden');
+            }
+        });
+
+        // CSS for active states and transitions (Kept separate from main JS for clarity)
+        const addCustomStyles = () => {
+            const style = document.createElement('style');
+            style.textContent = `
+                .sidebar-link {
+                    color: #9CA3AF;
+                }
+                
+                .sidebar-link:hover {
+                    color: #FFFFFF;
+                    background-color: #00332c;
+                }
+                
+                .sidebar-link.active {
+                    color: #faae2b;
+                    background-color: #00332c;
+                    border-left: 3px solid #faae2b;
+                }
+                
+                .sidebar-submenu {
+                    transition: all 0.3s ease-in-out;
+                }
+                
+                .rotate-180 {
+                    transform: rotate(180deg);
+                }
+                
+                /* Custom scrollbar for sidebar */
+                #admin-sidebar nav::-webkit-scrollbar {
+                    width: 4px;
+                }
+                
+                #admin-sidebar nav::-webkit-scrollbar-track {
+                    background: #00332c;
+                }
+                
+                #admin-sidebar nav::-webkit-scrollbar-thumb {
+                    background: #faae2b;
+                    border-radius: 2px;
+                }
+                
+                #admin-sidebar nav::-webkit-scrollbar-thumb:hover {
+                    background: #e09900;
+                }
+            `;
+            document.head.appendChild(style);
+        };
+        addCustomStyles();
+    </script>
+</body>
+</html>
