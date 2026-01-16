@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'auth' => \App\Http\Middleware\CheckAuth::class,
             'role' => \App\Http\Middleware\CheckRole::class,
+            'api.key' => \App\Http\Middleware\ValidateApiKey::class,
         ]);
     })
     ->withSchedule(function ($schedule) {
