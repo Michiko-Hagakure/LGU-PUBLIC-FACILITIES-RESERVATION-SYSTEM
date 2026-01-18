@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use App\Http\Controllers\Admin\ReportController;
 
 /*
 |--------------------------------------------------------------------------
@@ -1187,6 +1188,7 @@ Route::middleware(['auth', 'role:Admin'])->group(function () {
     Route::get('/admin/analytics/facility-utilization', [\App\Http\Controllers\Admin\AnalyticsController::class, 'facilityUtilization'])->name('admin.analytics.facility-utilization');
     Route::get('/admin/analytics/citizen-analytics', [\App\Http\Controllers\Admin\AnalyticsController::class, 'citizenAnalytics'])->name('admin.analytics.citizen-analytics');
     Route::get('/admin/analytics/operational-metrics', [\App\Http\Controllers\Admin\AnalyticsController::class, 'operationalMetrics'])->name('admin.analytics.operational-metrics');
+    Route::get('/admin/analytics/audit-trail', [ReportController::class, 'auditIndex'])->name('admin.audit.trail');
     
     // Phase 5: Payment Analytics & Transactions
     Route::get('/admin/analytics/payments', [\App\Http\Controllers\Admin\PaymentAnalyticsController::class, 'index'])->name('admin.analytics.payments');
@@ -1222,6 +1224,7 @@ Route::middleware(['auth', 'role:Admin'])->group(function () {
     Route::get('/admin/analytics/export/booking-statistics/pdf', [\App\Http\Controllers\Admin\AnalyticsController::class, 'exportBookingStatisticsPDF'])->name('admin.analytics.export-booking-statistics-pdf');
     Route::get('/admin/analytics/export/facility-utilization/excel', [\App\Http\Controllers\Admin\AnalyticsController::class, 'exportFacilityUtilizationExcel'])->name('admin.analytics.export-facility-utilization-excel');
     Route::get('/admin/analytics/export/citizen-analytics/excel', [\App\Http\Controllers\Admin\AnalyticsController::class, 'exportCitizenAnalyticsExcel'])->name('admin.analytics.export-citizen-analytics-excel');
+    Route::get('/admin/audit-trail/export', [App\Http\Controllers\Admin\ReportController::class, 'exportPDF'])->name('admin.audit.export');
 
     // Budget Management
     Route::get('/admin/budget', [\App\Http\Controllers\Admin\BudgetAllocationController::class, 'index'])->name('admin.budget.index');
