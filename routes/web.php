@@ -8,6 +8,10 @@ use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\SettingsController as ProfileSettingsController;
 use App\Http\Controllers\Admin\SystemSettingsController;
 
+use App\Http\Controllers\Admin\SettingsController;
+
+
+
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -1766,6 +1770,11 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::post('/profile/update', [ProfileSettingsController::class, 'updateProfile'])->name('profile.update');
     Route::post('/profile/password', [ProfileSettingsController::class, 'updatePassword'])->name('profile.password.update');
     Route::post('/profile/lgu-update', [ProfileSettingsController::class, 'updateLguSettings'])->name('profile.lgu.update');
+    // System Settings & Profile Update
+    Route::get('/settings', [SettingsController::class, 'index'])->name('settings');
+    Route::post('/settings/profile', [SettingsController::class, 'updateProfile'])->name('profile.update');
+    Route::post('/settings/password', [SettingsController::class, 'updatePassword'])->name('password.update');
+    Route::post('/settings/lgu-update', [SettingsController::class, 'updateLguSettings'])->name('settings.lgu.update');
 
 });
 
