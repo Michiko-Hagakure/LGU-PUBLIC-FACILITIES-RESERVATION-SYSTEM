@@ -39,25 +39,6 @@
                 <span>Maintenance Schedule</span>
             </a>
         </li>
-        <li>
-            <a href="<?php echo e(route('admin.city-events.index')); ?>" class="sidebar-link flex items-center px-gr-sm py-gr-xs text-small font-medium rounded-lg transition-colors duration-200 <?php echo e(request()->routeIs('admin.city-events.*') ? 'active' : ''); ?>">
-                <i data-lucide="calendar-range" class="w-5 h-5 mr-gr-xs flex-shrink-0"></i>
-                <span>City Events</span>
-            </a>
-        </li>
-    </ul>
-</div>
-
-<!-- GOVERNMENT PROGRAMS SUBMODULE (Energy Efficiency Integration) -->
-<div class="px-gr-md mb-gr-lg">
-    <h4 class="text-gray-400 text-caption font-semibold uppercase tracking-wider mb-gr-xs">Government Programs</h4>
-    <ul class="space-y-gr-xs">
-        <li>
-            <a href="<?php echo e(route('admin.government-programs.index')); ?>" class="sidebar-link flex items-center px-gr-sm py-gr-xs text-small font-medium rounded-lg transition-colors duration-200 <?php echo e(request()->routeIs('admin.government-programs.*') ? 'active' : ''); ?>">
-                <i data-lucide="handshake" class="w-5 h-5 mr-gr-xs flex-shrink-0"></i>
-                <span>Program Requests</span>
-            </a>
-        </li>
     </ul>
 </div>
 
@@ -177,10 +158,9 @@
             </a>
         </li>
         <li>
-            <a href="<?php echo e(route('admin.audit.trail')); ?>" class="sidebar-link flex items-center px-gr-sm py-gr-xs text-small font-medium rounded-lg transition-colors duration-200 <?php echo e(request()->routeIs('admin.audit.trail') ? 
-            'bg-emerald-800 text-white shadow-lg shadow-emerald-900/20' : 'text-gray-300 hover:bg-emerald-700'); ?>">
-            <i data-lucide="shield-check" class="w-5 h-5 mr-gr-xs flex-shrink-0"></i>
-            <span>Audit Trail</span>
+            <a href="<?php echo e(route('admin.audit-trail.index')); ?>" class="sidebar-link flex items-center px-gr-sm py-gr-xs text-small font-medium rounded-lg transition-colors duration-200 <?php echo e(request()->routeIs('admin.audit-trail.*') ? 'active' : ''); ?>">
+                <i data-lucide="shield-check" class="w-5 h-5 mr-gr-xs flex-shrink-0"></i>
+                <span>Audit Trail</span>
             </a>
         </li>
     </ul>
@@ -191,17 +171,21 @@
     <h4 class="text-gray-400 text-caption font-semibold uppercase tracking-wider mb-gr-xs">System</h4>
     <ul class="space-y-gr-xs">
         <li>
-            <a href="#" onclick="showComingSoon('System Settings'); return false;" class="sidebar-link flex items-center px-gr-sm py-gr-xs text-small font-medium rounded-lg transition-colors duration-200 opacity-60">
-                <i data-lucide="settings" class="w-5 h-5 mr-gr-xs flex-shrink-0"></i>
-                <span>Settings</span>
-                <span class="ml-auto text-xs bg-gray-500 text-white px-2 py-0.5 rounded-full">Soon</span>
+            <a href="<?php echo e(route('admin.profile')); ?>" class="sidebar-link flex items-center px-gr-sm py-gr-xs text-small font-medium rounded-lg transition-colors duration-200 <?php echo e(request()->routeIs('admin.profile') ? 'active' : ''); ?>">
+                <i data-lucide="user-cog" class="w-5 h-5 mr-gr-xs flex-shrink-0"></i>
+                <span>Profile</span>
             </a>
         </li>
         <li>
-            <a href="#" onclick="showComingSoon('Backup & Restore'); return false;" class="sidebar-link flex items-center px-gr-sm py-gr-xs text-small font-medium rounded-lg transition-colors duration-200 opacity-60">
+            <a href="<?php echo e(route('admin.settings.index')); ?>" class="sidebar-link flex items-center px-gr-sm py-gr-xs text-small font-medium rounded-lg transition-colors duration-200 <?php echo e(request()->routeIs('admin.settings.*') ? 'active' : ''); ?>">
+                <i data-lucide="settings" class="w-5 h-5 mr-gr-xs flex-shrink-0"></i>
+                <span>Settings</span>
+            </a>
+        </li>
+        <li>
+            <a href="<?php echo e(route('admin.backup.index')); ?>" class="sidebar-link flex items-center px-gr-sm py-gr-xs text-small font-medium rounded-lg transition-colors duration-200 <?php echo e(request()->routeIs('admin.backup.*') ? 'active' : ''); ?>">
                 <i data-lucide="database" class="w-5 h-5 mr-gr-xs flex-shrink-0"></i>
-                <span>Backup</span>
-                <span class="ml-auto text-xs bg-gray-500 text-white px-2 py-0.5 rounded-full">Soon</span>
+                <span>Backup & Restore</span>
             </a>
         </li>
     </ul>

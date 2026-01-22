@@ -15,7 +15,7 @@
         "maatwebsite/excel": "^3.1",
         "php-amqplib/php-amqplib": "^2.8",
         "phpmailer/phpmailer": "^6.10",
-        "spatie/laravel-backup": "^9.3"
+        "spatie/laravel-backup": "*"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

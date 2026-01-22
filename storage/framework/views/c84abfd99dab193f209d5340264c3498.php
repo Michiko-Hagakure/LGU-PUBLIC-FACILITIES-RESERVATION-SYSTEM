@@ -79,6 +79,8 @@
         </div>
     </header>
 
+    <?php echo $__env->make('components.announcement-banner', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+
     <main class="min-h-screen bg-lgu-bg">
         <div class="container mx-auto px-gr-lg py-gr-xl">
             <?php echo $__env->yieldContent('page-content'); ?>
