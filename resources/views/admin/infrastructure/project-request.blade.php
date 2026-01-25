@@ -3,6 +3,13 @@
 @section('page-title', 'Infrastructure Project Request')
 @section('page-subtitle', 'Submit a new infrastructure project request to Infrastructure PM')
 
+@push('styles')
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<style>
+    #locationMap { z-index: 0; }
+</style>
+@endpush
+
 @section('page-content')
 <div class="max-w-5xl mx-auto">
     {{-- Success/Error Messages --}}
@@ -258,35 +265,46 @@
                     Location & Budget
                 </h2>
             </div>
-            <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="md:col-span-2">
-                    <label for="project_location" class="block text-sm font-medium text-gray-700 mb-2">
-                        Project Location
+            <div class="p-6 space-y-6">
+                {{-- Interactive Map --}}
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Select Location on Map <span class="text-gray-400 text-xs">(Click to pin location)</span>
                     </label>
-                    <input type="text" id="project_location" name="project_location" 
-                        value="{{ old('project_location') }}" 
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-lgu-highlight focus:border-lgu-highlight transition-colors"
-                        placeholder="e.g., Main Street, Barangay 123, City">
+                    <div id="locationMap" class="w-full h-64 rounded-lg border border-gray-300 z-0"></div>
+                    <p class="mt-2 text-xs text-gray-500">Click on the map to set the project location. The address, latitude, and longitude will be filled automatically.</p>
                 </div>
 
-                <div>
-                    <label for="latitude" class="block text-sm font-medium text-gray-700 mb-2">
-                        Latitude
-                    </label>
-                    <input type="number" step="any" id="latitude" name="latitude" 
-                        value="{{ old('latitude') }}" 
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-lgu-highlight focus:border-lgu-highlight transition-colors"
-                        placeholder="e.g., 14.5995">
-                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="md:col-span-2">
+                        <label for="project_location" class="block text-sm font-medium text-gray-700 mb-2">
+                            Project Location
+                        </label>
+                        <input type="text" id="project_location" name="project_location" 
+                            value="{{ old('project_location') }}" 
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-lgu-highlight focus:border-lgu-highlight transition-colors"
+                            placeholder="e.g., Main Street, Barangay 123, City">
+                    </div>
 
-                <div>
-                    <label for="longitude" class="block text-sm font-medium text-gray-700 mb-2">
-                        Longitude
-                    </label>
-                    <input type="number" step="any" id="longitude" name="longitude" 
-                        value="{{ old('longitude') }}" 
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-lgu-highlight focus:border-lgu-highlight transition-colors"
-                        placeholder="e.g., 120.9842">
+                    <div>
+                        <label for="latitude" class="block text-sm font-medium text-gray-700 mb-2">
+                            Latitude
+                        </label>
+                        <input type="number" step="any" id="latitude" name="latitude" 
+                            value="{{ old('latitude') }}" 
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-lgu-highlight focus:border-lgu-highlight transition-colors bg-gray-50"
+                            placeholder="e.g., 14.5995" readonly>
+                    </div>
+
+                    <div>
+                        <label for="longitude" class="block text-sm font-medium text-gray-700 mb-2">
+                            Longitude
+                        </label>
+                        <input type="number" step="any" id="longitude" name="longitude" 
+                            value="{{ old('longitude') }}" 
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-lgu-highlight focus:border-lgu-highlight transition-colors bg-gray-50"
+                            placeholder="e.g., 120.9842" readonly>
+                    </div>
                 </div>
 
                 <div>
@@ -429,8 +447,53 @@
 @endsection
 
 @push('scripts')
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize Leaflet Map
+    const defaultLat = {{ old('latitude') ?: '14.5995' }};
+    const defaultLng = {{ old('longitude') ?: '120.9842' }};
+    const map = L.map('locationMap').setView([defaultLat, defaultLng], 13);
+    
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '© OpenStreetMap'
+    }).addTo(map);
+    
+    let marker = null;
+    
+    // If we have old values, place a marker
+    @if(old('latitude') && old('longitude'))
+    marker = L.marker([{{ old('latitude') }}, {{ old('longitude') }}]).addTo(map);
+    @endif
+    
+    // Handle map click
+    map.on('click', function(e) {
+        const lat = e.latlng.lat.toFixed(7);
+        const lng = e.latlng.lng.toFixed(7);
+        
+        // Update form fields
+        document.getElementById('latitude').value = lat;
+        document.getElementById('longitude').value = lng;
+        
+        // Update or create marker
+        if (marker) {
+            marker.setLatLng(e.latlng);
+        } else {
+            marker = L.marker(e.latlng).addTo(map);
+        }
+        
+        // Reverse geocode to get address
+        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.display_name) {
+                    document.getElementById('project_location').value = data.display_name;
+                }
+            })
+            .catch(err => console.log('Geocoding error:', err));
+    });
+
     // Other option handling for Requesting Office
     const requestingOfficeSelect = document.getElementById('requesting_office');
     const requestingOfficeOther = document.getElementById('requesting_office_other');
