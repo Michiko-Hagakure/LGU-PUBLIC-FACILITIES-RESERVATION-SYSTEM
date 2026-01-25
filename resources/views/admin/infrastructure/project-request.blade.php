@@ -405,7 +405,7 @@
             <div class="p-6 space-y-6">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">
-                        Site Photos (Max 5 images, 5MB each)
+                        Site Photos (Max 3 images, 1MB each)
                     </label>
                     <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-lgu-highlight transition-colors" id="photosDropZone">
                         <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -422,7 +422,7 @@
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">
-                        Location/Site Map (1 image, 5MB max)
+                        Location/Site Map (1 image, 1MB max)
                     </label>
                     <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-lgu-highlight transition-colors">
                         <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -440,7 +440,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">
-                            Resolution/Approval Document (PDF, 10MB max)
+                            Resolution/Approval Document (PDF, 2MB max)
                         </label>
                         <input type="file" name="resolution_file" accept=".pdf" id="resolutionInput" 
                             class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-lgu-highlight focus:border-lgu-highlight transition-colors file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-lgu-highlight file:text-white hover:file:bg-lgu-stroke">
@@ -448,7 +448,7 @@
 
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">
-                            Other Supporting Documents (PDF/DOC, 10MB each, max 3)
+                            Other Supporting Documents (PDF/DOC, 2MB each, max 2)
                         </label>
                         <input type="file" name="other_files[]" multiple accept=".pdf,.doc,.docx" id="otherFilesInput" 
                             class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-lgu-highlight focus:border-lgu-highlight transition-colors file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-lgu-highlight file:text-white hover:file:bg-lgu-stroke">

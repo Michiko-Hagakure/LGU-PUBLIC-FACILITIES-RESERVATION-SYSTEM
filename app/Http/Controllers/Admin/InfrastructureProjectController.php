@@ -57,12 +57,12 @@ class InfrastructureProjectController extends Controller
             'requested_start_date' => 'nullable|date|after:today',
             'prepared_by' => 'nullable|string|max:255',
             'prepared_position' => 'nullable|string|max:255',
-            'photos' => 'nullable|array|max:5',
-            'photos.*' => 'nullable|image|max:5120',
-            'map_image' => 'nullable|image|max:5120',
-            'resolution_file' => 'nullable|file|mimes:pdf|max:10240',
-            'other_files' => 'nullable|array|max:3',
-            'other_files.*' => 'nullable|file|mimes:pdf,doc,docx|max:10240',
+            'photos' => 'nullable|array|max:3',
+            'photos.*' => 'nullable|image|max:1024',
+            'map_image' => 'nullable|image|max:1024',
+            'resolution_file' => 'nullable|file|mimes:pdf|max:2048',
+            'other_files' => 'nullable|array|max:2',
+            'other_files.*' => 'nullable|file|mimes:pdf,doc,docx|max:2048',
         ]);
 
         // Handle "Other" option for requesting_office
