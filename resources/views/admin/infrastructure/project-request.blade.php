@@ -6,6 +6,7 @@
 @push('styles')
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" />
 <style>
     #locationMap { z-index: 0; }
     #locationMap.fullscreen-map {
@@ -345,13 +346,15 @@
                 </div>
 
                 <div>
-                    <label for="requested_start_date" class="block text-sm font-medium text-gray-700 mb-2">
+                    <label for="requested_start_date_display" class="block text-sm font-medium text-gray-700 mb-2">
                         Requested Start Date
                     </label>
-                    <input type="date" id="requested_start_date" name="requested_start_date" 
-                        value="{{ old('requested_start_date') }}" 
-                        min="{{ date('Y-m-d', strtotime('+1 day')) }}"
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-lgu-highlight focus:border-lgu-highlight transition-colors">
+                    <input type="hidden" id="requested_start_date" name="requested_start_date" value="{{ old('requested_start_date') }}">
+                    <input type="text" id="requested_start_date_display" 
+                        value="{{ old('requested_start_date') ? date('F d, Y', strtotime(old('requested_start_date'))) : '' }}" 
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-lgu-highlight focus:border-lgu-highlight transition-colors cursor-pointer bg-white"
+                        placeholder="Click to select date..."
+                        readonly>
                 </div>
             </div>
         </div>
@@ -473,8 +476,45 @@
 @push('scripts')
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // SweetAlert2 Date Picker for Requested Start Date
+    const dateDisplay = document.getElementById('requested_start_date_display');
+    const dateHidden = document.getElementById('requested_start_date');
+    
+    dateDisplay.addEventListener('click', function() {
+        // Get tomorrow's date as minimum
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const minDate = tomorrow.toISOString().split('T')[0];
+        
+        Swal.fire({
+            title: 'Select Start Date',
+            html: `<input type="date" id="swal-date" class="swal2-input" min="${minDate}" value="${dateHidden.value || ''}" style="width: 100%; padding: 10px; font-size: 16px;">`,
+            showCancelButton: true,
+            confirmButtonText: 'Select',
+            confirmButtonColor: '#1a5632',
+            cancelButtonText: 'Cancel',
+            focusConfirm: false,
+            preConfirm: () => {
+                const selectedDate = document.getElementById('swal-date').value;
+                if (!selectedDate) {
+                    Swal.showValidationMessage('Please select a date');
+                    return false;
+                }
+                return selectedDate;
+            }
+        }).then((result) => {
+            if (result.isConfirmed && result.value) {
+                dateHidden.value = result.value;
+                // Format display date
+                const date = new Date(result.value + 'T00:00:00');
+                const options = { year: 'numeric', month: 'long', day: 'numeric' };
+                dateDisplay.value = date.toLocaleDateString('en-US', options);
+            }
+        });
+    });
     // Initialize Leaflet Map
     const defaultLat = {{ old('latitude') ?: '14.5995' }};
     const defaultLng = {{ old('longitude') ?: '120.9842' }};
