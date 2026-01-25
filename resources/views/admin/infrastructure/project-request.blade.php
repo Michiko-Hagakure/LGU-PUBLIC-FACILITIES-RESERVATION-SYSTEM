@@ -64,10 +64,26 @@
                     <label for="requesting_office" class="block text-sm font-medium text-gray-700 mb-2">
                         Requesting Office <span class="text-red-500">*</span>
                     </label>
-                    <input type="text" id="requesting_office" name="requesting_office" 
-                        value="{{ old('requesting_office') }}" 
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-lgu-highlight focus:border-lgu-highlight transition-colors"
-                        placeholder="e.g., Barangay Office, Mayor's Office" required>
+                    <select id="requesting_office" name="requesting_office" 
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-lgu-highlight focus:border-lgu-highlight transition-colors" required>
+                        <option value="">Select office...</option>
+                        <option value="Mayor's Office" {{ old('requesting_office') == "Mayor's Office" ? 'selected' : '' }}>Mayor's Office</option>
+                        <option value="Vice Mayor's Office" {{ old('requesting_office') == "Vice Mayor's Office" ? 'selected' : '' }}>Vice Mayor's Office</option>
+                        <option value="Sangguniang Bayan" {{ old('requesting_office') == "Sangguniang Bayan" ? 'selected' : '' }}>Sangguniang Bayan</option>
+                        <option value="Municipal Administrator's Office" {{ old('requesting_office') == "Municipal Administrator's Office" ? 'selected' : '' }}>Municipal Administrator's Office</option>
+                        <option value="Municipal Engineering Office" {{ old('requesting_office') == "Municipal Engineering Office" ? 'selected' : '' }}>Municipal Engineering Office</option>
+                        <option value="Municipal Planning and Development Office" {{ old('requesting_office') == "Municipal Planning and Development Office" ? 'selected' : '' }}>Municipal Planning and Development Office</option>
+                        <option value="Municipal Budget Office" {{ old('requesting_office') == "Municipal Budget Office" ? 'selected' : '' }}>Municipal Budget Office</option>
+                        <option value="Municipal Treasurer's Office" {{ old('requesting_office') == "Municipal Treasurer's Office" ? 'selected' : '' }}>Municipal Treasurer's Office</option>
+                        <option value="Municipal Assessor's Office" {{ old('requesting_office') == "Municipal Assessor's Office" ? 'selected' : '' }}>Municipal Assessor's Office</option>
+                        <option value="Municipal Health Office" {{ old('requesting_office') == "Municipal Health Office" ? 'selected' : '' }}>Municipal Health Office</option>
+                        <option value="Municipal Social Welfare and Development Office" {{ old('requesting_office') == "Municipal Social Welfare and Development Office" ? 'selected' : '' }}>Municipal Social Welfare and Development Office</option>
+                        <option value="Municipal Agriculture Office" {{ old('requesting_office') == "Municipal Agriculture Office" ? 'selected' : '' }}>Municipal Agriculture Office</option>
+                        <option value="Municipal Environment and Natural Resources Office" {{ old('requesting_office') == "Municipal Environment and Natural Resources Office" ? 'selected' : '' }}>Municipal Environment and Natural Resources Office</option>
+                        <option value="Municipal Disaster Risk Reduction and Management Office" {{ old('requesting_office') == "Municipal Disaster Risk Reduction and Management Office" ? 'selected' : '' }}>Municipal Disaster Risk Reduction and Management Office</option>
+                        <option value="Barangay Office" {{ old('requesting_office') == "Barangay Office" ? 'selected' : '' }}>Barangay Office</option>
+                        <option value="Other" {{ old('requesting_office') == "Other" ? 'selected' : '' }}>Other</option>
+                    </select>
                 </div>
 
                 <div>
@@ -84,10 +100,25 @@
                     <label for="position" class="block text-sm font-medium text-gray-700 mb-2">
                         Position
                     </label>
-                    <input type="text" id="position" name="position" 
-                        value="{{ old('position') }}" 
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-lgu-highlight focus:border-lgu-highlight transition-colors"
-                        placeholder="e.g., Secretary, Engineer">
+                    <select id="position" name="position" 
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-lgu-highlight focus:border-lgu-highlight transition-colors">
+                        <option value="">Select position...</option>
+                        <option value="Department Head" {{ old('position') == 'Department Head' ? 'selected' : '' }}>Department Head</option>
+                        <option value="Division Chief" {{ old('position') == 'Division Chief' ? 'selected' : '' }}>Division Chief</option>
+                        <option value="Engineer" {{ old('position') == 'Engineer' ? 'selected' : '' }}>Engineer</option>
+                        <option value="Architect" {{ old('position') == 'Architect' ? 'selected' : '' }}>Architect</option>
+                        <option value="Accountant" {{ old('position') == 'Accountant' ? 'selected' : '' }}>Accountant</option>
+                        <option value="Administrative Officer" {{ old('position') == 'Administrative Officer' ? 'selected' : '' }}>Administrative Officer</option>
+                        <option value="Administrative Aide" {{ old('position') == 'Administrative Aide' ? 'selected' : '' }}>Administrative Aide</option>
+                        <option value="Secretary" {{ old('position') == 'Secretary' ? 'selected' : '' }}>Secretary</option>
+                        <option value="Clerk" {{ old('position') == 'Clerk' ? 'selected' : '' }}>Clerk</option>
+                        <option value="Staff" {{ old('position') == 'Staff' ? 'selected' : '' }}>Staff</option>
+                        <option value="Barangay Captain" {{ old('position') == 'Barangay Captain' ? 'selected' : '' }}>Barangay Captain</option>
+                        <option value="Barangay Councilor" {{ old('position') == 'Barangay Councilor' ? 'selected' : '' }}>Barangay Councilor</option>
+                        <option value="Barangay Secretary" {{ old('position') == 'Barangay Secretary' ? 'selected' : '' }}>Barangay Secretary</option>
+                        <option value="Barangay Treasurer" {{ old('position') == 'Barangay Treasurer' ? 'selected' : '' }}>Barangay Treasurer</option>
+                        <option value="Other" {{ old('position') == 'Other' ? 'selected' : '' }}>Other</option>
+                    </select>
                 </div>
 
                 <div>
