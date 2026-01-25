@@ -536,12 +536,15 @@ class InfrastructureProjectController extends Controller
             'pending' => 'submitted',
             'received' => 'received',
             'under_review' => 'under_review',
+            'engineer_review' => 'under_review',
+            'treasurer_review' => 'under_review',
+            'for_review' => 'under_review',
             'approved' => 'approved',
             'rejected' => 'rejected',
             'in_progress' => 'in_progress',
             'completed' => 'completed',
         ];
 
-        return $statusMap[strtolower($apiStatus)] ?? 'submitted';
+        return $statusMap[strtolower($apiStatus)] ?? $apiStatus;
     }
 }
