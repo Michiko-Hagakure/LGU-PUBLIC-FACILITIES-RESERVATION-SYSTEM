@@ -489,37 +489,29 @@ document.addEventListener('DOMContentLoaded', function() {
     let marker = null;
     let isFullscreen = false;
     
-    // Add Fullscreen Control
+    // Add Fullscreen Control (bottom-right)
     const FullscreenControl = L.Control.extend({
-        options: { position: 'topright' },
+        options: { position: 'bottomright' },
         onAdd: function(map) {
             const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
-            const btn = L.DomUtil.create('a', 'fullscreen-btn', container);
+            const btn = L.DomUtil.create('a', '', container);
             btn.innerHTML = '⛶';
             btn.href = '#';
-            btn.title = 'Toggle Fullscreen';
-            btn.style.fontSize = '18px';
-            btn.style.width = '34px';
-            btn.style.height = '34px';
-            btn.style.lineHeight = '34px';
-            btn.style.textAlign = 'center';
-            btn.style.display = 'block';
-            btn.style.textDecoration = 'none';
-            btn.style.color = '#333';
+            btn.title = 'Fullscreen';
+            btn.style.cssText = 'font-size:20px;width:34px;height:34px;line-height:34px;text-align:center;display:block;text-decoration:none;color:#333;background:#fff;';
             
             L.DomEvent.on(btn, 'click', function(e) {
                 L.DomEvent.preventDefault(e);
+                L.DomEvent.stopPropagation(e);
                 isFullscreen = !isFullscreen;
                 if (isFullscreen) {
                     mapContainer.classList.add('fullscreen-map');
                     btn.innerHTML = '✕';
-                    btn.title = 'Exit Fullscreen';
                 } else {
                     mapContainer.classList.remove('fullscreen-map');
                     btn.innerHTML = '⛶';
-                    btn.title = 'Toggle Fullscreen';
                 }
-                map.invalidateSize();
+                setTimeout(() => map.invalidateSize(), 100);
             });
             
             return container;
