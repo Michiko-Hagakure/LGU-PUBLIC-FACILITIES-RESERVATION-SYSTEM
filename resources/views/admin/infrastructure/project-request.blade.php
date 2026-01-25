@@ -405,7 +405,7 @@
             <div class="p-6 space-y-6">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">
-                        Site Photos (Max 3 images, 1MB each)
+                        Site Photos (Max 3 images, 2MB each)
                     </label>
                     <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-lgu-highlight transition-colors" id="photosDropZone">
                         <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -422,7 +422,7 @@
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">
-                        Location/Site Map (1 image, 1MB max)
+                        Location/Site Map (1 image, 2MB max)
                     </label>
                     <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-lgu-highlight transition-colors">
                         <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -808,11 +808,82 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Form submission loading state
+    // File size validation constants (server limits)
+    const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB per file
+    const MAX_TOTAL_SIZE = 7 * 1024 * 1024; // 7MB total (leave 1MB buffer for form data)
+    
+    function formatFileSize(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+    }
+    
+    function validateFileSizes() {
+        let totalSize = 0;
+        const errors = [];
+        
+        // Check photos
+        const photos = document.getElementById('photosInput').files;
+        for (let i = 0; i < photos.length; i++) {
+            if (photos[i].size > MAX_FILE_SIZE) {
+                errors.push(`Photo "${photos[i].name}" is ${formatFileSize(photos[i].size)} (max 2MB)`);
+            }
+            totalSize += photos[i].size;
+        }
+        
+        // Check map image
+        const mapFile = document.getElementById('mapInput').files[0];
+        if (mapFile) {
+            if (mapFile.size > MAX_FILE_SIZE) {
+                errors.push(`Map image "${mapFile.name}" is ${formatFileSize(mapFile.size)} (max 2MB)`);
+            }
+            totalSize += mapFile.size;
+        }
+        
+        // Check resolution file
+        const resFile = document.getElementById('resolutionInput').files[0];
+        if (resFile) {
+            if (resFile.size > MAX_FILE_SIZE) {
+                errors.push(`Resolution file "${resFile.name}" is ${formatFileSize(resFile.size)} (max 2MB)`);
+            }
+            totalSize += resFile.size;
+        }
+        
+        // Check other files
+        const otherFiles = document.getElementById('otherFilesInput').files;
+        for (let i = 0; i < otherFiles.length; i++) {
+            if (otherFiles[i].size > MAX_FILE_SIZE) {
+                errors.push(`File "${otherFiles[i].name}" is ${formatFileSize(otherFiles[i].size)} (max 2MB)`);
+            }
+            totalSize += otherFiles[i].size;
+        }
+        
+        // Check total size
+        if (totalSize > MAX_TOTAL_SIZE) {
+            errors.push(`Total file size is ${formatFileSize(totalSize)} (max 7MB combined)`);
+        }
+        
+        return errors;
+    }
+    
+    // Form submission with validation
     const form = document.getElementById('projectRequestForm');
     const submitBtn = document.getElementById('submitBtn');
     
-    form.addEventListener('submit', function() {
+    form.addEventListener('submit', function(e) {
+        const errors = validateFileSizes();
+        
+        if (errors.length > 0) {
+            e.preventDefault();
+            Swal.fire({
+                icon: 'error',
+                title: 'File Size Error',
+                html: '<ul style="text-align:left;margin-left:20px;">' + errors.map(err => `<li>${err}</li>`).join('') + '</ul>',
+                confirmButtonColor: '#1a5632'
+            });
+            return false;
+        }
+        
         submitBtn.disabled = true;
         submitBtn.innerHTML = `
             <svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
