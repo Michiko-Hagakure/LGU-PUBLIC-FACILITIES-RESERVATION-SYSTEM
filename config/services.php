@@ -35,4 +35,20 @@ return [
         ],
     ],
 
+    'google_maps' => [
+        'api_key' => env('GOOGLE_MAPS_API_KEY'),
+    ],
+
+    'infrastructure_pm' => [
+        'base_url' => env('INFRASTRUCTURE_PM_URL', 'https://infra-pm.local-government-unit-1-ph.com'),
+        'api_key' => env('INFRASTRUCTURE_PM_API_KEY'),
+        'timeout' => env('INFRASTRUCTURE_PM_TIMEOUT', 30),
+    ],
+
+    'google' => [
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        'redirect' => env('GOOGLE_REDIRECT_URI', rtrim(env('APP_URL', config('app.url')), '/') . '/auth/google/callback'),
+    ],
+
 ];

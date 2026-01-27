@@ -24,7 +24,7 @@ use App\Http\Controllers\Admin\SystemSettingsController;
 // Root Route - Redirect to Login
 Route::get('/', function () {
     return redirect()->route('login');
-});
+})->name('landing');
 
 // CSRF Token Refresh Endpoint - For preventing stale token issues
 Route::get('/csrf-token', function () {
@@ -78,6 +78,11 @@ Route::get('/login', function () {
     session()->forget(['pending_login_user_id', 'show_otp_step']);
     return view('auth.login');
 })->name('login');
+
+// Google OAuth Routes
+Route::get('/auth/google', [\App\Http\Controllers\Auth\GoogleController::class, 'redirect'])->name('auth.google');
+Route::get('/auth/google/register', [\App\Http\Controllers\Auth\GoogleController::class, 'redirectForRegister'])->name('auth.google.register');
+Route::get('/auth/google/callback', [\App\Http\Controllers\Auth\GoogleController::class, 'callback'])->name('auth.google.callback');
 
 // Step 1: Login with Email/Password - Generate and Send OTP (AJAX)
 Route::post('/login', function () {
@@ -924,8 +929,12 @@ Route::post('/register', function () {
         // Hash password
         $passwordHash = Hash::make(request('password'));
 
-        // Generate verification token and OTP
-        $token = bin2hex(random_bytes(16));
+        // Check if registering via Google
+        $googleId = request('google_id');
+        $isGoogleRegistration = !empty($googleId);
+        
+        // For Google registration, auto-verify email; otherwise generate verification token
+        $token = $isGoogleRegistration ? null : bin2hex(random_bytes(16));
         $otp = random_int(100000, 999999);
         $now = now();
         $expiresAt = now()->addMinutes(1); // 1 minute expiration
@@ -934,6 +943,7 @@ Route::post('/register', function () {
         $userId = DB::connection('auth_db')->table('users')->insertGetId([
             'username' => request('username'),
             'email' => request('email'),
+            'google_id' => $googleId,
             'full_name' => request('full_name'),
             'password_hash' => $passwordHash,
             'birthdate' => request('birthdate'),
@@ -963,8 +973,8 @@ Route::post('/register', function () {
             'liveness_score' => $aiData['livenessScore'] ?? null,
             'ai_verification_status' => $aiData['status'] ?? 'pending',
             'ai_verification_notes' => isset($aiData['notes']) ? json_encode($aiData['notes']) : null,
-            'status' => 'inactive',
-            'is_email_verified' => 0,
+            'status' => $isGoogleRegistration ? 'active' : 'inactive',
+            'is_email_verified' => $isGoogleRegistration ? 1 : 0,
             'email_verification_token' => $token,
             'created_at' => $now,
             'updated_at' => $now,
@@ -1019,6 +1029,14 @@ Route::post('/register', function () {
 
         // Commit the transaction - all data is now saved
         DB::connection('auth_db')->commit();
+        
+        // Clear Google registration data from session
+        session()->forget('google_register_data');
+
+        // For Google registration, skip email verification and redirect to login
+        if ($isGoogleRegistration) {
+            return redirect()->route('login')->with('success', 'Registration successful! Your email has been verified via Google. You can now sign in.');
+        }
 
         // Store pending user info in session (only after successful DB commit)
         session([
@@ -1836,6 +1854,7 @@ Route::middleware(['auth', 'role:citizen', \App\Http\Middleware\CheckSessionTime
     Route::post('/citizen/favorites', [\App\Http\Controllers\Citizen\FavoriteController::class, 'store'])->name('citizen.favorites.store');
     Route::delete('/citizen/favorites/{facilityId}', [\App\Http\Controllers\Citizen\FavoriteController::class, 'destroy'])->name('citizen.favorites.destroy');
     Route::post('/citizen/favorites/toggle', [\App\Http\Controllers\Citizen\FavoriteController::class, 'toggle'])->name('citizen.favorites.toggle');
+    Route::patch('/citizen/favorites/{facilityId}/notifications', [\App\Http\Controllers\Citizen\FavoriteController::class, 'updateNotifications'])->name('citizen.favorites.notifications');
 });
 
 // Facility Routes (shared across roles)
@@ -1889,6 +1908,15 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::post('/profile/password', [ProfileSettingsController::class, 'updatePassword'])->name('profile.password.update');
     Route::post('/profile/lgu-update', [ProfileSettingsController::class, 'updateLguSettings'])->name('profile.lgu.update');
     Route::post('/profile/remove-photo', [ProfileSettingsController::class, 'removeProfilePhoto'])->name('profile.photo.remove');
+
+    // Infrastructure Project Management Integration
+    Route::get('/infrastructure/project-request', [\App\Http\Controllers\Admin\InfrastructureProjectController::class, 'create'])->name('infrastructure.project-request');
+    Route::post('/infrastructure/project-request', [\App\Http\Controllers\Admin\InfrastructureProjectController::class, 'store'])->name('infrastructure.project-request.store');
+    Route::get('/infrastructure/projects', [\App\Http\Controllers\Admin\InfrastructureProjectController::class, 'index'])->name('infrastructure.projects.index');
+    Route::get('/infrastructure/projects/{id}', [\App\Http\Controllers\Admin\InfrastructureProjectController::class, 'show'])->name('infrastructure.projects.show');
+    Route::get('/infrastructure/projects/{id}/status', [\App\Http\Controllers\Admin\InfrastructureProjectController::class, 'getStatus'])->name('infrastructure.projects.status');
+    Route::post('/infrastructure/projects/{id}/refresh', [\App\Http\Controllers\Admin\InfrastructureProjectController::class, 'refreshStatus'])->name('infrastructure.projects.refresh');
+    Route::post('/infrastructure/projects/sync-all', [\App\Http\Controllers\Admin\InfrastructureProjectController::class, 'syncAllStatuses'])->name('infrastructure.projects.sync-all');
 
 });
 

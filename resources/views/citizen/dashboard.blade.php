@@ -177,12 +177,4 @@
     </div>
 </div>
 
-@push('scripts')
-<script>
-// Dashboard interactivity can be added here
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('Citizen Dashboard Loaded');
-});
-</script>
-@endpush
 @endsection
