@@ -1,6 +1,7 @@
 ﻿@extends('layouts.admin')
 
 @section('page-title', 'Profile Settings')
+@section('page-subtitle', 'Manage your admin profile and credentials')
 
 @section('page-content')
 <div class="p-6">
@@ -58,63 +59,59 @@
             </div>
 
             <!-- Content Area -->
-            <div class="lg:col-span-3 p-6">
+            <div class="lg:col-span-3 p-8">
                 <!-- Admin Profile Tab -->
                 <div id="content-profile" class="profile-tab-content">
                     <h2 class="text-2xl font-bold text-lgu-headline mb-6">Personal Identification</h2>
                     
                     <!-- Profile Photo Section -->
-                    <div class="bg-gray-50 rounded-xl p-6 mb-6">
-                        <div class="flex items-center justify-between mb-4">
-                            <div class="flex items-center space-x-6">
-                                <div class="relative">
-                                    @php 
-                                        // Use session data (single source of truth, same as sidebar)
-                                        $userName = session('user_name', $user->full_name ?? 'Admin User');
-                                        $userEmail = session('user_email', $user->email ?? 'admin@lgu1.com');
-                                        
-                                        // Generate initials same as sidebar component
-                                        $nameParts = explode(' ', $userName);
-                                        $firstName = $nameParts[0] ?? 'A';
-                                        $lastName = end($nameParts);
-                                        $initials = strtoupper(
-                                            substr($firstName, 0, 1) . 
-                                            (($lastName !== $firstName) ? substr($lastName, 0, 1) : 'D')
-                                        );
-                                        
-                                        $photo = ($user && $user->profile_photo_path) ? asset($user->profile_photo_path) : 'https://ui-avatars.com/api/?name=' . urlencode($initials) . '&background=064e3b&color=fff&size=200';
-                                    @endphp
-                                    <img id="avatar-preview" src="{{ $photo }}" 
-                                         class="w-32 h-32 rounded-full object-cover border-4 border-white shadow-lg">
-                                </div>
-                                <div>
-                                    <h3 class="text-lg font-semibold text-lgu-headline mb-1">Profile Photo</h3>
-                                    <p class="text-sm text-lgu-paragraph">Accepted formats: JPG, PNG. Max 2MB.</p>
-                                </div>
+                    <div class="bg-gray-50 rounded-xl p-8 mb-8">
+                        @php 
+                            $userName = session('user_name', $user->full_name ?? 'Admin User');
+                            $userEmail = session('user_email', $user->email ?? 'admin@lgu1.com');
+                            $nameParts = explode(' ', $userName);
+                            $firstName = $nameParts[0] ?? 'A';
+                            $lastName = end($nameParts);
+                            $initials = strtoupper(substr($firstName, 0, 1) . (($lastName !== $firstName) ? substr($lastName, 0, 1) : 'D'));
+                            $photo = ($user && $user->profile_photo_path) ? asset($user->profile_photo_path) : 'https://ui-avatars.com/api/?name=' . urlencode($initials) . '&background=064e3b&color=fff&size=200';
+                        @endphp
+                        
+                        <div class="flex items-start gap-8">
+                            <!-- Avatar -->
+                            <div class="flex-shrink-0">
+                                <img id="avatar-preview" src="{{ $photo }}" 
+                                     class="w-32 h-32 rounded-full object-cover border-4 border-white shadow-lg">
                             </div>
                             
-                            @if($user && $user->profile_photo_path)
-                                <form id="remove-photo-form" action="{{ route('admin.profile.photo.remove') }}" method="POST">
-                                    @csrf
-                                    <button type="button" onclick="confirmRemovePhoto()" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition flex items-center">
-                                        <i data-lucide="trash-2" class="w-4 h-4 mr-2"></i>
-                                        Remove Photo
-                                    </button>
-                                </form>
-                            @endif
+                            <!-- Info and Actions -->
+                            <div class="flex-1 pt-2">
+                                <h3 class="text-lg font-semibold text-lgu-headline mb-1">Profile Photo</h3>
+                                <p class="text-sm text-lgu-paragraph mb-4">Accepted formats: JPG, PNG. Max 2MB.</p>
+                                
+                                <div class="flex items-center gap-3">
+                                    <!-- Upload Photo Form -->
+                                    <form action="{{ route('admin.profile.update') }}" method="POST" enctype="multipart/form-data">
+                                        @csrf
+                                        <input type="hidden" name="full_name" value="{{ session('user_name', $user->full_name ?? '') }}">
+                                        <label for="avatar_input" class="px-5 py-2.5 bg-lgu-button text-lgu-button-text rounded-lg cursor-pointer hover:opacity-90 transition inline-flex items-center">
+                                            <i data-lucide="camera" class="w-4 h-4 mr-2"></i>
+                                            Choose Photo
+                                        </label>
+                                        <input type="file" id="avatar_input" name="avatar" class="hidden" onchange="this.form.submit()" accept="image/*">
+                                    </form>
+                                    
+                                    @if($user && $user->profile_photo_path)
+                                        <form id="remove-photo-form" action="{{ route('admin.profile.photo.remove') }}" method="POST">
+                                            @csrf
+                                            <button type="button" onclick="confirmRemovePhoto()" class="px-5 py-2.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition inline-flex items-center">
+                                                <i data-lucide="trash-2" class="w-4 h-4 mr-2"></i>
+                                                Remove
+                                            </button>
+                                        </form>
+                                    @endif
+                                </div>
+                            </div>
                         </div>
-                        
-                        <!-- Upload Photo Form -->
-                        <form action="{{ route('admin.profile.update') }}" method="POST" enctype="multipart/form-data" class="flex items-center gap-4">
-                            @csrf
-                            <input type="hidden" name="full_name" value="{{ session('user_name', $user->full_name ?? '') }}">
-                            <label for="avatar_input" class="px-4 py-2 bg-lgu-button text-lgu-button-text rounded-lg cursor-pointer hover:opacity-90 transition flex items-center">
-                                <i data-lucide="camera" class="w-4 h-4 mr-2"></i>
-                                Choose Photo
-                            </label>
-                            <input type="file" id="avatar_input" name="avatar" class="hidden" onchange="this.form.submit()" accept="image/*">
-                            <span id="file-name" class="text-sm text-gray-600"></span>
-                        </form>
                     </div>
                     
                     <!-- Profile Update Form -->
@@ -122,13 +119,13 @@
                         @csrf
 
                         <!-- Form Fields -->
-                        <div class="space-y-4">
+                        <div class="space-y-6">
                             <div>
                                 <label class="block text-sm font-semibold text-lgu-headline mb-2">Full Name</label>
                                 <input type="text" name="full_name" 
                                        value="{{ session('user_name', $user->full_name ?? '') }}" 
                                        required
-                                       class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-lgu-stroke focus:outline-none">
+                                       class="w-full max-w-md px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-lgu-stroke focus:outline-none">
                             </div>
                             
                             <div>
@@ -136,7 +133,7 @@
                                 <input type="email" name="email" 
                                        value="{{ session('user_email', $user->email ?? '') }}" 
                                        readonly
-                                       class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed">
+                                       class="w-full max-w-md px-4 py-3 border-2 border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed">
                                 <p class="text-sm text-lgu-paragraph mt-1">Contact the Super Admin to change your official email.</p>
                             </div>
                             
