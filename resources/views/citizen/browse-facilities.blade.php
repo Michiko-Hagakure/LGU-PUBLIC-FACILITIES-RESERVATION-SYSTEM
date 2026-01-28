@@ -906,8 +906,8 @@
                         <span>Full payment required before reservation confirmation (no partial payments)</span>
                     </div>
                     <div class="flex items-start gap-2">
-                        <span class="font-semibold">Coming Soon:</span>
-                        <span>QC M.I.C.E. facilities pending ordinance approval for public bookings</span>
+                        <span class="font-semibold">QC M.I.C.E. Center:</span>
+                        <span>Convention Hall and Breakout Rooms now available for public bookings</span>
                     </div>
                 </div>
             </div>
