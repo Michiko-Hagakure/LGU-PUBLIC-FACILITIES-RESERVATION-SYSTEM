@@ -63,8 +63,11 @@ class CommunityMaintenanceController extends Controller
             // Use facility name only for unit_number (CIM API has issues with long addresses)
             $unitNumber = $facilityName;
             
+            // Append unique ID to resident name to allow multiple reports per person
+            $uniqueResidentName = $validated['resident_name'] . ' #' . time();
+            
             $payload = [
-                'resident_name' => $validated['resident_name'],
+                'resident_name' => $uniqueResidentName,
                 'contact_info' => $validated['contact_info'],
                 'subject' => $validated['subject'],
                 'description' => $validated['description'],
