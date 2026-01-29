@@ -221,6 +221,7 @@ class CommunityMaintenanceController extends Controller
             CURLOPT_POSTFIELDS => $jsonPayload,
             CURLOPT_HTTPHEADER => [
                 'Content-Type: application/json',
+                'User-Agent: curl/7.68.0',
             ],
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_TIMEOUT => $timeout,
