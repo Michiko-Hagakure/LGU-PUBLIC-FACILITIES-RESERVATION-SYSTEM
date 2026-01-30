@@ -377,6 +377,78 @@ class FacilityReservationApiController extends Controller
     }
 
     /**
+     * Get calendar bookings for a facility in a given month
+     * 
+     * GET /api/facility-reservation/calendar-bookings
+     */
+    public function calendarBookings(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'facility_id' => 'nullable|integer',
+                'year' => 'required|integer|min:2020|max:2030',
+                'month' => 'required|integer|min:1|max:12',
+            ]);
+
+            $year = $validated['year'];
+            $month = $validated['month'];
+            $facilityId = $validated['facility_id'] ?? null;
+
+            $startDate = Carbon::create($year, $month, 1)->startOfMonth();
+            $endDate = Carbon::create($year, $month, 1)->endOfMonth();
+
+            $query = DB::connection('facilities_db')
+                ->table('bookings')
+                ->join('facilities', 'bookings.facility_id', '=', 'facilities.facility_id')
+                ->whereIn('bookings.status', ['pending', 'staff_verified', 'reserved', 'payment_pending', 'confirmed', 'paid', 'completed'])
+                ->where(function($q) use ($startDate, $endDate) {
+                    $q->whereBetween(DB::raw('DATE(bookings.start_time)'), [$startDate->toDateString(), $endDate->toDateString()]);
+                })
+                ->select(
+                    'bookings.id',
+                    'bookings.facility_id',
+                    'bookings.start_time',
+                    'bookings.end_time',
+                    'bookings.status',
+                    'bookings.event_name',
+                    'facilities.name as facility_name'
+                )
+                ->orderBy('bookings.start_time');
+
+            if ($facilityId) {
+                $query->where('bookings.facility_id', $facilityId);
+            }
+
+            $bookings = $query->get();
+
+            $events = $bookings->map(function ($booking) {
+                return [
+                    'id' => $booking->id,
+                    'facility_id' => $booking->facility_id,
+                    'facility_name' => $booking->facility_name,
+                    'date' => Carbon::parse($booking->start_time)->format('Y-m-d'),
+                    'start_time' => Carbon::parse($booking->start_time)->format('h:i A'),
+                    'end_time' => Carbon::parse($booking->end_time)->format('h:i A'),
+                    'status' => $booking->status,
+                    'event_name' => $booking->event_name,
+                ];
+            });
+
+            return response()->json([
+                'status' => 'success',
+                'data' => $events,
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Validation failed.',
+                'errors' => $e->errors(),
+            ], 422);
+        }
+    }
+
+    /**
      * Check booking status by reference
      * 
      * GET /api/facility-reservation/status/{reference}
