@@ -12,7 +12,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::connection('facilities_db')->create('fund_requests', function (Blueprint $table) {
+        Schema::connection('auth_db')->create('fund_requests', function (Blueprint $table) {
             $table->id();
             $table->string('requester_name');
             $table->unsignedBigInteger('user_id')->nullable();
@@ -32,6 +32,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::connection('facilities_db')->dropIfExists('fund_requests');
+        Schema::connection('auth_db')->dropIfExists('fund_requests');
     }
 };

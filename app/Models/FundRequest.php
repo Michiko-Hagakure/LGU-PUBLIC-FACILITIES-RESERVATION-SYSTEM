@@ -3,7 +3,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 
 class FundRequest extends Model {
-    protected $connection = 'facilities_db';
+    protected $connection = 'auth_db';
     
     protected $table = 'fund_requests';
 
