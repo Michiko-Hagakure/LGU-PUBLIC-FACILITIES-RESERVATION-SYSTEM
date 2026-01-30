@@ -126,7 +126,21 @@
                 </svg>
                 Applicant Information
             </h2>
-            <p class="text-body text-gray-500">Applicant information not available.</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-gr-md">
+                <div>
+                    <label class="text-caption font-semibold text-gray-500 uppercase">Full Name</label>
+                    <p class="text-body font-semibold text-gray-900 mt-1">{{ $booking->applicant_name ?? $booking->user_name ?? 'N/A' }}</p>
+                </div>
+                <div>
+                    <label class="text-caption font-semibold text-gray-500 uppercase">Email</label>
+                    <p class="text-body font-semibold text-gray-900 mt-1">{{ $booking->applicant_email ?? 'N/A' }}</p>
+                </div>
+                <div>
+                    <label class="text-caption font-semibold text-gray-500 uppercase">Mobile Number</label>
+                    <p class="text-body font-semibold text-gray-900 mt-1">{{ $booking->applicant_phone ?? 'N/A' }}</p>
+                </div>
+            </div>
+            <p class="text-caption text-gray-400 mt-4">Note: Full user profile not available. Showing booking submission details.</p>
         </div>
         @endif
 
