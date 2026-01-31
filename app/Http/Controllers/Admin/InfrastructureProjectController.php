@@ -694,7 +694,9 @@ class InfrastructureProjectController extends Controller
     {
         $statusMap = [
             'pending' => 'submitted',
-            'pending_review' => 'submitted',
+            'pending_review' => 'under_review',
+            'pending_pm_assignment' => 'received',
+            'pm_assigned' => 'under_review',
             'received' => 'received',
             'under_review' => 'under_review',
             'engineer_review' => 'under_review',
