@@ -644,6 +644,11 @@ class InfrastructureProjectController extends Controller
             'rejected' => 'rejected',
             'in_progress' => 'in_progress',
             'completed' => 'completed',
+            'done' => 'completed',
+            'documents_prepared' => 'approved',
+            'for_implementation' => 'in_progress',
+            'under_construction' => 'in_progress',
+            'finished' => 'completed',
         ];
 
         return $statusMap[strtolower($apiStatus)] ?? $apiStatus;
