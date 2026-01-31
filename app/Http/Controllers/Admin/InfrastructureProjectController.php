@@ -443,7 +443,13 @@ class InfrastructureProjectController extends Controller
                     ]);
                     
                     if ($statusData['success']) {
-                        $newStatus = $this->mapApiStatus($statusData['data']['status'] ?? $statusData['data']['overall_status'] ?? 'submitted');
+                        // Prioritize project_status for execution tracking (done, in_progress, etc.)
+                        $apiStatus = $statusData['data']['project_status'] 
+                            ?? $statusData['data']['status'] 
+                            ?? $statusData['data']['overall_status'] 
+                            ?? 'submitted';
+                        
+                        $newStatus = $this->mapApiStatus($apiStatus);
                         
                         DB::connection('facilities_db')
                             ->table('infrastructure_project_requests')
