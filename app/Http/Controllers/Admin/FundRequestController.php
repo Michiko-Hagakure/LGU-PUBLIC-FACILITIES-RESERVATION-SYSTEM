@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\FundRequest;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\URL;
 
 class FundRequestController extends Controller
@@ -26,7 +27,32 @@ class FundRequestController extends Controller
             'approved_amount' => $requests->where('status', 'Approved')->sum('amount'),
         ];
 
-        return view('admin.fund-requests.index', compact('requests', 'stats'));
+        // Fetch available facilities
+        $facilities = DB::connection('facilities_db')
+            ->table('facilities')
+            ->where('is_available', true)
+            ->whereNull('deleted_at')
+            ->orderBy('name')
+            ->select('facility_id', 'name', 'capacity')
+            ->get();
+
+        // Equipment options for seminars/events
+        $equipment = [
+            ['id' => 'projector', 'name' => 'LCD Projector'],
+            ['id' => 'screen', 'name' => 'Projector Screen'],
+            ['id' => 'microphone', 'name' => 'Wireless Microphone'],
+            ['id' => 'speaker', 'name' => 'Sound System / Speakers'],
+            ['id' => 'laptop', 'name' => 'Laptop / Computer'],
+            ['id' => 'whiteboard', 'name' => 'Whiteboard with Markers'],
+            ['id' => 'flipchart', 'name' => 'Flipchart Stand'],
+            ['id' => 'extension', 'name' => 'Extension Cords'],
+            ['id' => 'chairs', 'name' => 'Additional Chairs'],
+            ['id' => 'tables', 'name' => 'Additional Tables'],
+            ['id' => 'aircon', 'name' => 'Air Conditioning'],
+            ['id' => 'podium', 'name' => 'Podium / Lectern'],
+        ];
+
+        return view('admin.fund-requests.index', compact('requests', 'stats', 'facilities', 'equipment'));
     }
 
     /**
@@ -38,6 +64,7 @@ class FundRequestController extends Controller
             'status' => 'required|in:Approved,Rejected',
             'feedback' => 'nullable|string|max:1000',
             'assigned_facility' => 'nullable|string|max:255',
+            'assigned_equipment' => 'nullable|string|max:1000',
             'scheduled_date' => 'nullable|date',
             'scheduled_time' => 'nullable|string|max:10',
             'approved_amount' => 'nullable|numeric|min:0',
@@ -53,6 +80,7 @@ class FundRequestController extends Controller
             $responseData = [
                 'approved_amount' => $validated['approved_amount'] ?? $fundRequest->amount,
                 'assigned_facility' => $validated['assigned_facility'] ?? null,
+                'assigned_equipment' => $validated['assigned_equipment'] ?? null,
                 'scheduled_date' => $validated['scheduled_date'] ?? null,
                 'scheduled_time' => $validated['scheduled_time'] ?? null,
                 'admin_notes' => $validated['admin_notes'] ?? null,

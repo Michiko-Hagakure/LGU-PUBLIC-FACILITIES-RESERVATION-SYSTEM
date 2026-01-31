@@ -233,6 +233,7 @@
     <input type="hidden" name="status" id="formStatus">
     <input type="hidden" name="feedback" id="formFeedback">
     <input type="hidden" name="assigned_facility" id="formAssignedFacility">
+    <input type="hidden" name="assigned_equipment" id="formAssignedEquipment">
     <input type="hidden" name="scheduled_date" id="formScheduledDate">
     <input type="hidden" name="scheduled_time" id="formScheduledTime">
     <input type="hidden" name="approved_amount" id="formApprovedAmount">
@@ -244,6 +245,8 @@
 <script>
     // Store request data for modal
     const requestsData = @json($requests->keyBy('id'));
+    const facilitiesData = @json($facilities);
+    const equipmentData = @json($equipment);
 
     function updateStatus(id, status) {
         const request = requestsData[id];
@@ -275,8 +278,22 @@
                     
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-1">Assigned Facility/Venue</label>
-                        <input type="text" id="swal_facility" placeholder="e.g., LGU Conference Hall, Training Room A"
-                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                        <select id="swal_facility" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                            <option value="">-- Select Facility --</option>
+                            ${facilitiesData.map(f => `<option value="${f.name}">${f.name} (Capacity: ${f.capacity})</option>`).join('')}
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Assigned Equipment</label>
+                        <div class="max-h-32 overflow-y-auto border border-gray-300 rounded-lg p-2 bg-white">
+                            ${equipmentData.map(e => `
+                                <label class="flex items-center gap-2 py-1 cursor-pointer hover:bg-gray-50 px-1 rounded">
+                                    <input type="checkbox" class="swal_equipment_checkbox rounded border-gray-300 text-green-600 focus:ring-green-500" value="${e.name}">
+                                    <span class="text-sm text-gray-700">${e.name}</span>
+                                </label>
+                            `).join('')}
+                        </div>
                     </div>
                     
                     <div class="grid grid-cols-2 gap-3">
@@ -317,9 +334,14 @@
                     Swal.showValidationMessage('Please enter a valid approved amount');
                     return false;
                 }
+                // Get selected equipment
+                const selectedEquipment = Array.from(document.querySelectorAll('.swal_equipment_checkbox:checked'))
+                    .map(cb => cb.value);
+                
                 return {
                     approved_amount: approvedAmount,
                     facility: document.getElementById('swal_facility').value,
+                    equipment: selectedEquipment.join(', '),
                     date: document.getElementById('swal_date').value,
                     time: document.getElementById('swal_time').value,
                     notes: document.getElementById('swal_notes').value
@@ -384,6 +406,7 @@
         document.getElementById('formStatus').value = 'Approved';
         document.getElementById('formFeedback').value = data.notes;
         document.getElementById('formAssignedFacility').value = data.facility;
+        document.getElementById('formAssignedEquipment').value = data.equipment;
         document.getElementById('formScheduledDate').value = data.date;
         document.getElementById('formScheduledTime').value = data.time;
         document.getElementById('formApprovedAmount').value = data.approved_amount;
