@@ -336,68 +336,61 @@ class InfrastructureProjectController extends Controller
     }
 
     /**
-     * Import projects from Infrastructure PM API for current user
+     * Import a single project by ID from Infrastructure PM API
      */
-    public function importProjects()
+    public function importProjects(Request $request)
     {
+        $projectId = $request->input('project_id');
+        
+        if (!$projectId) {
+            return back()->with('error', 'Please enter a Project ID to import.');
+        }
+
+        // Clean the project ID (remove PR- prefix if present)
+        $projectId = preg_replace('/^PR-?0*/i', '', $projectId);
+        
         try {
-            $baseUrl = config('services.infrastructure_pm.base_url');
-            $timeout = config('services.infrastructure_pm.timeout', 30);
-            $apiKey = config('services.infrastructure_pm.api_key');
+            // Check if already exists locally
+            $exists = DB::connection('facilities_db')
+                ->table('infrastructure_project_requests')
+                ->where('external_project_id', $projectId)
+                ->exists();
 
-            // Fetch projects from external API
-            $url = rtrim($baseUrl, '/') . '/api/integrations/GetUserProjects.php';
+            if ($exists) {
+                return back()->with('info', 'This project is already imported. Use "Sync All Statuses" to update.');
+            }
+
+            // Fetch project details from Infrastructure PM
+            $statusData = $this->fetchProjectStatus($projectId);
             
-            $headers = ['Accept' => 'application/json'];
-            if ($apiKey) {
-                $headers['Authorization'] = 'Bearer ' . $apiKey;
+            if (!$statusData['success']) {
+                return back()->with('error', 'Project not found in Infrastructure PM: ' . ($statusData['message'] ?? 'Unknown error'));
             }
 
-            $response = Http::timeout($timeout)
-                ->withHeaders($headers)
-                ->get($url, ['user_email' => session('email')]);
+            $project = $statusData['data'];
+            
+            // Insert the project locally
+            DB::connection('facilities_db')->table('infrastructure_project_requests')->insert([
+                'external_project_id' => $projectId,
+                'requesting_office' => $project['requesting_office'] ?? $project['department'] ?? 'Unknown',
+                'contact_person' => $project['contact_person'] ?? $project['requester'] ?? session('name'),
+                'project_title' => $project['project_title'] ?? $project['title'] ?? 'Project #' . $projectId,
+                'project_category' => $project['project_category'] ?? $project['category'] ?? 'Other',
+                'problem_identified' => $project['problem_identified'] ?? $project['description'] ?? '',
+                'estimated_budget' => $project['estimated_budget'] ?? $project['budget'] ?? null,
+                'priority_level' => strtolower($project['priority_level'] ?? $project['priority'] ?? 'medium'),
+                'status' => $this->mapApiStatus($project['status'] ?? $project['overall_status'] ?? 'submitted'),
+                'submitted_by_user_id' => session('user_id'),
+                'created_at' => $project['created_at'] ?? $project['date_submitted'] ?? now(),
+                'updated_at' => now(),
+            ]);
 
-            if (!$response->successful()) {
-                return back()->with('error', 'Failed to fetch projects from Infrastructure PM.');
-            }
-
-            $data = $response->json();
-            if (!$data['success'] || empty($data['data'])) {
-                return back()->with('info', 'No projects found to import.');
-            }
-
-            $imported = 0;
-            foreach ($data['data'] as $project) {
-                // Check if already exists locally
-                $exists = DB::connection('facilities_db')
-                    ->table('infrastructure_project_requests')
-                    ->where('external_project_id', $project['project_id'])
-                    ->exists();
-
-                if (!$exists) {
-                    DB::connection('facilities_db')->table('infrastructure_project_requests')->insert([
-                        'external_project_id' => $project['project_id'],
-                        'requesting_office' => $project['requesting_office'] ?? 'Unknown',
-                        'contact_person' => $project['contact_person'] ?? session('name'),
-                        'project_title' => $project['project_title'] ?? $project['title'] ?? 'Untitled',
-                        'project_category' => $project['project_category'] ?? $project['category'] ?? 'Other',
-                        'problem_identified' => $project['problem_identified'] ?? $project['description'] ?? '',
-                        'estimated_budget' => $project['estimated_budget'] ?? null,
-                        'priority_level' => strtolower($project['priority_level'] ?? $project['priority'] ?? 'medium'),
-                        'status' => $this->mapApiStatus($project['status'] ?? $project['overall_status'] ?? 'submitted'),
-                        'submitted_by_user_id' => session('user_id'),
-                        'created_at' => $project['created_at'] ?? now(),
-                        'updated_at' => now(),
-                    ]);
-                    $imported++;
-                }
-            }
-
-            return back()->with('success', "Imported {$imported} project(s) from Infrastructure PM.");
+            $title = $project['project_title'] ?? $project['title'] ?? 'Project #' . $projectId;
+            return back()->with('success', "Successfully imported: {$title}");
 
         } catch (\Exception $e) {
-            Log::error('Failed to import projects', ['error' => $e->getMessage()]);
-            return back()->with('error', 'Failed to import projects: ' . $e->getMessage());
+            Log::error('Failed to import project', ['error' => $e->getMessage(), 'project_id' => $projectId]);
+            return back()->with('error', 'Failed to import project: ' . $e->getMessage());
         }
     }
 
