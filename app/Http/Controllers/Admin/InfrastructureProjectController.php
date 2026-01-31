@@ -634,8 +634,8 @@ class InfrastructureProjectController extends Controller
     private function updateLocalStatus($externalProjectId, array $statusData): void
     {
         try {
-            // Get the API status - use status field (old API) first
-            $apiStatus = $statusData['status'] ?? $statusData['overall_status'] ?? $statusData['project_status'] ?? null;
+            // Get the API status - prefer project_status for execution tracking
+            $apiStatus = $statusData['project_status'] ?? $statusData['status'] ?? $statusData['overall_status'] ?? null;
             
             // Don't update if no valid status returned
             if (!$apiStatus) {
