@@ -446,18 +446,17 @@ class InfrastructureProjectController extends Controller
                     ]);
                     
                     if ($statusData['success']) {
-                        // Use status field (old API) - shows approved/rejected
-                        // Fall back to overall_status, then project_status for execution tracking
-                        $apiStatus = $statusData['data']['status'] 
+                        // Prioritize project_status for execution tracking (done, in_progress, etc.)
+                        $apiStatus = $statusData['data']['project_status'] 
+                            ?? $statusData['data']['status'] 
                             ?? $statusData['data']['overall_status'] 
-                            ?? $statusData['data']['project_status'] 
                             ?? null;
                         
                         Log::info('Sync status mapping', [
                             'project_id' => $project->external_project_id,
+                            'project_status' => $statusData['data']['project_status'] ?? 'NOT SET',
                             'status' => $statusData['data']['status'] ?? 'NOT SET',
                             'overall_status' => $statusData['data']['overall_status'] ?? 'NOT SET',
-                            'project_status' => $statusData['data']['project_status'] ?? 'NOT SET',
                             'chosen' => $apiStatus,
                         ]);
                         
