@@ -81,6 +81,15 @@ class InfrastructureProjectController extends Controller
         }
 
         try {
+            // FIRST: Store local record to ensure we never lose track
+            $localId = $this->storeLocalRecord($validated, null);
+            
+            if (!$localId) {
+                return back()
+                    ->withInput()
+                    ->with('error', 'Failed to create local tracking record. Please try again.');
+            }
+
             // Prepare the request payload
             $payload = $this->preparePayload($validated, $request);
 
@@ -88,23 +97,37 @@ class InfrastructureProjectController extends Controller
             $response = $this->sendToInfrastructurePM($payload);
 
             if ($response['success']) {
+                $externalId = $response['data']['project_id'] ?? null;
+                
+                // Update local record with external project ID
+                if ($externalId) {
+                    DB::connection('facilities_db')
+                        ->table('infrastructure_project_requests')
+                        ->where('id', $localId)
+                        ->update(['external_project_id' => $externalId, 'updated_at' => now()]);
+                }
+
                 // Log successful submission
                 Log::info('Infrastructure project request submitted successfully', [
-                    'project_id' => $response['data']['project_id'] ?? null,
+                    'local_id' => $localId,
+                    'project_id' => $externalId,
                     'user_id' => session('user_id'),
                 ]);
 
-                // Store local record for tracking
-                $this->storeLocalRecord($validated, $response['data']['project_id'] ?? null);
-
                 return redirect()
                     ->route('admin.infrastructure.project-request')
-                    ->with('success', 'Project request submitted successfully! Project ID: ' . ($response['data']['project_id'] ?? 'Pending'));
+                    ->with('success', 'Project request submitted successfully! Project ID: ' . ($externalId ?? 'PR-' . $localId));
             }
+
+            // API failed but local record exists - update status
+            DB::connection('facilities_db')
+                ->table('infrastructure_project_requests')
+                ->where('id', $localId)
+                ->update(['status' => 'api_error', 'updated_at' => now()]);
 
             return back()
                 ->withInput()
-                ->with('error', $response['message'] ?? 'Failed to submit project request. Please try again.');
+                ->with('error', ($response['message'] ?? 'Failed to submit to Infrastructure PM.') . ' Your request has been saved locally and can be resubmitted.');
 
         } catch (\Exception $e) {
             Log::error('Infrastructure project request failed', [
@@ -232,11 +255,12 @@ class InfrastructureProjectController extends Controller
 
     /**
      * Store a local record of the submission for tracking
+     * @return int|null The ID of the inserted record, or null on failure
      */
-    private function storeLocalRecord(array $validated, ?int $externalProjectId): void
+    private function storeLocalRecord(array $validated, ?int $externalProjectId): ?int
     {
         try {
-            DB::connection('facilities_db')->table('infrastructure_project_requests')->insert([
+            return DB::connection('facilities_db')->table('infrastructure_project_requests')->insertGetId([
                 'external_project_id' => $externalProjectId,
                 'requesting_office' => $validated['requesting_office'],
                 'contact_person' => $validated['contact_person'],
@@ -251,10 +275,10 @@ class InfrastructureProjectController extends Controller
                 'updated_at' => now(),
             ]);
         } catch (\Exception $e) {
-            // Log but don't fail the request if local storage fails
-            Log::warning('Failed to store local infrastructure project record', [
+            Log::error('Failed to store local infrastructure project record', [
                 'error' => $e->getMessage(),
             ]);
+            return null;
         }
     }
 
