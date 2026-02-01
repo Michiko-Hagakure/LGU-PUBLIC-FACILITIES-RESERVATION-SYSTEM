@@ -60,6 +60,11 @@ return [
         'timeout' => env('ENERGY_EFFICIENCY_TIMEOUT', 30),
     ],
 
+    'road_transport' => [
+        'url' => env('ROAD_TRANSPORT_URL', 'https://roads.local-government-unit-1-ph.com'),
+        'timeout' => env('ROAD_TRANSPORT_TIMEOUT', 30),
+    ],
+
     'google' => [
         'client_id' => env('GOOGLE_CLIENT_ID'),
         'client_secret' => env('GOOGLE_CLIENT_SECRET'),

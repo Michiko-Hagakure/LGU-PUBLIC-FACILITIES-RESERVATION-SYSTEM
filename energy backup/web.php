@@ -8,6 +8,8 @@ use App\Http\Controllers\Admin\TransactionController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\SettingsController as ProfileSettingsController;
 use App\Http\Controllers\Admin\SystemSettingsController;
+use App\Models\FundRequest;
+use Illuminate\Http\Request;
 
 
 
@@ -1994,18 +1996,12 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::get('/infrastructure/projects/{id}/status', [\App\Http\Controllers\Admin\InfrastructureProjectController::class, 'getStatus'])->name('infrastructure.projects.status');
     Route::post('/infrastructure/projects/{id}/refresh', [\App\Http\Controllers\Admin\InfrastructureProjectController::class, 'refreshStatus'])->name('infrastructure.projects.refresh');
     Route::post('/infrastructure/projects/sync-all', [\App\Http\Controllers\Admin\InfrastructureProjectController::class, 'syncAllStatuses'])->name('infrastructure.projects.sync-all');
-    Route::post('/infrastructure/projects/import', [\App\Http\Controllers\Admin\InfrastructureProjectController::class, 'importProjects'])->name('infrastructure.projects.import');
 
     // Community Infrastructure Maintenance Integration
     Route::get('/community-maintenance/request', [\App\Http\Controllers\Admin\CommunityMaintenanceController::class, 'create'])->name('community-maintenance.create');
     Route::post('/community-maintenance/request', [\App\Http\Controllers\Admin\CommunityMaintenanceController::class, 'store'])->name('community-maintenance.store');
     Route::get('/community-maintenance/reports', [\App\Http\Controllers\Admin\CommunityMaintenanceController::class, 'index'])->name('community-maintenance.index');
     Route::post('/community-maintenance/refresh', [\App\Http\Controllers\Admin\CommunityMaintenanceController::class, 'refreshStatuses'])->name('community-maintenance.refresh');
-
-    // Facility Site Selection Integration (Urban Planning)
-    Route::get('/facility-site-selection', [\App\Http\Controllers\Admin\FacilitySiteSelectionController::class, 'index'])->name('facility-site-selection.index');
-    Route::post('/facility-site-selection/search', [\App\Http\Controllers\Admin\FacilitySiteSelectionController::class, 'search'])->name('facility-site-selection.search');
-    Route::post('/facility-site-selection/check-suitability', [\App\Http\Controllers\Admin\FacilitySiteSelectionController::class, 'checkSuitability'])->name('facility-site-selection.check-suitability');
 
 });
 
@@ -2026,32 +2022,20 @@ Route::middleware(['auth'])->group(function () {
         }
     })->name('dashboard');
 });
-
-/*
-|--------------------------------------------------------------------------
-| Energy Efficiency Fund Requests Management
-|--------------------------------------------------------------------------
-*/
-// View all fund requests from Energy Efficiency (signed URL required)
-Route::middleware(['auth', 'signed'])->prefix('admin')->name('admin.')->group(function () {
-    Route::get('/fund-requests', [\App\Http\Controllers\Admin\FundRequestController::class, 'index'])
-        ->name('fund-requests.index');
+// Route para makita ang listahan ng funds
+Route::get('/view-funds', function () {
+    $requests = FundRequest::orderBy('created_at', 'desc')->get();
+    return view('view-funds', compact('requests'));
 });
 
-// Update fund request status (auth + CSRF protection, no signed URL needed)
-Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
-    Route::post('/fund-requests/{id}/status', [\App\Http\Controllers\Admin\FundRequestController::class, 'updateStatus'])
-        ->name('fund-requests.update-status');
-});
-
-/*
-|--------------------------------------------------------------------------
-| Road and Transportation Infrastructure Monitoring - Road Assistance
-|--------------------------------------------------------------------------
-*/
-Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
-    Route::get('/road-assistance', [\App\Http\Controllers\Admin\RoadAssistanceController::class, 'index'])
-        ->name('road-assistance.index');
-    Route::post('/road-assistance/{id}/status', [\App\Http\Controllers\Admin\RoadAssistanceController::class, 'updateStatus'])
-        ->name('road-assistance.update-status');
-});
+// Route para sa Approve/Reject na may Feedback
+Route::post('/update-fund-status/{id}', function (Request $request, $id) {
+    $fund = FundRequest::find($id);
+    if ($fund) {
+        $fund->status = $request->status;     // Approved or Rejected
+        $fund->feedback = $request->feedback; // Admin message
+        $fund->save();
+        return back()->with('success', 'Status updated successfully!');
+    }
+    return back()->with('error', 'Request not found.');
+})->name('update.fund.status'); // DITO GALING ANG PANGALAN NG ROUTE

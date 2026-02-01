@@ -175,3 +175,91 @@ Route::prefix('energy-efficiency')->group(function () {
     });
 });
 
+
+/*
+|--------------------------------------------------------------------------
+| Road and Transportation Infrastructure Monitoring API
+|--------------------------------------------------------------------------
+| API endpoints for Road and Transportation system to submit road assistance
+| requests for events that may cause traffic congestion.
+|
+| Available Endpoints:
+| POST /api/road-assistance/request - Submit a new road assistance request
+| GET  /api/road-assistance/status/{id} - Check request status
+*/
+Route::prefix('road-assistance')->group(function () {
+    // POST - Submit a new road assistance request
+    Route::post('/request', function (Request $request) {
+        $validated = $request->validate([
+            'requester_name' => 'required|string|max:255',
+            'user_id' => 'nullable|integer',
+            'event_name' => 'required|string|max:255',
+            'event_description' => 'nullable|string',
+            'event_location' => 'required|string|max:500',
+            'event_date' => 'required|date',
+            'event_start_time' => 'nullable|string|max:10',
+            'event_end_time' => 'nullable|string|max:10',
+            'expected_attendees' => 'nullable|integer',
+            'affected_roads' => 'nullable|string',
+            'assistance_type' => 'nullable|string',
+            'special_requirements' => 'nullable|string',
+            'contact_phone' => 'nullable|string|max:20',
+            'contact_email' => 'nullable|email|max:255',
+        ]);
+
+        $newRequest = \App\Models\RoadAssistanceRequest::create([
+            'requester_name' => $validated['requester_name'],
+            'user_id' => $validated['user_id'] ?? null,
+            'event_name' => $validated['event_name'],
+            'event_description' => $validated['event_description'] ?? null,
+            'event_location' => $validated['event_location'],
+            'event_date' => $validated['event_date'],
+            'event_start_time' => $validated['event_start_time'] ?? null,
+            'event_end_time' => $validated['event_end_time'] ?? null,
+            'expected_attendees' => $validated['expected_attendees'] ?? null,
+            'affected_roads' => $validated['affected_roads'] ?? null,
+            'assistance_type' => $validated['assistance_type'] ?? null,
+            'special_requirements' => $validated['special_requirements'] ?? null,
+            'contact_phone' => $validated['contact_phone'] ?? null,
+            'contact_email' => $validated['contact_email'] ?? null,
+            'status' => 'pending',
+        ]);
+
+        if ($newRequest) {
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Road assistance request submitted successfully',
+                'id' => $newRequest->id,
+            ]);
+        }
+
+        return response()->json(['status' => 'error', 'message' => 'Failed to create road assistance request'], 500);
+    });
+
+    // GET - Check road assistance request status
+    Route::get('/status/{id}', function ($id) {
+        $request = \App\Models\RoadAssistanceRequest::find($id);
+
+        if (!$request) {
+            return response()->json(['status' => 'error', 'message' => 'Request not found'], 404);
+        }
+
+        $responseData = $request->response_data ? json_decode($request->response_data, true) : null;
+
+        return response()->json([
+            'status' => 'success',
+            'data' => [
+                'id' => $request->id,
+                'requester_name' => $request->requester_name,
+                'event_name' => $request->event_name,
+                'event_location' => $request->event_location,
+                'event_date' => $request->event_date,
+                'approval_status' => $request->status,
+                'feedback' => $request->feedback,
+                'response_data' => $responseData,
+                'created_at' => $request->created_at,
+                'updated_at' => $request->updated_at,
+            ],
+        ]);
+    });
+});
