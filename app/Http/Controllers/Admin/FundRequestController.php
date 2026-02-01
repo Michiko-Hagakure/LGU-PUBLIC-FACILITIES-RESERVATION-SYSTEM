@@ -69,6 +69,7 @@ class FundRequestController extends Controller
             'assigned_equipment' => 'nullable|string|max:1000',
             'scheduled_date' => 'nullable|date',
             'scheduled_time' => 'nullable|string|max:10',
+            'scheduled_end_time' => 'nullable|string|max:10',
             'approved_amount' => 'nullable|numeric|min:0',
             'admin_notes' => 'nullable|string|max:1000',
         ]);
@@ -85,6 +86,7 @@ class FundRequestController extends Controller
                 'assigned_equipment' => $validated['assigned_equipment'] ?? null,
                 'scheduled_date' => $validated['scheduled_date'] ?? null,
                 'scheduled_time' => $validated['scheduled_time'] ?? null,
+                'scheduled_end_time' => $validated['scheduled_end_time'] ?? null,
                 'admin_notes' => $validated['admin_notes'] ?? null,
                 'approved_at' => now()->toDateTimeString(),
                 'approved_by' => auth()->user()->name ?? 'Admin',

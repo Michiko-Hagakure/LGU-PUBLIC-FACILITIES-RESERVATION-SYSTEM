@@ -236,6 +236,7 @@
     <input type="hidden" name="assigned_equipment" id="formAssignedEquipment">
     <input type="hidden" name="scheduled_date" id="formScheduledDate">
     <input type="hidden" name="scheduled_time" id="formScheduledTime">
+    <input type="hidden" name="scheduled_end_time" id="formScheduledEndTime">
     <input type="hidden" name="approved_amount" id="formApprovedAmount">
     <input type="hidden" name="admin_notes" id="formAdminNotes">
 </form>
@@ -296,15 +297,20 @@
                         </div>
                     </div>
                     
-                    <div class="grid grid-cols-2 gap-3">
+                    <div class="grid grid-cols-3 gap-3">
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-1">Scheduled Date</label>
                             <input type="date" id="swal_date" 
                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">
                         </div>
                         <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-1">Scheduled Time</label>
-                            <input type="time" id="swal_time" 
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Start Time</label>
+                            <input type="time" id="swal_start_time" 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">End Time</label>
+                            <input type="time" id="swal_end_time" 
                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">
                         </div>
                     </div>
@@ -343,7 +349,8 @@
                     facility: document.getElementById('swal_facility').value,
                     equipment: selectedEquipment.join(', '),
                     date: document.getElementById('swal_date').value,
-                    time: document.getElementById('swal_time').value,
+                    start_time: document.getElementById('swal_start_time').value,
+                    end_time: document.getElementById('swal_end_time').value,
                     notes: document.getElementById('swal_notes').value
                 };
             }
@@ -408,7 +415,8 @@
         document.getElementById('formAssignedFacility').value = data.facility;
         document.getElementById('formAssignedEquipment').value = data.equipment;
         document.getElementById('formScheduledDate').value = data.date;
-        document.getElementById('formScheduledTime').value = data.time;
+        document.getElementById('formScheduledTime').value = data.start_time;
+        document.getElementById('formScheduledEndTime').value = data.end_time;
         document.getElementById('formApprovedAmount').value = data.approved_amount;
         document.getElementById('formAdminNotes').value = data.notes;
         
