@@ -153,18 +153,24 @@ class FundRequestController extends Controller
                 }
             }
 
+            // Format equipment as comma-separated string
+            $equipmentString = '';
+            if (!empty($equipment)) {
+                $equipmentString = implode(', ', array_column($equipment, 'name'));
+            }
+
             // Build payload for Energy Efficiency
             $payload = [
-                'government_id' => $fundRequest->id,
+                'receive_approval' => '1',
+                'fund_request_id' => $fundRequest->id,
                 'status' => $validated['status'],
                 'feedback' => $validated['feedback'] ?? null,
-                'requested_amount' => $fundRequest->amount,
                 'approved_amount' => $validated['approved_amount'] ?? $fundRequest->amount,
-                'scheduled_date' => $validated['scheduled_date'] ?? null,
-                'scheduled_time' => $validated['scheduled_time'] ?? null,
+                'schedule_date' => $validated['scheduled_date'] ?? null,
+                'schedule_start_time' => $validated['scheduled_time'] ?? null,
+                'schedule_end_time' => $validated['scheduled_end_time'] ?? null,
                 'admin_notes' => $validated['admin_notes'] ?? null,
-                'approved_by' => auth()->user()->name ?? 'LGU Admin',
-                'equipment' => $equipment,
+                'equipment' => $equipmentString,
             ];
 
             // Merge facility data
@@ -179,7 +185,8 @@ class FundRequestController extends Controller
             }
 
             $response = Http::timeout(10)
-                ->post("{$apiUrl}/api/ReceiveFundApproval.php", $payload);
+                ->asForm()
+                ->post("{$apiUrl}/request_fund.php", $payload);
 
             if ($response->successful()) {
                 Log::info('Energy Efficiency notification sent successfully', [
