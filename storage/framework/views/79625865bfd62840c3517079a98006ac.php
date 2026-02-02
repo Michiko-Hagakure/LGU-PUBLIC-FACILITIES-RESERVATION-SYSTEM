@@ -178,14 +178,6 @@
     </div>
 </div>
 
-<?php $__env->startPush('scripts'); ?>
-<script>
-// Dashboard interactivity can be added here
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('Citizen Dashboard Loaded');
-});
-</script>
-<?php $__env->stopPush(); ?>
 <?php $__env->stopSection(); ?>
 
 <?php echo $__env->make('layouts.citizen', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH D:\xampp\htdocs\LGU-PUBLIC-FACILITIES-RESERVATION-SYSTEM\resources\views/citizen/dashboard.blade.php ENDPATH**/ ?>

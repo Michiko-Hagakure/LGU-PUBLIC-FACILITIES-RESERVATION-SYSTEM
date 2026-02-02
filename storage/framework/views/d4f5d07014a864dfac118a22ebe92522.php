@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>LGU Facility Reservation</title>
+    <link rel="icon" type="image/x-icon" href="<?php echo e(asset('Images/logo.png')); ?>">
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600,700" rel="stylesheet" />
     <script src="https://cdn.tailwindcss.com"></script>
@@ -72,7 +73,7 @@
             </div>
             <div class="hidden md:flex gap-6 items-center">
                 <a href="<?php echo e(route('login')); ?>" class="text-sm font-bold hover:text-orange-400 transition uppercase tracking-tighter">Log in</a>
-                <a href="<?php echo e(route('register')); ?>" class="bg-orange-600 text-white px-8 py-3 rounded-full text-sm font-bold hover:bg-orange-700 transition shadow-xl shadow-orange-900/40 uppercase">Get Started</a>
+                <a href="<?php echo e(route('register')); ?>" class="bg-orange-600 text-white px-8 py-3 rounded-full text-sm font-bold hover:bg-orange-700 transition shadow-xl shadow-orange-900/40 uppercase">REGISTER</a>
             </div>
             <button id="menu-btn" class="lg:hidden text-white p-2">
                 <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">

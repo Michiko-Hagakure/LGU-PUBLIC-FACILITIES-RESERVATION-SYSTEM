@@ -47,7 +47,10 @@
                 <div class="tab-content p-6 <?php echo e(!$loop->first ? 'hidden' : ''); ?>" id="tab-<?php echo e($key); ?>">
                     <h2 class="text-xl font-bold text-lgu-headline mb-4"><?php echo e($category['label']); ?> Settings</h2>
                     
-                    <?php if($category['settings']->isEmpty()): ?>
+                    <?php if($key === 'communication'): ?>
+                        <!-- Special Communication Settings UI -->
+                        <?php echo $__env->make('admin.settings.partials.communication', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+                    <?php elseif($category['settings']->isEmpty()): ?>
                         <p class="text-gray-500">No settings available in this category.</p>
                     <?php else: ?>
                         <div class="space-y-6">
