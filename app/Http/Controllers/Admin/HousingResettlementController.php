@@ -47,9 +47,7 @@ class HousingResettlementController extends Controller
         $stats = [
             'total' => $requests->count(),
             'pending' => $requests->where('status', 'pending')->count(),
-            'staff_verified' => $requests->where('status', 'staff_verified')->count(),
             'confirmed' => $requests->where('status', 'confirmed')->count(),
-            'cancelled' => $requests->where('status', 'cancelled')->count(),
             'total_attendees' => $requests->sum('expected_attendees'),
         ];
 

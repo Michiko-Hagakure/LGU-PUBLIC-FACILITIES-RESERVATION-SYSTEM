@@ -25,7 +25,7 @@
 @section('page-content')
 <div class="space-y-gr-lg">
     {{-- Stats Cards --}}
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-gr-md">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-gr-md">
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-gr-md">
             <div class="flex items-center gap-gr-sm">
                 <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -45,17 +45,6 @@
                 <div>
                     <p class="text-caption text-gray-500 uppercase font-semibold">Pending</p>
                     <p class="text-h2 font-bold text-amber-600">{{ $stats['pending'] }}</p>
-                </div>
-            </div>
-        </div>
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-gr-md">
-            <div class="flex items-center gap-gr-sm">
-                <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <i data-lucide="user-check" class="w-6 h-6 text-blue-600"></i>
-                </div>
-                <div>
-                    <p class="text-caption text-gray-500 uppercase font-semibold">Staff Verified</p>
-                    <p class="text-h2 font-bold text-blue-600">{{ $stats['staff_verified'] }}</p>
                 </div>
             </div>
         </div>
