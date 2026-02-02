@@ -2046,6 +2046,20 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
 
 /*
 |--------------------------------------------------------------------------
+| Housing and Resettlement Management - Facility Requests
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/housing-resettlement', [\App\Http\Controllers\Admin\HousingResettlementController::class, 'index'])
+        ->name('housing-resettlement.index');
+    Route::post('/housing-resettlement/{id}/approve', [\App\Http\Controllers\Admin\HousingResettlementController::class, 'approve'])
+        ->name('housing-resettlement.approve');
+    Route::post('/housing-resettlement/{id}/reject', [\App\Http\Controllers\Admin\HousingResettlementController::class, 'reject'])
+        ->name('housing-resettlement.reject');
+});
+
+/*
+|--------------------------------------------------------------------------
 | Road and Transportation Infrastructure Monitoring - Road Assistance
 |--------------------------------------------------------------------------
 */
