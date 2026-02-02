@@ -21,7 +21,6 @@ class HousingResettlementController extends Controller
             ->orderBy('bookings.created_at', 'desc')
             ->select(
                 'bookings.id',
-                'bookings.booking_reference',
                 'bookings.event_name',
                 'bookings.event_description',
                 'bookings.purpose',
@@ -38,7 +37,11 @@ class HousingResettlementController extends Controller
                 'facilities.name as facility_name',
                 'facilities.capacity as facility_capacity'
             )
-            ->get();
+            ->get()
+            ->map(function ($request) {
+                $request->booking_reference = 'BK' . str_pad($request->id, 6, '0', STR_PAD_LEFT);
+                return $request;
+            });
 
         // Count stats
         $stats = [
