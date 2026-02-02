@@ -14,7 +14,7 @@ if (!isset($_GET['key']) || $_GET['key'] !== $securityKey) {
     die('Access denied. Add ?key=' . $securityKey . ' to the URL');
 }
 
-$apiUrl = 'https://local-government-unit-1-ph.com/api/housing-resettlement/request';
+$apiUrl = 'https://facilities.local-government-unit-1-ph.com/api/housing-resettlement/request';
 
 // Test data
 $testData = [
