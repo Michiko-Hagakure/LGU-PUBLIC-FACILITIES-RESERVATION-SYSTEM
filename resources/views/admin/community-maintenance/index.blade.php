@@ -92,77 +92,75 @@
     </div>
 
     {{-- Reports Table --}}
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div class="overflow-x-auto">
-            <table class="w-full">
-                <thead class="bg-gray-50 border-b border-gray-200">
-                    <tr>
-                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Report #</th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Subject</th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Facility</th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Type</th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Priority</th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Submitted</th>
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+        <table class="w-full table-fixed">
+            <thead class="bg-gray-50 border-b border-gray-200">
+                <tr>
+                    <th class="w-16 px-3 py-3 text-left text-xs font-semibold text-gray-600 uppercase">#</th>
+                    <th class="px-3 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Subject</th>
+                    <th class="w-40 px-3 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Facility</th>
+                    <th class="w-24 px-3 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Type</th>
+                    <th class="w-20 px-3 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Priority</th>
+                    <th class="w-24 px-3 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Status</th>
+                    <th class="w-28 px-3 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Submitted</th>
+                </tr>
+            </thead>
+            <tbody id="reports-tbody" class="divide-y divide-gray-200">
+                @forelse($requests as $request)
+                    @php
+                        $statusColors = [
+                            'submitted' => 'bg-blue-100 text-blue-800',
+                            'reviewed' => 'bg-purple-100 text-purple-800',
+                            'in_progress' => 'bg-amber-100 text-amber-800',
+                            'resolved' => 'bg-green-100 text-green-800',
+                            'closed' => 'bg-gray-100 text-gray-600',
+                        ];
+                        $priorityColors = [
+                            'low' => 'bg-green-100 text-green-800',
+                            'medium' => 'bg-yellow-100 text-yellow-800',
+                            'high' => 'bg-orange-100 text-orange-800',
+                            'urgent' => 'bg-red-100 text-red-800',
+                        ];
+                    @endphp
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-3 py-3 text-sm font-medium text-gray-900">
+                            {{ $request->external_report_id ?? $request->id }}
+                        </td>
+                        <td class="px-3 py-3 text-sm text-gray-900 truncate" title="{{ $request->subject }}">
+                            {{ Str::limit($request->subject, 30) }}
+                        </td>
+                        <td class="px-3 py-3 text-sm text-gray-600 truncate" title="{{ $request->facility_name }}">
+                            {{ Str::limit($request->facility_name, 20) }}
+                        </td>
+                        <td class="px-3 py-3 text-center">
+                            <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+                                {{ ucfirst($request->report_type) }}
+                            </span>
+                        </td>
+                        <td class="px-3 py-3 text-center">
+                            <span class="px-2 py-0.5 rounded-full text-xs font-medium {{ $priorityColors[$request->priority] ?? 'bg-gray-100 text-gray-600' }}">
+                                {{ ucfirst($request->priority) }}
+                            </span>
+                        </td>
+                        <td class="px-3 py-3 text-center">
+                            <span class="px-2 py-0.5 rounded-full text-xs font-medium {{ $statusColors[$request->status] ?? 'bg-gray-100 text-gray-600' }}">
+                                {{ ucfirst(str_replace('_', ' ', $request->status)) }}
+                            </span>
+                        </td>
+                        <td class="px-3 py-3 text-xs text-gray-600">
+                            {{ \Carbon\Carbon::parse($request->created_at)->format('M j, Y') }}
+                        </td>
                     </tr>
-                </thead>
-                <tbody id="reports-tbody" class="divide-y divide-gray-200">
-                    @forelse($requests as $request)
-                        @php
-                            $statusColors = [
-                                'submitted' => 'bg-blue-100 text-blue-800',
-                                'reviewed' => 'bg-purple-100 text-purple-800',
-                                'in_progress' => 'bg-amber-100 text-amber-800',
-                                'resolved' => 'bg-green-100 text-green-800',
-                                'closed' => 'bg-gray-100 text-gray-600',
-                            ];
-                            $priorityColors = [
-                                'low' => 'bg-green-100 text-green-800',
-                                'medium' => 'bg-yellow-100 text-yellow-800',
-                                'high' => 'bg-orange-100 text-orange-800',
-                                'urgent' => 'bg-red-100 text-red-800',
-                            ];
-                        @endphp
-                        <tr class="hover:bg-gray-50">
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                #{{ $request->external_report_id ?? $request->id }}
-                            </td>
-                            <td class="px-6 py-4 text-sm text-gray-900 max-w-xs truncate" title="{{ $request->subject }}">
-                                {{ Str::limit($request->subject, 40) }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                {{ Str::limit($request->facility_name, 25) }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
-                                    {{ ucfirst($request->report_type) }}
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                <span class="px-2.5 py-1 rounded-full text-xs font-medium {{ $priorityColors[$request->priority] ?? 'bg-gray-100 text-gray-600' }}">
-                                    {{ ucfirst($request->priority) }}
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                <span class="px-2.5 py-1 rounded-full text-xs font-medium {{ $statusColors[$request->status] ?? 'bg-gray-100 text-gray-600' }}">
-                                    {{ ucfirst(str_replace('_', ' ', $request->status)) }}
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                {{ \Carbon\Carbon::parse($request->created_at)->format('M j, Y g:i A') }}
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="7" class="px-6 py-12 text-center">
-                                <i data-lucide="wrench" class="w-12 h-12 text-gray-300 mb-3 mx-auto"></i>
-                                <p class="text-gray-500">No maintenance reports submitted yet</p>
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
+                @empty
+                    <tr>
+                        <td colspan="7" class="px-3 py-12 text-center">
+                            <i data-lucide="wrench" class="w-12 h-12 text-gray-300 mb-3 mx-auto"></i>
+                            <p class="text-gray-500">No maintenance reports submitted yet</p>
+                        </td>
+                    </tr>
+                @endforelse
+            </tbody>
+        </table>
     </div>
 
     {{-- Pagination --}}
