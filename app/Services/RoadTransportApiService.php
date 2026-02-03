@@ -23,6 +23,7 @@ class RoadTransportApiService
     {
         try {
             $payload = [
+                'user_id' => $data['user_id'],
                 'external_system' => 'PFRS',
                 'external_user_id' => $data['user_id'],
                 'system_name' => 'Public Facility Reservation System',
