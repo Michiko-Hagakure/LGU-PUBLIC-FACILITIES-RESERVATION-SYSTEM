@@ -121,7 +121,7 @@
                             <td class="text-center"><span class="font-bold">{{ $request->expected_attendees ?? '-' }}</span></td>
                             <td class="truncate-cell" title="{{ $request->applicant_name }} | {{ $request->applicant_email }}"><p class="font-medium text-gray-800 truncate">{{ Str::limit($request->applicant_name, 15) }}</p><p class="text-xs text-gray-500 truncate">{{ Str::limit($request->applicant_email, 20) }}</p></td>
                             <td class="text-center"><span class="status-badge status-{{ $request->status }}">{{ str_replace('_', ' ', $request->status) }}</span></td>
-                            <td>@if($request->status === 'pending')<div class="flex gap-1 justify-center"><form action="{{ route('admin.housing-resettlement.approve', $request->id) }}" method="POST" class="inline">@csrf<button type="submit" class="bg-green-600 text-white px-2 py-1 rounded text-xs font-semibold hover:bg-green-700 transition-colors" title="Approve"><i data-lucide="check" class="w-3 h-3"></i></button></form><button type="button" onclick="rejectRequest({{ $request->id }})" class="bg-red-500 text-white px-2 py-1 rounded text-xs font-semibold hover:bg-red-600 transition-colors" title="Reject"><i data-lucide="x" class="w-3 h-3"></i></button></div>@else<span class="text-gray-400">—</span>@endif</td>
+                            <td class="text-center"><button type="button" onclick='viewRequest(@json($request))' class="bg-teal-600 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-teal-700 transition-colors inline-flex items-center gap-1"><i data-lucide="eye" class="w-3 h-3"></i> View</button></td>
                         </tr>
                         @empty
                         <tr id="empty-row"><td colspan="8" class="text-center py-8 text-gray-500">No requests yet</td></tr>
@@ -133,7 +133,10 @@
     </div>
 </div>
 
-{{-- Rejection Modal Form (hidden) --}}
+{{-- Hidden Forms for Approve/Reject --}}
+<form id="approveForm" action="" method="POST" style="display: none;">
+    @csrf
+</form>
 <form id="rejectForm" action="" method="POST" style="display: none;">
     @csrf
     <input type="hidden" name="rejection_reason" id="rejectionReason">
@@ -152,20 +155,7 @@ function truncate(str, len) {
 }
 
 function renderRow(r) {
-    const actions = r.status === 'pending' 
-        ? `<div class="flex gap-1 justify-center">
-            <form action="/admin/housing-resettlement/${r.id}/approve" method="POST" class="inline">
-                <input type="hidden" name="_token" value="${csrfToken}">
-                <button type="submit" class="bg-green-600 text-white px-2 py-1 rounded text-xs font-semibold hover:bg-green-700 transition-colors" title="Approve">
-                    <i data-lucide="check" class="w-3 h-3"></i>
-                </button>
-            </form>
-            <button type="button" onclick="rejectRequest(${r.id})" class="bg-red-500 text-white px-2 py-1 rounded text-xs font-semibold hover:bg-red-600 transition-colors" title="Reject">
-                <i data-lucide="x" class="w-3 h-3"></i>
-            </button>
-        </div>`
-        : '<span class="text-gray-400">—</span>';
-    
+    const rowData = JSON.stringify(r).replace(/'/g, "&#39;").replace(/"/g, "&quot;");
     return `<tr class="hover:bg-gray-50 transition-colors" data-id="${r.id}">
         <td><span class="font-mono font-bold text-teal-600 text-xs">${r.booking_reference}</span></td>
         <td class="truncate-cell" title="${r.event_name || ''}"><p class="font-medium text-gray-900 truncate">${truncate(r.event_name, 20)}</p></td>
@@ -174,7 +164,7 @@ function renderRow(r) {
         <td class="text-center"><span class="font-bold">${r.expected_attendees || '-'}</span></td>
         <td class="truncate-cell" title="${r.applicant_name} | ${r.applicant_email}"><p class="font-medium text-gray-800 truncate">${truncate(r.applicant_name, 15)}</p><p class="text-xs text-gray-500 truncate">${truncate(r.applicant_email, 20)}</p></td>
         <td class="text-center"><span class="status-badge status-${r.status}">${r.status.replace('_', ' ')}</span></td>
-        <td>${actions}</td>
+        <td class="text-center"><button type="button" onclick='viewRequest(${rowData})' class="bg-teal-600 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-teal-700 transition-colors inline-flex items-center gap-1"><i data-lucide="eye" class="w-3 h-3"></i> View</button></td>
     </tr>`;
 }
 
@@ -201,6 +191,67 @@ function refreshData() {
 }
 
 setInterval(refreshData, 5000);
+
+function viewRequest(r) {
+    const statusBadge = `<span class="status-badge status-${r.status}" style="font-size:0.75rem;padding:4px 12px;">${r.status.replace('_', ' ').toUpperCase()}</span>`;
+    const isPending = r.status === 'pending';
+    
+    Swal.fire({
+        title: `<span class="text-teal-700">${r.booking_reference}</span>`,
+        html: `
+            <div class="text-left space-y-3">
+                <div class="flex justify-between items-center border-b pb-2">
+                    <span class="text-gray-500">Status</span>
+                    <span>${statusBadge}</span>
+                </div>
+                <div class="border-b pb-2">
+                    <p class="text-gray-500 text-sm">Event</p>
+                    <p class="font-semibold text-gray-800">${r.event_name || 'N/A'}</p>
+                    ${r.event_description ? `<p class="text-sm text-gray-600">${r.event_description}</p>` : ''}
+                </div>
+                <div class="grid grid-cols-2 gap-3 border-b pb-2">
+                    <div>
+                        <p class="text-gray-500 text-sm">Facility</p>
+                        <p class="font-semibold text-gray-800">${r.facility_name}</p>
+                        <p class="text-sm text-gray-600">Capacity: ${r.facility_capacity}</p>
+                    </div>
+                    <div>
+                        <p class="text-gray-500 text-sm">Expected Attendees</p>
+                        <p class="font-semibold text-gray-800">${r.expected_attendees || '-'}</p>
+                    </div>
+                </div>
+                <div class="border-b pb-2">
+                    <p class="text-gray-500 text-sm">Schedule</p>
+                    <p class="font-semibold text-gray-800">${r.start_formatted} &bull; ${r.time_range}</p>
+                </div>
+                <div class="border-b pb-2">
+                    <p class="text-gray-500 text-sm">Contact Person</p>
+                    <p class="font-semibold text-gray-800">${r.applicant_name}</p>
+                    <p class="text-sm text-gray-600">${r.applicant_email}</p>
+                    <p class="text-sm text-gray-600">${r.applicant_phone}</p>
+                </div>
+                ${r.special_requests ? `<div><p class="text-gray-500 text-sm">Special Requests</p><p class="text-gray-800">${r.special_requests}</p></div>` : ''}
+            </div>
+        `,
+        width: 500,
+        showCloseButton: true,
+        showCancelButton: isPending,
+        showConfirmButton: isPending,
+        confirmButtonText: '<i class="lucide lucide-check"></i> Approve',
+        cancelButtonText: '<i class="lucide lucide-x"></i> Reject',
+        confirmButtonColor: '#16a34a',
+        cancelButtonColor: '#dc2626',
+        reverseButtons: true,
+        focusConfirm: false,
+    }).then((result) => {
+        if (result.isConfirmed) {
+            document.getElementById('approveForm').action = `/admin/housing-resettlement/${r.id}/approve`;
+            document.getElementById('approveForm').submit();
+        } else if (result.dismiss === Swal.DismissReason.cancel) {
+            rejectRequest(r.id);
+        }
+    });
+}
 
 function rejectRequest(id) {
     Swal.fire({
