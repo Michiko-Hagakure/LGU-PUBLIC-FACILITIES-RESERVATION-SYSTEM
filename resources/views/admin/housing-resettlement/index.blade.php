@@ -5,20 +5,24 @@
 
 @push('styles')
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<meta http-equiv="refresh" content="30">
 <style>
     .status-badge {
-        font-size: 0.7rem;
-        padding: 4px 12px;
+        font-size: 0.65rem;
+        padding: 3px 8px;
         border-radius: 9999px;
         font-weight: 700;
         text-transform: uppercase;
-        letter-spacing: 0.05em;
+        letter-spacing: 0.03em;
+        white-space: nowrap;
     }
     .status-pending { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
     .status-staff_verified { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
     .status-confirmed { background: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
     .status-cancelled { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
     .status-paid { background: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
+    .compact-table th, .compact-table td { padding: 8px 6px; font-size: 0.75rem; }
+    .compact-table .truncate-cell { max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 </style>
 @endpush
 
@@ -102,79 +106,63 @@
             <p class="text-gray-400 text-small mt-1">Requests from Housing and Resettlement will appear here when they test the API.</p>
         </div>
         @else
-        <div class="overflow-x-auto">
-            <table class="w-full">
+        <div class="w-full">
+            <table class="w-full compact-table">
                 <thead class="bg-gray-50 border-b border-gray-200">
                     <tr>
-                        <th class="px-4 py-3 text-left text-caption font-semibold text-gray-600 uppercase">Reference</th>
-                        <th class="px-4 py-3 text-left text-caption font-semibold text-gray-600 uppercase">Event</th>
-                        <th class="px-4 py-3 text-left text-caption font-semibold text-gray-600 uppercase">Facility</th>
-                        <th class="px-4 py-3 text-left text-caption font-semibold text-gray-600 uppercase">Schedule</th>
-                        <th class="px-4 py-3 text-left text-caption font-semibold text-gray-600 uppercase">Attendees</th>
-                        <th class="px-4 py-3 text-left text-caption font-semibold text-gray-600 uppercase">Contact</th>
-                        <th class="px-4 py-3 text-left text-caption font-semibold text-gray-600 uppercase">Status</th>
-                        <th class="px-4 py-3 text-left text-caption font-semibold text-gray-600 uppercase">Submitted</th>
-                        <th class="px-4 py-3 text-center text-caption font-semibold text-gray-600 uppercase">Actions</th>
+                        <th class="text-left text-caption font-semibold text-gray-600 uppercase">Ref</th>
+                        <th class="text-left text-caption font-semibold text-gray-600 uppercase">Event</th>
+                        <th class="text-left text-caption font-semibold text-gray-600 uppercase">Facility</th>
+                        <th class="text-left text-caption font-semibold text-gray-600 uppercase">Schedule</th>
+                        <th class="text-center text-caption font-semibold text-gray-600 uppercase">Pax</th>
+                        <th class="text-left text-caption font-semibold text-gray-600 uppercase">Contact</th>
+                        <th class="text-center text-caption font-semibold text-gray-600 uppercase">Status</th>
+                        <th class="text-center text-caption font-semibold text-gray-600 uppercase">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
                     @foreach($requests as $request)
                     <tr class="hover:bg-gray-50 transition-colors">
-                        <td class="px-4 py-3">
-                            <span class="font-mono font-semibold text-teal-600">{{ $request->booking_reference }}</span>
+                        <td>
+                            <span class="font-mono font-bold text-teal-600 text-xs">{{ $request->booking_reference }}</span>
                         </td>
-                        <td class="px-4 py-3">
-                            <p class="font-medium text-gray-900">{{ $request->event_name }}</p>
-                            @if($request->event_description)
-                            <p class="text-small text-gray-500 truncate max-w-xs">{{ $request->event_description }}</p>
-                            @endif
+                        <td class="truncate-cell" title="{{ $request->event_name }}">
+                            <p class="font-medium text-gray-900 truncate">{{ Str::limit($request->event_name, 20) }}</p>
                         </td>
-                        <td class="px-4 py-3">
-                            <p class="font-medium text-gray-800">{{ $request->facility_name }}</p>
-                            <p class="text-small text-gray-500">Capacity: {{ $request->facility_capacity }}</p>
+                        <td class="truncate-cell">
+                            <p class="font-medium text-gray-800 truncate">{{ Str::limit($request->facility_name, 15) }}</p>
                         </td>
-                        <td class="px-4 py-3">
-                            <p class="font-medium text-gray-800">{{ \Carbon\Carbon::parse($request->start_time)->format('M d, Y') }}</p>
-                            <p class="text-small text-gray-500">
-                                {{ \Carbon\Carbon::parse($request->start_time)->format('h:i A') }} - 
-                                {{ \Carbon\Carbon::parse($request->end_time)->format('h:i A') }}
-                            </p>
+                        <td>
+                            <p class="font-medium text-gray-800">{{ \Carbon\Carbon::parse($request->start_time)->format('M d') }}</p>
+                            <p class="text-xs text-gray-500">{{ \Carbon\Carbon::parse($request->start_time)->format('h:iA') }}-{{ \Carbon\Carbon::parse($request->end_time)->format('h:iA') }}</p>
                         </td>
-                        <td class="px-4 py-3">
-                            <span class="inline-flex items-center gap-1">
-                                <i data-lucide="users" class="w-4 h-4 text-gray-400"></i>
-                                <span class="font-semibold">{{ $request->expected_attendees }}</span>
-                            </span>
+                        <td class="text-center">
+                            <span class="font-bold">{{ $request->expected_attendees ?? '-' }}</span>
                         </td>
-                        <td class="px-4 py-3">
-                            <p class="font-medium text-gray-800">{{ $request->applicant_name }}</p>
-                            <p class="text-small text-gray-500">{{ $request->applicant_email }}</p>
-                            <p class="text-small text-gray-500">{{ $request->applicant_phone }}</p>
+                        <td class="truncate-cell" title="{{ $request->applicant_name }} | {{ $request->applicant_email }} | {{ $request->applicant_phone }}">
+                            <p class="font-medium text-gray-800 truncate">{{ Str::limit($request->applicant_name, 15) }}</p>
+                            <p class="text-xs text-gray-500 truncate">{{ Str::limit($request->applicant_email, 20) }}</p>
                         </td>
-                        <td class="px-4 py-3">
+                        <td class="text-center">
                             <span class="status-badge status-{{ $request->status }}">
                                 {{ str_replace('_', ' ', $request->status) }}
                             </span>
                         </td>
-                        <td class="px-4 py-3">
-                            <p class="text-small text-gray-600">{{ \Carbon\Carbon::parse($request->created_at)->format('M d, Y') }}</p>
-                            <p class="text-small text-gray-400">{{ \Carbon\Carbon::parse($request->created_at)->format('h:i A') }}</p>
-                        </td>
-                        <td class="px-4 py-3">
+                        <td>
                             @if($request->status === 'pending')
-                            <div class="flex flex-col gap-2">
+                            <div class="flex gap-1 justify-center">
                                 <form action="{{ route('admin.housing-resettlement.approve', $request->id) }}" method="POST" class="inline">
                                     @csrf
-                                    <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded-lg text-caption font-semibold hover:bg-green-700 transition-colors flex items-center justify-center gap-1 w-full">
-                                        <i data-lucide="check" class="w-3 h-3"></i> Approve
+                                    <button type="submit" class="bg-green-600 text-white px-2 py-1 rounded text-xs font-semibold hover:bg-green-700 transition-colors" title="Approve">
+                                        <i data-lucide="check" class="w-3 h-3"></i>
                                     </button>
                                 </form>
-                                <button type="button" onclick="rejectRequest({{ $request->id }})" class="bg-red-500 text-white px-4 py-2 rounded-lg text-caption font-semibold hover:bg-red-600 transition-colors flex items-center justify-center gap-1 w-full">
-                                    <i data-lucide="x" class="w-3 h-3"></i> Reject
+                                <button type="button" onclick="rejectRequest({{ $request->id }})" class="bg-red-500 text-white px-2 py-1 rounded text-xs font-semibold hover:bg-red-600 transition-colors" title="Reject">
+                                    <i data-lucide="x" class="w-3 h-3"></i>
                                 </button>
                             </div>
                             @else
-                            <span class="text-small text-gray-400">—</span>
+                            <span class="text-gray-400">—</span>
                             @endif
                         </td>
                     </tr>
