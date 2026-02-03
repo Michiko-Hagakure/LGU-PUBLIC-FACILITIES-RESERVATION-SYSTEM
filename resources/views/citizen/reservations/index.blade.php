@@ -355,41 +355,111 @@ function confirmCancel(bookingId) {
     });
 @endif
 
-// AJAX Polling for real-time updates (without page refresh)
-let lastTotal = {{ $bookings->count() }};
-let updateNotificationShown = false;
+// Status badge configuration for dynamic rendering
+const statusBadgeConfig = {
+    'pending': { bg: 'bg-yellow-100', text: 'text-yellow-800', border: 'border-yellow-300', label: 'Pending Review' },
+    'staff_verified': { bg: 'bg-purple-100', text: 'text-purple-800', border: 'border-purple-300', label: 'Verified' },
+    'payment_pending': { bg: 'bg-orange-100', text: 'text-orange-800', border: 'border-orange-300', label: 'Awaiting Payment' },
+    'paid': { bg: 'bg-cyan-100', text: 'text-cyan-800', border: 'border-cyan-300', label: 'Payment Verified' },
+    'confirmed': { bg: 'bg-green-100', text: 'text-green-800', border: 'border-green-300', label: 'Confirmed' },
+    'completed': { bg: 'bg-blue-100', text: 'text-blue-800', border: 'border-blue-300', label: 'Completed' },
+    'cancelled': { bg: 'bg-gray-100', text: 'text-gray-800', border: 'border-gray-300', label: 'Cancelled' },
+    'rejected': { bg: 'bg-red-100', text: 'text-red-800', border: 'border-red-300', label: 'Rejected' },
+    'expired': { bg: 'bg-gray-100', text: 'text-gray-700', border: 'border-gray-300', label: 'Expired' }
+};
 
+// Real-time AJAX update (updates DOM directly, no page refresh)
+let lastBookingData = @json($bookings->items());
+
+function renderBookingCard(booking) {
+    const badge = statusBadgeConfig[booking.status] || { bg: 'bg-gray-100', text: 'text-gray-800', border: 'border-gray-300', label: booking.status };
+    const startDate = new Date(booking.start_time);
+    const endDate = new Date(booking.end_time);
+    const isUpcoming = startDate > new Date();
+    
+    const dateFormatted = startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const timeFormatted = startDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) + 
+                          ' - ' + endDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    const amount = Number(booking.total_amount).toLocaleString('en-PH', { minimumFractionDigits: 2 });
+    
+    const canCancel = ['pending', 'staff_verified', 'payment_pending'].includes(booking.status);
+    const showPaymentLink = booking.status === 'payment_pending';
+    
+    return `
+        <div class="bg-white shadow-lg rounded-xl overflow-hidden hover:shadow-2xl transition-all duration-300 border border-gray-100 hover:border-lgu-button/30 transform hover:-translate-y-1">
+            <div class="flex flex-col md:flex-row">
+                <div class="md:w-96 h-64 md:h-auto bg-gray-200 flex-shrink-0 relative group">
+                    ${booking.facility_image 
+                        ? `<img src="/storage/${booking.facility_image}" alt="${booking.facility_name}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">`
+                        : `<div class="w-full h-full flex items-center justify-center bg-lgu-button/30"><svg class="w-20 h-20 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg></div>`
+                    }
+                    ${isUpcoming ? `<div class="absolute top-3 left-3 px-3 py-1.5 bg-lgu-button text-lgu-button-text text-xs font-bold rounded-full shadow-lg z-10">Upcoming</div>` : ''}
+                </div>
+                <div class="flex-1 p-6">
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-3 mb-2 flex-wrap">
+                                <h3 class="text-xl font-bold text-gray-900">${booking.facility_name}</h3>
+                            </div>
+                            <p class="text-sm text-gray-600 mb-1"><span class="font-medium">Reference #:</span> <span class="font-bold text-lgu-headline">BK${String(booking.id).padStart(6, '0')}</span></p>
+                            <p class="text-sm text-gray-700"><span class="font-medium">Purpose:</span> ${booking.purpose || 'N/A'}</p>
+                        </div>
+                        <span class="px-4 py-2 rounded-full text-sm font-bold ${badge.bg} ${badge.text} border-2 ${badge.border} whitespace-nowrap shadow-sm">${badge.label}</span>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5 p-4 bg-gray-50 rounded-lg">
+                        <div class="flex items-center text-sm">
+                            <div class="w-10 h-10 bg-lgu-button/10 rounded-lg flex items-center justify-center mr-3"><i data-lucide="calendar" class="w-5 h-5 text-lgu-button"></i></div>
+                            <div><p class="text-xs text-gray-500 font-medium">Date</p><p class="font-bold text-gray-900">${dateFormatted}</p></div>
+                        </div>
+                        <div class="flex items-center text-sm">
+                            <div class="w-10 h-10 bg-lgu-button/10 rounded-lg flex items-center justify-center mr-3"><i data-lucide="clock" class="w-5 h-5 text-lgu-button"></i></div>
+                            <div><p class="text-xs text-gray-500 font-medium">Time</p><p class="font-bold text-gray-900">${timeFormatted}</p></div>
+                        </div>
+                        <div class="flex items-center text-sm">
+                            <div class="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center mr-3"><i data-lucide="coins" class="w-5 h-5 text-green-600"></i></div>
+                            <div><p class="text-xs text-gray-500 font-medium">Total Amount</p><p class="font-bold text-green-600 text-lg">₱${amount}</p></div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3 flex-wrap">
+                        <a href="/citizen/reservations/${booking.id}" class="px-5 py-2.5 bg-lgu-button text-lgu-button-text font-semibold rounded-lg hover:bg-lgu-highlight transition-all shadow-md hover:shadow-lg text-sm cursor-pointer">View Details →</a>
+                        ${canCancel ? `<button type="button" onclick="confirmCancel(${booking.id})" class="px-5 py-2.5 bg-red-50 text-red-700 font-semibold rounded-lg hover:bg-red-100 transition-all border-2 border-red-200 hover:border-red-300 text-sm cursor-pointer">Cancel Booking</button>` : ''}
+                        ${showPaymentLink ? `<a href="/citizen/payment-slips" class="px-5 py-2.5 bg-orange-50 text-orange-700 font-semibold rounded-lg hover:bg-orange-100 transition-all border-2 border-orange-200 hover:border-orange-300 text-sm cursor-pointer inline-flex items-center"><i data-lucide="credit-card" class="w-4 h-4 mr-2"></i>View Payment Slip</a>` : ''}
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function updateBookingsUI(bookings) {
+    const container = document.querySelector('.space-y-5');
+    if (!container) return;
+    
+    container.innerHTML = bookings.map(b => renderBookingCard(b)).join('');
+    
+    // Reinitialize Lucide icons
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+}
+
+// AJAX polling - updates DOM directly without page refresh
 function refreshData() {
     fetch('{{ route("citizen.reservations.json") }}' + window.location.search)
         .then(res => res.json())
         .then(data => {
-            if (data.stats.total !== lastTotal && !updateNotificationShown) {
-                updateNotificationShown = true;
-                lastTotal = data.stats.total;
-                
-                // Show a non-intrusive notification instead of refreshing
-                Swal.fire({
-                    toast: true,
-                    position: 'top-end',
-                    icon: 'info',
-                    title: 'New updates available',
-                    text: 'Click to refresh',
-                    showConfirmButton: true,
-                    confirmButtonText: 'Refresh',
-                    confirmButtonColor: '#faae2b',
-                    timer: 10000,
-                    timerProgressBar: true
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        location.reload();
-                    }
-                    updateNotificationShown = false;
-                });
+            const newBookings = data.data || [];
+            
+            // Check if data has changed by comparing serialized data
+            if (JSON.stringify(newBookings) !== JSON.stringify(lastBookingData)) {
+                lastBookingData = newBookings;
+                updateBookingsUI(newBookings);
+                console.log('Reservations updated in real-time');
             }
         })
         .catch(err => console.log('Refresh error:', err));
 }
-setInterval(refreshData, 15000); // Check every 15 seconds instead of 5
+setInterval(refreshData, 10000); // Check every 10 seconds
 </script>
 @endpush
 @endsection
