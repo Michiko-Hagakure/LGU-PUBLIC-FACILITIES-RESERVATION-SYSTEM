@@ -62,7 +62,7 @@ class RoadAssistanceController extends Controller
             ->get();
 
         // Get outgoing requests sent to Road & Transportation
-        $outgoingRequests = DB::connection('auth_db')
+        $outgoingRequests = DB::connection('facilities_db')
             ->table('citizen_road_requests')
             ->orderBy('created_at', 'desc')
             ->get();
@@ -106,7 +106,7 @@ class RoadAssistanceController extends Controller
 
         if ($result['success']) {
             // Store local reference
-            DB::connection('auth_db')->table('citizen_road_requests')->insert([
+            DB::connection('facilities_db')->table('citizen_road_requests')->insert([
                 'user_id' => $adminId,
                 'external_request_id' => $result['request_id'],
                 'event_type' => $validated['event_type'],

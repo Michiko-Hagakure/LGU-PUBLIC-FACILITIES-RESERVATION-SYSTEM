@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::connection('auth_db')->create('citizen_road_requests', function (Blueprint $table) {
+        Schema::connection('facilities_db')->create('citizen_road_requests', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('user_id');
             $table->unsignedBigInteger('external_request_id')->nullable();
@@ -36,6 +36,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::connection('auth_db')->dropIfExists('citizen_road_requests');
+        Schema::connection('facilities_db')->dropIfExists('citizen_road_requests');
     }
 };
