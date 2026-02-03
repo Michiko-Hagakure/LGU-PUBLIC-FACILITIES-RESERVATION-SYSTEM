@@ -101,7 +101,7 @@ Route::prefix('facility-reservation')->group(function () {
 | API endpoints for Housing and Resettlement Management system to request
 | facilities for beneficiary orientations.
 |
-| Base URL: https://local-government-unit-1-ph.com/api/housing-resettlement
+| Base URL: https://facilities.local-government-unit-1-ph.com/api/housing-resettlement
 */
 Route::prefix('housing-resettlement')->group(function () {
     // GET - List available facilities
