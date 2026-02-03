@@ -58,6 +58,16 @@ echo "button:hover{background:#0f766e;}</style></head><body>";
 
 echo "<h1>🏠 Housing & Resettlement API Test</h1>";
 
+// Show facilities debug info
+echo "<div class='info'><strong>Step 1: Fetching Available Facilities...</strong><br>";
+echo "API: " . $baseUrl . "/facilities<br>";
+echo "<strong>Facilities Found:</strong> " . count($facilities) . "<br>";
+if ($firstFacility) {
+    echo "<strong>Using Facility:</strong> ID " . $facilityId . " - " . ($firstFacility['name'] ?? 'Unknown') . "</div>";
+} else {
+    echo "<span style='color:red;'><strong>⚠️ No facilities found! Check if facilities have is_available = true</strong></span></div>";
+}
+
 if (isset($_POST['submit'])) {
     $apiUrl = $baseUrl . '/request';
     echo "<div class='info'><strong>Sending POST request to:</strong><br>" . $apiUrl . "</div>";
