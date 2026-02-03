@@ -162,15 +162,15 @@
                         </td>
                         <td class="px-4 py-3">
                             @if($request->status === 'pending')
-                            <div class="flex items-center justify-center gap-2">
+                            <div class="flex flex-col gap-2">
                                 <form action="{{ route('admin.housing-resettlement.approve', $request->id) }}" method="POST" class="inline">
                                     @csrf
-                                    <button type="submit" class="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200 transition-colors" title="Approve">
-                                        <i data-lucide="check" class="w-4 h-4"></i>
+                                    <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded-lg text-caption font-semibold hover:bg-green-700 transition-colors flex items-center justify-center gap-1 w-full">
+                                        <i data-lucide="check" class="w-3 h-3"></i> Approve
                                     </button>
                                 </form>
-                                <button type="button" onclick="rejectRequest({{ $request->id }})" class="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors" title="Reject">
-                                    <i data-lucide="x" class="w-4 h-4"></i>
+                                <button type="button" onclick="rejectRequest({{ $request->id }})" class="bg-red-500 text-white px-4 py-2 rounded-lg text-caption font-semibold hover:bg-red-600 transition-colors flex items-center justify-center gap-1 w-full">
+                                    <i data-lucide="x" class="w-3 h-3"></i> Reject
                                 </button>
                             </div>
                             @else
