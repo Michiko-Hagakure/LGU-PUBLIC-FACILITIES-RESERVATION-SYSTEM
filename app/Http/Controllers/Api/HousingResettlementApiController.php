@@ -32,12 +32,7 @@ class HousingResettlementApiController extends Controller
                 'facility_id',
                 'name',
                 'description',
-                'address',
-                'full_address',
-                'capacity',
-                'base_rate',
-                'latitude',
-                'longitude'
+                'capacity'
             )
             ->orderBy('name')
             ->get();
