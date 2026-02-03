@@ -63,11 +63,9 @@ class CommunityMaintenanceController extends Controller
             // Use facility name only for unit_number, remove special characters (CIM API has issues)
             $unitNumber = preg_replace('/[^a-zA-Z0-9\s]/', '', $facilityName);
             
-            // Append unique ID to resident name to allow multiple reports per person
-            $uniqueResidentName = $validated['resident_name'] . ' #' . time();
-            
+            // Use original resident name (don't append timestamp - causes sync issues)
             $payload = [
-                'resident_name' => $uniqueResidentName,
+                'resident_name' => $validated['resident_name'],
                 'contact_info' => $validated['contact_info'],
                 'subject' => $validated['subject'],
                 'description' => $validated['description'],
