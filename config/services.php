@@ -62,6 +62,7 @@ return [
 
     'road_transport' => [
         'url' => env('ROAD_TRANSPORT_URL', 'https://roads.local-government-unit-1-ph.com'),
+        'api_url' => env('ROAD_TRANSPORT_API_URL', 'https://lucia-road-trans.local-government-unit-1-ph.com/api/integrations/UtilityBillingRequest.php'),
         'timeout' => env('ROAD_TRANSPORT_TIMEOUT', 30),
     ],
 

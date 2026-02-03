@@ -1842,6 +1842,11 @@ Route::middleware(['auth', 'role:citizen', \App\Http\Middleware\CheckSessionTime
     Route::get('/citizen/booking-conflicts/{id}', [\App\Http\Controllers\Citizen\BookingConflictController::class, 'show'])->name('citizen.conflicts.show');
     Route::post('/citizen/booking-conflicts/{id}/resolve', [\App\Http\Controllers\Citizen\BookingConflictController::class, 'resolveConflict'])->name('citizen.conflicts.resolve');
 
+    // Road Assistance Requests (Integration with Road & Transportation)
+    Route::get('/citizen/road-assistance', [\App\Http\Controllers\Citizen\RoadAssistanceController::class, 'index'])->name('citizen.road-assistance.index');
+    Route::post('/citizen/road-assistance', [\App\Http\Controllers\Citizen\RoadAssistanceController::class, 'store'])->name('citizen.road-assistance.store');
+    Route::get('/citizen/road-assistance/json', [\App\Http\Controllers\Citizen\RoadAssistanceController::class, 'getRequestsJson'])->name('citizen.road-assistance.json');
+
     // Payments
     Route::get('/citizen/payments', [\App\Http\Controllers\Citizen\PaymentController::class, 'index'])->name('citizen.payment-slips');
     Route::get('/citizen/payments/{id}', [\App\Http\Controllers\Citizen\PaymentController::class, 'show'])->name('citizen.payment-slips.show');
