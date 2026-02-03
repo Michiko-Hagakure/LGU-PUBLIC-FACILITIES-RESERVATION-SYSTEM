@@ -20,7 +20,7 @@ class HousingResettlementApiController extends Controller
         try {
             $query = DB::connection('facilities_db')
                 ->table('facilities')
-                ->where('is_available', true)
+                ->where('is_available', 1)
                 ->whereNull('deleted_at');
 
             // Optional filtering
