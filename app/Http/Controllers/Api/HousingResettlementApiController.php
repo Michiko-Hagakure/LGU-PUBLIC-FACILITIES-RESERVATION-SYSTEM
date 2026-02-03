@@ -220,31 +220,29 @@ class HousingResettlementApiController extends Controller
             $nextId = $lastBooking ? $lastBooking->id + 1 : 1;
             $bookingReference = 'BK' . str_pad($nextId, 6, '0', STR_PAD_LEFT);
 
-            // Create the booking
-            $bookingId = DB::connection('facilities_db')
-                ->table('bookings')
-                ->insertGetId([
-                    'facility_id' => $validated['facility_id'],
-                    'booking_reference' => $bookingReference,
-                    'event_name' => $validated['event_name'],
-                    'event_description' => $validated['event_description'] ?? null,
-                    'purpose' => 'Beneficiary Orientation - Housing and Resettlement',
-                    'start_time' => $startDateTime,
-                    'end_time' => $endDateTime,
-                    'expected_attendees' => $validated['expected_attendees'],
-                    'applicant_name' => $validated['contact_person'],
-                    'applicant_email' => $validated['contact_email'],
-                    'applicant_phone' => $validated['contact_phone'],
-                    'city_of_residence' => 'Quezon City',
-                    'special_requests' => $validated['special_requests'] ?? null,
-                    'status' => 'pending',
-                    'payment_status' => 'pending',
-                    'total_amount' => 0, // Government inter-agency - no charge
-                    'source_system' => 'Housing_Resettlement',
-                    'external_reference_id' => 'HR-' . time(),
-                    'created_at' => now(),
-                    'updated_at' => now(),
+            // Create the booking - use only columns that exist in bookings table
+            $bookingData = [
+                'facility_id' => $validated['facility_id'],
+                'start_time' => $startDateTime,
+                'end_time' => $endDateTime,
+                'user_name' => $validated['contact_person'] . ' (Housing & Resettlement)',
+                'status' => 'pending',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+            
+            // Try to add optional columns if they exist
+            try {
+                $bookingId = DB::connection('facilities_db')
+                    ->table('bookings')
+                    ->insertGetId($bookingData);
+            } catch (\Exception $insertError) {
+                Log::error('Housing Resettlement - Insert Error', [
+                    'error' => $insertError->getMessage(),
+                    'data' => $bookingData,
                 ]);
+                throw $insertError;
+            }
 
             Log::info('Housing Resettlement - Facility Request Submitted', [
                 'booking_id' => $bookingId,
