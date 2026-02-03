@@ -179,6 +179,19 @@
     </ul>
 </div>
 
+<!-- ROAD & TRANSPORTATION INTEGRATION SUBMODULE -->
+<div class="px-gr-md mb-gr-lg">
+    <h4 class="text-gray-400 text-caption font-semibold uppercase tracking-wider mb-gr-xs">Road & Transportation</h4>
+    <ul class="space-y-gr-xs">
+        <li>
+            <a href="{{ route('admin.road-assistance.index') }}" class="sidebar-link flex items-center px-gr-sm py-gr-xs text-small font-medium rounded-lg transition-colors duration-200 {{ request()->routeIs('admin.road-assistance.*') ? 'active' : '' }}">
+                <i data-lucide="truck" class="w-5 h-5 mr-gr-xs flex-shrink-0"></i>
+                <span>Road Assistance</span>
+            </a>
+        </li>
+    </ul>
+</div>
+
 <!-- USER MANAGEMENT SUBMODULE -->
 <div class="px-gr-md mb-gr-lg">
     <h4 class="text-gray-400 text-caption font-semibold uppercase tracking-wider mb-gr-xs">Users</h4>
