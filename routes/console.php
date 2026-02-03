@@ -25,3 +25,13 @@ Schedule::command('bookings:cancel-overdue')
     ->hourly()
     ->withoutOverlapping()
     ->runInBackground();
+
+Schedule::command('bookings:complete-finished')
+    ->everyFifteenMinutes()
+    ->withoutOverlapping()
+    ->runInBackground();
+
+Schedule::command('bookings:expire-unpaid')
+    ->hourly()
+    ->withoutOverlapping()
+    ->runInBackground();

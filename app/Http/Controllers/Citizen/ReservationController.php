@@ -38,8 +38,10 @@ class ReservationController extends Controller
                 'lgu_cities.city_code'
             )
             ->where('bookings.user_id', $userId)
-            // EXCLUDE completed, expired, cancelled, rejected from "My Reservations"
-            ->whereNotIn('bookings.status', ['completed', 'expired', 'cancelled', 'rejected'])
+            // EXCLUDE terminal statuses AND past events from "My Reservations"
+            ->whereNotIn('bookings.status', ['completed', 'expired', 'cancelled', 'canceled', 'rejected', 'refunded'])
+            // Only show upcoming/current events (end_time hasn't passed yet)
+            ->where('bookings.end_time', '>=', Carbon::now())
             ->orderBy('bookings.start_time', 'desc');
 
         // Filter by status
@@ -68,11 +70,13 @@ class ReservationController extends Controller
         $statusCounts = [
             'all' => DB::connection('facilities_db')->table('bookings')
                 ->where('user_id', $userId)
-                ->whereNotIn('status', ['completed', 'expired', 'cancelled', 'rejected'])
+                ->whereNotIn('status', ['completed', 'expired', 'cancelled', 'canceled', 'rejected', 'refunded'])
+                ->where('end_time', '>=', Carbon::now())
                 ->count(),
             'active' => DB::connection('facilities_db')->table('bookings')
                 ->where('user_id', $userId)
                 ->whereIn('status', ['pending', 'staff_verified', 'payment_pending', 'confirmed'])
+                ->where('end_time', '>=', Carbon::now())
                 ->count(),
             'completed' => DB::connection('facilities_db')->table('bookings')
                 ->where('user_id', $userId)
@@ -101,7 +105,8 @@ class ReservationController extends Controller
                 'facilities.name as facility_name'
             )
             ->where('bookings.user_id', $userId)
-            ->whereNotIn('bookings.status', ['completed', 'expired', 'cancelled', 'rejected'])
+            ->whereNotIn('bookings.status', ['completed', 'expired', 'cancelled', 'canceled', 'rejected', 'refunded'])
+            ->where('bookings.end_time', '>=', Carbon::now())
             ->orderBy('bookings.start_time', 'desc')
             ->limit(50);
 
@@ -114,7 +119,7 @@ class ReservationController extends Controller
         }
 
         $stats = [
-            'total' => DB::connection('facilities_db')->table('bookings')->where('user_id', $userId)->whereNotIn('status', ['completed', 'expired', 'cancelled', 'rejected'])->count(),
+            'total' => DB::connection('facilities_db')->table('bookings')->where('user_id', $userId)->whereNotIn('status', ['completed', 'expired', 'cancelled', 'canceled', 'rejected', 'refunded'])->where('end_time', '>=', Carbon::now())->count(),
             'pending' => DB::connection('facilities_db')->table('bookings')->where('user_id', $userId)->where('status', 'pending')->count(),
             'confirmed' => DB::connection('facilities_db')->table('bookings')->where('user_id', $userId)->where('status', 'confirmed')->count(),
         ];
@@ -334,7 +339,15 @@ class ReservationController extends Controller
                 'lgu_cities.city_code'
             )
             ->where('bookings.user_id', $userId)
-            ->whereIn('bookings.status', ['completed', 'cancelled', 'canceled', 'rejected', 'expired'])
+            ->where(function($q) {
+                // Include terminal statuses
+                $q->whereIn('bookings.status', ['completed', 'cancelled', 'canceled', 'rejected', 'expired', 'refunded'])
+                // OR confirmed bookings where event has already ended
+                ->orWhere(function($q2) {
+                    $q2->where('bookings.status', 'confirmed')
+                       ->where('bookings.end_time', '<', Carbon::now());
+                });
+            })
             ->orderBy('bookings.start_time', 'desc');
 
         if ($search) {
