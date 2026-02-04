@@ -182,20 +182,22 @@ class BookingManagementController extends Controller
             }
         }
 
-        // Build full address
-        $fullAddress = collect([
-            $userFromDb->current_address ?? $userFromDb->address,
-            $barangay,
-            $city
-        ])->filter()->implode(', ');
+        // Build full address (handle null $userFromDb for API bookings)
+        $fullAddress = '';
+        if ($userFromDb) {
+            $fullAddress = collect([
+                $userFromDb->current_address ?? $userFromDb->address ?? null,
+                $barangay,
+                $city
+            ])->filter()->implode(', ');
+        }
 
-        // Create standardized user object with fallbacks
-        // Use user_name from booking (stored at creation), then fall back to database
+        // Create standardized user object with fallbacks for API bookings (PF folder, Energy Efficiency, etc.)
         $user = (object) [
-            'name' => $booking->user_name ?? $userFromDb->full_name ?? $userFromDb->name ?? 'N/A',
-            'email' => $userFromDb->email ?? 'N/A',
-            'phone' => $userFromDb->mobile_number ?? $userFromDb->phone ?? 'N/A',
-            'address' => $fullAddress ?: 'N/A'
+            'name' => $booking->user_name ?? $booking->applicant_name ?? ($userFromDb->full_name ?? $userFromDb->name ?? null) ?? 'N/A',
+            'email' => ($userFromDb->email ?? null) ?? $booking->applicant_email ?? 'N/A',
+            'phone' => ($userFromDb->mobile_number ?? $userFromDb->phone ?? null) ?? $booking->applicant_phone ?? 'N/A',
+            'address' => $fullAddress ?: ($booking->applicant_address ?? 'N/A')
         ];
 
         // Get uploaded documents
