@@ -66,10 +66,11 @@ class BookingManagementController extends Controller
                 if ($user) {
                     $booking->user_name = $user->full_name;
                 } else {
-                    $booking->user_name = $booking->applicant_name;
+                    $booking->user_name = $booking->user_name ?? $booking->applicant_name;
                 }
             } else {
-                $booking->user_name = $booking->applicant_name;
+                // For API bookings (no user_id), preserve existing user_name or fall back to applicant_name
+                $booking->user_name = $booking->user_name ?? $booking->applicant_name;
             }
         }
 
@@ -114,9 +115,10 @@ class BookingManagementController extends Controller
         foreach ($bookings as $booking) {
             if ($booking->user_id) {
                 $user = \DB::connection('auth_db')->table('users')->where('id', $booking->user_id)->first();
-                $booking->user_name = $user ? $user->full_name : $booking->applicant_name;
+                $booking->user_name = $user ? $user->full_name : ($booking->user_name ?? $booking->applicant_name);
             } else {
-                $booking->user_name = $booking->applicant_name;
+                // For API bookings, preserve existing user_name or fall back to applicant_name
+                $booking->user_name = $booking->user_name ?? $booking->applicant_name;
             }
             $booking->booking_reference = 'BK' . str_pad($booking->id, 6, '0', STR_PAD_LEFT);
             $booking->facility_name = $booking->facility->name ?? 'N/A';
