@@ -155,31 +155,26 @@ class BookingVerificationController extends Controller
         // Equipment is already loaded via relationship
         $equipment = $booking->equipmentItems;
 
-        // Documents - for now, we'll handle as attributes on the booking model
+        // Documents - handle both local storage paths and external URLs (from PF folder API)
         $documents = [];
-        if ($booking->valid_id_front_path) {
-            $documents[] = (object)[
-                'type' => 'Valid ID (Front)',
-                'path' => $booking->valid_id_front_path
-            ];
-        }
-        if ($booking->valid_id_back_path) {
-            $documents[] = (object)[
-                'type' => 'Valid ID (Back)',
-                'path' => $booking->valid_id_back_path
-            ];
-        }
-        if ($booking->valid_id_selfie_path) {
-            $documents[] = (object)[
-                'type' => 'Selfie with ID',
-                'path' => $booking->valid_id_selfie_path
-            ];
-        }
-        if ($booking->supporting_doc_path) {
-            $documents[] = (object)[
-                'type' => 'Supporting Document',
-                'path' => $booking->supporting_doc_path
-            ];
+        $docFields = [
+            'valid_id_front_path' => 'Valid ID (Front)',
+            'valid_id_back_path' => 'Valid ID (Back)',
+            'valid_id_selfie_path' => 'Selfie with ID',
+            'supporting_doc_path' => 'Supporting Document',
+        ];
+        
+        foreach ($docFields as $field => $label) {
+            if ($booking->$field) {
+                $path = $booking->$field;
+                // Check if it's an external URL (from PF folder) or local storage path
+                $isExternal = str_starts_with($path, 'http://') || str_starts_with($path, 'https://') || str_starts_with($path, '/uploads/');
+                $documents[] = (object)[
+                    'type' => $label,
+                    'path' => $path,
+                    'is_external' => $isExternal
+                ];
+            }
         }
 
         // Manually load user from auth_db (different database) with relationships

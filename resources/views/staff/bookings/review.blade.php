@@ -189,7 +189,13 @@
             
             <div class="grid grid-cols-1 md:grid-cols-2 gap-gr-sm">
                 @foreach($documents as $doc)
-                <button type="button" onclick="openDocumentModal('{{ asset('storage/' . $doc->path) }}', '{{ $doc->type }}')"
+                @php
+                    // Handle external URLs (from PF folder) vs local storage paths
+                    $docUrl = ($doc->is_external ?? false) 
+                        ? (str_starts_with($doc->path, '/') ? url($doc->path) : $doc->path)
+                        : asset('storage/' . $doc->path);
+                @endphp
+                <button type="button" onclick="openDocumentModal('{{ $docUrl }}', '{{ $doc->type }}')"
                    class="flex items-center p-3 rounded-lg border border-gray-300 hover:border-lgu-button hover:bg-gray-50 transition-colors cursor-pointer">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-file-image text-gray-400 mr-3 flex-shrink-0">
                         <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/>

@@ -69,6 +69,12 @@ class FacilityReservationApiController extends Controller
                 // Additional
                 'special_requests' => 'nullable|string|max:1000',
                 
+                // Valid ID documents (file paths/URLs from external system)
+                'valid_id_type' => 'nullable|string|max:100',
+                'valid_id_front' => 'nullable|string|max:500',
+                'valid_id_back' => 'nullable|string|max:500',
+                'valid_id_selfie' => 'nullable|string|max:500',
+                
                 // Equipment (optional array)
                 'equipment' => 'nullable|array',
                 'equipment.*.equipment_id' => 'required_with:equipment|integer|exists:facilities_db.equipment_items,id',
@@ -193,6 +199,10 @@ class FacilityReservationApiController extends Controller
                     'total_discount' => $totalDiscount,
                     'total_amount' => $totalAmount,
                     'status' => 'pending',
+                    'valid_id_type' => $validated['valid_id_type'] ?? null,
+                    'valid_id_front_path' => $validated['valid_id_front'] ?? null,
+                    'valid_id_back_path' => $validated['valid_id_back'] ?? null,
+                    'valid_id_selfie_path' => $validated['valid_id_selfie'] ?? null,
                     'staff_notes' => 'Submitted via API from: ' . $validated['source_system'] . 
                                     ($validated['external_reference_id'] ? ' (Ref: ' . $validated['external_reference_id'] . ')' : ''),
                 ]);
