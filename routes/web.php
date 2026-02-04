@@ -22,10 +22,14 @@ use App\Http\Controllers\Admin\SystemSettingsController;
 |
 */
 
-// Root Route - Landing Page
+// Root Route - Redirect to Login
+//Route::get('/', function () {
+//    return redirect()->route('login');
+//})->name('login');
+
 Route::get('/', function () {
     return view('welcome');
-})->name('landing');
+})->name('welcome');
 
 // CSRF Token Refresh Endpoint - For preventing stale token issues
 Route::get('/csrf-token', function () {
