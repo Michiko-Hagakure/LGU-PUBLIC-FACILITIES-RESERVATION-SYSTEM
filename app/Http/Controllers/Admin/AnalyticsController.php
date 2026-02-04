@@ -180,20 +180,31 @@ class AnalyticsController extends Controller
         $startDate = $request->input('start_date', now()->subMonths(6)->toDateString());
         $endDate = $request->input('end_date', now()->toDateString());
 
-        // 1. Fetch RAW booking data for AI Training (Cross-Database Join)
-        $aiTrainingData = DB::connection('facilities_db')
+        // 1. Fetch RAW booking data for AI Training (separate queries to avoid cross-database permission issues)
+        $bookingsData = DB::connection('facilities_db')
             ->table('bookings')
-            ->join('lgu1_auth.users', 'bookings.user_id', '=', 'lgu1_auth.users.id')
             ->selectRaw('
-            bookings.facility_id, 
-            lgu1_auth.users.full_name as user_name, 
-            MONTH(bookings.created_at) as month_index, 
-            DAYOFWEEK(bookings.created_at) as day_index, 
-            HOUR(bookings.start_time) as hour_index,
-            bookings.status
-        ')
-            ->whereIn('bookings.status', ['paid', 'confirmed', 'completed'])
+                facility_id, 
+                user_id,
+                MONTH(created_at) as month_index, 
+                DAYOFWEEK(created_at) as day_index, 
+                HOUR(start_time) as hour_index,
+                status
+            ')
+            ->whereIn('status', ['paid', 'confirmed', 'completed'])
             ->get();
+
+        // Fetch user names separately from auth_db
+        $userIds = $bookingsData->pluck('user_id')->unique()->filter();
+        $users = DB::connection('auth_db')->table('users')
+            ->whereIn('id', $userIds)
+            ->pluck('full_name', 'id');
+
+        // Map user names to booking data
+        $aiTrainingData = $bookingsData->map(function($booking) use ($users) {
+            $booking->user_name = $users->get($booking->user_id) ?? 'Unknown';
+            return $booking;
+        });
 
         // 2. Define the Mayor's Schedule (Business Priority Rules)
         $mayorConflict = [
