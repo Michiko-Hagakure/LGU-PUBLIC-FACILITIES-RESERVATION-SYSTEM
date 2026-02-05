@@ -186,7 +186,7 @@ class AnalyticsController extends Controller
             ->join('faci_facility.users', 'bookings.user_id', '=', 'faci_facility.users.id')
             ->selectRaw('
             bookings.facility_id, 
-            lgu1_auth.users.full_name as user_name, 
+            faci_facility.users.full_name as user_name,
             MONTH(bookings.created_at) as month_index, 
             DAYOFWEEK(bookings.created_at) as day_index, 
             HOUR(bookings.start_time) as hour_index,
