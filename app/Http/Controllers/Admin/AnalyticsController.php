@@ -185,7 +185,7 @@ class AnalyticsController extends Controller
             ->table('bookings')
             ->join('faci_facility.users', 'bookings.user_id', '=', 'faci_facility.users.id')
             ->selectRaw('
-            bookings.facility_id, 
+            bookings.facility_id,
             faci_facility.users.full_name as user_name,
             MONTH(bookings.created_at) as month_index, 
             DAYOFWEEK(bookings.created_at) as day_index, 
