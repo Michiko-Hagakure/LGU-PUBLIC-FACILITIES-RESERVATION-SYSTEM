@@ -183,10 +183,10 @@ class AnalyticsController extends Controller
         // 1. Fetch RAW booking data for AI Training (Cross-Database Join)
         $aiTrainingData = DB::connection('facilities_db')
             ->table('bookings')
-            ->join('faci_facility.users', 'bookings.user_id', '=', 'faci_facility.users.id')
+            ->join('lgu1_auth.users', 'bookings.user_id', '=', 'lgu1_auth.users.id')
             ->selectRaw('
-            bookings.facility_id,
-            faci_facility.users.full_name as user_name,
+            bookings.facility_id, 
+            lgu1_auth.users.full_name as user_name, 
             MONTH(bookings.created_at) as month_index, 
             DAYOFWEEK(bookings.created_at) as day_index, 
             HOUR(bookings.start_time) as hour_index,
@@ -759,3 +759,4 @@ class AnalyticsController extends Controller
         );
     }
 }
+
