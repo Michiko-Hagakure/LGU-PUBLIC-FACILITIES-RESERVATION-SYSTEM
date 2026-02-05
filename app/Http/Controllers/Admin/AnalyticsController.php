@@ -183,10 +183,10 @@ class AnalyticsController extends Controller
         // 1. Fetch RAW booking data for AI Training (Cross-Database Join)
         $aiTrainingData = DB::connection('facilities_db')
             ->table('bookings')
-            ->join('users', 'bookings.user_id', '=', 'users.id')
+            ->join('lgu1_auth.users', 'bookings.user_id', '=', 'lgu1_auth.users.id')
             ->selectRaw('
             bookings.facility_id, 
-            users.full_name as user_name, 
+            lgu1_auth.users.full_name as user_name, 
             MONTH(bookings.created_at) as month_index, 
             DAYOFWEEK(bookings.created_at) as day_index, 
             HOUR(bookings.start_time) as hour_index,
@@ -361,9 +361,9 @@ class AnalyticsController extends Controller
             ->limit(10)
             ->get();
 
-        // Get user details from facilities_db
+        // Get user details from auth_db
         $userIds = $topBookers->pluck('user_id')->toArray();
-        $users = DB::connection('facilities_db')
+        $users = DB::connection('auth_db')
             ->table('users')
             ->whereIn('id', $userIds)
             ->get()
@@ -495,7 +495,7 @@ class AnalyticsController extends Controller
             ->get();
 
         $userIds = $topBookers->pluck('user_id')->toArray();
-        $users = DB::connection('facilities_db')
+        $users = DB::connection('auth_db')
             ->table('users')
             ->whereIn('id', $userIds)
             ->get()
@@ -587,7 +587,7 @@ class AnalyticsController extends Controller
 
         // Get staff names
         $staffIds = $staffPerformance->pluck('staff_verified_by')->filter()->unique()->toArray();
-        $staffNames = DB::connection('facilities_db')
+        $staffNames = DB::connection('auth_db')
             ->table('users')
             ->whereIn('id', $staffIds)
             ->get()
@@ -759,4 +759,3 @@ class AnalyticsController extends Controller
         );
     }
 }
-
