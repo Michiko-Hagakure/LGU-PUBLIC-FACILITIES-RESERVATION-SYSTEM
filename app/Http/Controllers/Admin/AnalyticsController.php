@@ -495,7 +495,7 @@ class AnalyticsController extends Controller
             ->get();
 
         $userIds = $topBookers->pluck('user_id')->toArray();
-        $users = DB::connection('auth_db')
+        $users = DB::connection('facilities_db')
             ->table('users')
             ->whereIn('id', $userIds)
             ->get()
