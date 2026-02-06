@@ -732,4 +732,127 @@ class FacilityReservationApiController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Handle manual cashless payment submission from external systems (e.g., PF portal)
+     * Citizens pay via GCash/Maya on their own and submit the reference number.
+     */
+    public function submitCashlessPayment(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'booking_reference' => 'required|string|max:20',
+                'payment_channel' => 'required|string|in:gcash,maya',
+                'reference_number' => 'required|string|max:20',
+                'account_name' => 'nullable|string|max:100',
+                'amount' => 'required|string',
+                'source_system' => 'nullable|string|max:100',
+            ]);
+
+            $bookingId = (int) preg_replace('/[^0-9]/', '', $validated['booking_reference']);
+
+            $booking = DB::connection('facilities_db')
+                ->table('bookings')
+                ->where('id', $bookingId)
+                ->first();
+
+            if (!$booking) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Booking not found.',
+                ], 404);
+            }
+
+            $paymentSlip = DB::connection('facilities_db')
+                ->table('payment_slips')
+                ->where('booking_id', $bookingId)
+                ->first();
+
+            if (!$paymentSlip) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Payment slip not found.',
+                ], 404);
+            }
+
+            if ($paymentSlip->status === 'paid') {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'This payment slip has already been paid.',
+                ], 400);
+            }
+
+            $referenceNumber = strtoupper(trim($validated['reference_number']));
+            $paymentChannel = $validated['payment_channel'];
+            $paymentMethod = $paymentChannel === 'maya' ? 'paymaya' : $paymentChannel;
+
+            // Check for duplicate reference number
+            $duplicate = DB::connection('facilities_db')
+                ->table('payment_slips')
+                ->where('transaction_reference', $referenceNumber)
+                ->where('payment_channel', $paymentChannel)
+                ->where('id', '!=', $paymentSlip->id)
+                ->exists();
+
+            if ($duplicate) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'This reference number has already been used.',
+                ], 400);
+            }
+
+            // Update payment slip with reference number
+            DB::connection('facilities_db')
+                ->table('payment_slips')
+                ->where('id', $paymentSlip->id)
+                ->update([
+                    'payment_method' => $paymentMethod,
+                    'payment_channel' => $paymentChannel,
+                    'transaction_reference' => $referenceNumber,
+                    'account_name' => $validated['account_name'] ?? null,
+                    'gateway_reference_number' => $referenceNumber,
+                    'sent_to_treasurer_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+            // Update booking status
+            DB::connection('facilities_db')
+                ->table('bookings')
+                ->where('id', $bookingId)
+                ->update([
+                    'status' => 'staff_verified',
+                    'updated_at' => now(),
+                ]);
+
+            Log::info('Manual cashless payment submitted via API', [
+                'booking_reference' => $validated['booking_reference'],
+                'payment_channel' => $paymentChannel,
+                'reference_number' => $referenceNumber,
+                'source_system' => $validated['source_system'] ?? 'pf_portal',
+            ]);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Payment submitted successfully. Treasurer will verify within 24 hours.',
+                'data' => [
+                    'booking_reference' => $validated['booking_reference'],
+                    'payment_channel' => $paymentChannel,
+                    'reference_number' => $referenceNumber,
+                ]
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Validation failed.',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('Submit cashless payment API error: ' . $e->getMessage());
+            return response()->json([
+                'status' => 'error',
+                'message' => 'An error occurred processing payment.',
+            ], 500);
+        }
+    }
 }
