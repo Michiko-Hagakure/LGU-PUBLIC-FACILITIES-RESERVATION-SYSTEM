@@ -4,6 +4,26 @@
 
 @section('page-content')
 <div class="max-w-4xl mx-auto">
+    @if(session('error'))
+    <div class="bg-red-50 border border-red-300 rounded-lg p-4 mb-6">
+        <div class="flex items-center gap-3">
+            <i data-lucide="alert-circle" class="w-6 h-6 text-red-600"></i>
+            <div>
+                <p class="font-bold text-red-900">Payment Error</p>
+                <p class="text-sm text-red-700">{{ session('error') }}</p>
+            </div>
+        </div>
+    </div>
+    @endif
+    @if(session('info'))
+    <div class="bg-blue-50 border border-blue-300 rounded-lg p-4 mb-6">
+        <div class="flex items-center gap-3">
+            <i data-lucide="info" class="w-6 h-6 text-blue-600"></i>
+            <p class="text-sm text-blue-700">{{ session('info') }}</p>
+        </div>
+    </div>
+    @endif
+
     <!-- Header -->
     <div class="mb-8">
         <div class="flex items-center gap-3 mb-3">

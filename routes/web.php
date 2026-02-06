@@ -31,6 +31,29 @@ Route::get('/', function () {
     return view('welcome');
 })->name('welcome');
 
+// Temporary Paymongo diagnostic - REMOVE after debugging
+Route::get('/debug-paymongo', function () {
+    $service = new \App\Services\PaymongoService();
+    $result = [
+        'enabled' => $service->isEnabled(),
+        'config' => [
+            'paymongo_enabled' => config('payment.paymongo_enabled'),
+            'has_secret_key' => !empty(config('payment.paymongo_secret_key')),
+            'secret_key_prefix' => substr(config('payment.paymongo_secret_key', ''), 0, 15) . '...',
+            'has_public_key' => !empty(config('payment.paymongo_public_key')),
+        ],
+    ];
+
+    if ($service->isEnabled()) {
+        $testSlip = (object)['id' => 999, 'booking_id' => 999, 'slip_number' => 'TEST-001', 'amount_due' => 100.00];
+        $testBooking = (object)['facility_name' => 'Test Facility'];
+        $checkoutResult = $service->createCheckoutSession($testSlip, $testBooking, url('/success'), url('/cancel'));
+        $result['checkout_test'] = $checkoutResult;
+    }
+
+    return response()->json($result, 200, [], JSON_PRETTY_PRINT);
+});
+
 // CSRF Token Refresh Endpoint - For preventing stale token issues
 Route::get('/csrf-token', function () {
     return response()->json([
