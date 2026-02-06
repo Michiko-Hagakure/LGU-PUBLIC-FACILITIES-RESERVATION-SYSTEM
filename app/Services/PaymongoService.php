@@ -67,7 +67,7 @@ class PaymongoService
                                     'description' => "Booking Reference: {$paymentSlip->slip_number}"
                                 ]
                             ],
-                            'payment_method_types' => ['card', 'gcash', 'paymaya'],
+                            'payment_method_types' => ['gcash', 'paymaya', 'card', 'grab_pay', 'qrph'],
                             'description' => $description,
                             'metadata' => [
                                 'payment_slip_id' => $paymentSlip->id,
