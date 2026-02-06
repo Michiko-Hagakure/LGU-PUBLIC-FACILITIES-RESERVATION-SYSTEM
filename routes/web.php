@@ -31,49 +31,6 @@ Route::get('/', function () {
     return view('welcome');
 })->name('welcome');
 
-// Temporary Paymongo diagnostic - REMOVE after debugging
-Route::get('/debug-paymongo', function () {
-    $secretKey = config('payment.paymongo_secret_key');
-    $result = [
-        'secret_key_prefix' => substr($secretKey, 0, 15) . '...',
-    ];
-
-    $methods = ['card', 'gcash', 'paymaya', 'grab_pay', 'qrph'];
-    foreach ($methods as $method) {
-        $response = \Illuminate\Support\Facades\Http::withBasicAuth($secretKey, '')
-            ->timeout(15)
-            ->withOptions(['verify' => false])
-            ->post('https://api.paymongo.com/v1/checkout_sessions', [
-                'data' => [
-                    'attributes' => [
-                        'send_email_receipt' => false,
-                        'show_line_items' => true,
-                        'success_url' => url('/success'),
-                        'cancel_url' => url('/cancel'),
-                        'line_items' => [[
-                            'currency' => 'PHP',
-                            'amount' => 10000,
-                            'name' => 'Test',
-                            'quantity' => 1,
-                        ]],
-                        'payment_method_types' => [$method],
-                        'description' => 'Test',
-                        'metadata' => ['test' => 'true'],
-                    ]
-                ]
-            ]);
-
-        if ($response->successful()) {
-            $result['methods'][$method] = 'OK';
-        } else {
-            $err = $response->json();
-            $result['methods'][$method] = $err['errors'][0]['detail'] ?? 'FAILED';
-        }
-    }
-
-    return response()->json($result, 200, [], JSON_PRETTY_PRINT);
-});
-
 // CSRF Token Refresh Endpoint - For preventing stale token issues
 Route::get('/csrf-token', function () {
     return response()->json([
