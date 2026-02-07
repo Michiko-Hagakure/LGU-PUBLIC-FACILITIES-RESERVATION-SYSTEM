@@ -210,6 +210,114 @@ document.addEventListener('DOMContentLoaded', function() {
     if (typeof lucide !== 'undefined') {
         lucide.createIcons();
     }
+
+    // AJAX polling every 10 seconds to auto-refresh the refund queue
+    const pollInterval = 10000;
+    const statusColors = {
+        'pending_method': 'bg-yellow-100 text-yellow-800',
+        'pending_processing': 'bg-blue-100 text-blue-800',
+        'processing': 'bg-orange-100 text-orange-800',
+        'completed': 'bg-green-100 text-green-800',
+        'failed': 'bg-red-100 text-red-800',
+    };
+    const statusLabels = {
+        'pending_method': 'Awaiting Method',
+        'pending_processing': 'Ready to Process',
+        'processing': 'Processing',
+        'completed': 'Completed',
+        'failed': 'Failed',
+    };
+    const methodColors = {
+        'cash': 'bg-amber-100 text-amber-800',
+        'gcash': 'bg-blue-100 text-blue-800',
+        'maya': 'bg-green-100 text-green-800',
+        'bank_transfer': 'bg-purple-100 text-purple-800',
+    };
+
+    function ucfirst(str) {
+        return str.charAt(0).toUpperCase() + str.slice(1).replace(/_/g, ' ');
+    }
+
+    function formatDate(dateStr) {
+        const d = new Date(dateStr);
+        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        return months[d.getMonth()] + ' ' + String(d.getDate()).padStart(2,'0') + ', ' + d.getFullYear();
+    }
+
+    function formatTime(dateStr) {
+        const d = new Date(dateStr);
+        let h = d.getHours(), ampm = h >= 12 ? 'PM' : 'AM';
+        h = h % 12 || 12;
+        return String(h).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0') + ' ' + ampm;
+    }
+
+    function refreshRefunds() {
+        const params = new URLSearchParams(window.location.search);
+        const url = "{{ route('treasurer.refunds.json') }}?" + params.toString();
+
+        fetch(url, { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }})
+            .then(r => r.json())
+            .then(data => {
+                // Update stats
+                if (data.stats) {
+                    const sm = document.getElementById('stat-pending-method');
+                    const sp = document.getElementById('stat-pending-processing');
+                    const sr = document.getElementById('stat-processing');
+                    const sc = document.getElementById('stat-completed');
+                    if (sm) sm.textContent = data.stats.pending_method + ' Awaiting Method';
+                    if (sp) sp.textContent = data.stats.pending_processing + ' Ready';
+                    if (sr) sr.textContent = data.stats.processing + ' Processing';
+                    if (sc) sc.textContent = data.stats.completed + ' Completed';
+                }
+
+                // Update table
+                const tbody = document.getElementById('refund-table-body');
+                if (!tbody || !data.data) return;
+
+                if (data.data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" class="px-gr-sm py-gr-lg text-center text-gray-500"><div class="flex flex-col items-center py-gr-lg"><i data-lucide="inbox" class="w-12 h-12 text-gray-300 mb-gr-sm"></i><p class="text-body font-semibold">No refund requests found</p></div></td></tr>';
+                } else {
+                    let html = '';
+                    data.data.forEach(function(r) {
+                        const amt = parseFloat(r.refund_amount).toLocaleString('en-PH', {minimumFractionDigits:2});
+                        const orig = parseFloat(r.original_amount).toLocaleString('en-PH', {minimumFractionDigits:2});
+                        const pct = parseFloat(r.refund_percentage).toFixed(0);
+                        const sc = statusColors[r.status] || 'bg-gray-100 text-gray-800';
+                        const sl = statusLabels[r.status] || ucfirst(r.status);
+
+                        let methodHtml = '<span class="text-small text-gray-400 italic">Not yet selected</span>';
+                        if (r.refund_method) {
+                            const mc = methodColors[r.refund_method] || 'bg-gray-100 text-gray-800';
+                            methodHtml = '<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ' + mc + '">' + ucfirst(r.refund_method) + '</span>';
+                            if (r.account_number) {
+                                methodHtml += '<div class="text-small text-gray-500 mt-1">' + (r.account_name||'') + ' - ' + r.account_number + '</div>';
+                            }
+                        }
+
+                        html += '<tr class="hover:bg-gray-50 transition-colors">';
+                        html += '<td class="px-2 py-gr-xs"><span class="text-small font-bold text-lgu-button">' + r.booking_reference + '</span></td>';
+                        html += '<td class="px-2 py-gr-xs"><div class="text-small font-semibold text-gray-900 truncate">' + r.applicant_name + '</div><div class="text-xs text-gray-500 truncate">' + (r.applicant_email||'N/A') + '</div></td>';
+                        html += '<td class="px-2 py-gr-xs"><span class="text-small text-gray-700">' + (r.facility_name||'N/A') + '</span></td>';
+                        html += '<td class="px-2 py-gr-xs"><div class="text-small font-bold text-green-700">₱' + amt + '</div><div class="text-xs text-gray-500">' + pct + '% of ₱' + orig + '</div></td>';
+                        html += '<td class="px-2 py-gr-xs">' + methodHtml + '</td>';
+                        html += '<td class="px-2 py-gr-xs"><span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ' + sc + '">' + sl + '</span></td>';
+                        html += '<td class="px-2 py-gr-xs"><span class="text-xs text-gray-600">' + formatDate(r.created_at) + '</span><div class="text-xs text-gray-400">' + formatTime(r.created_at) + '</div></td>';
+                        html += '<td class="px-2 py-gr-xs text-center"><a href="/treasurer/refunds/' + r.id + '" class="inline-flex items-center px-2 py-1 bg-lgu-button hover:bg-lgu-highlight text-white text-xs font-semibold rounded-lg transition-all"><i data-lucide="eye" class="w-3.5 h-3.5 mr-1"></i>View</a></td>';
+                        html += '</tr>';
+                    });
+                    tbody.innerHTML = html;
+                }
+
+                if (typeof lucide !== 'undefined') {
+                    lucide.createIcons();
+                }
+            })
+            .catch(function(err) {
+                console.error('Refund poll error:', err);
+            });
+    }
+
+    setInterval(refreshRefunds, pollInterval);
 });
 </script>
 @endpush
