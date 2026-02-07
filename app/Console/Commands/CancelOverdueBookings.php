@@ -30,33 +30,50 @@ class CancelOverdueBookings extends Command
 
         foreach ($overdueSlips as $slip) {
             try {
-                DB::beginTransaction();
+                DB::connection('facilities_db')->beginTransaction();
 
                 $booking = Booking::find($slip->booking_id);
 
-                if ($booking && $booking->status !== 'canceled') {
+                if ($booking && !in_array($booking->status, ['canceled', 'expired'])) {
                     $booking->update([
-                        'status' => 'canceled',
-                        'canceled_reason' => 'Payment deadline exceeded',
-                        'canceled_at' => Carbon::now(),
+                        'status' => 'expired',
+                        'expired_at' => Carbon::now(),
+                        'canceled_reason' => 'Payment deadline exceeded (auto-expired)',
                     ]);
 
                     $slip->update([
                         'status' => 'expired',
                     ]);
 
+                    // Send expiration notification to citizen
+                    try {
+                        $user = \App\Models\User::find($booking->user_id);
+                        $bookingWithFacility = DB::connection('facilities_db')
+                            ->table('bookings')
+                            ->join('facilities', 'bookings.facility_id', '=', 'facilities.facility_id')
+                            ->where('bookings.id', $booking->id)
+                            ->selectRaw('bookings.*, facilities.name as facility_name, CONCAT("BK", LPAD(bookings.id, 6, "0")) as booking_reference')
+                            ->first();
+                        
+                        if ($user && $bookingWithFacility) {
+                            $user->notify(new \App\Notifications\BookingExpired($bookingWithFacility));
+                        }
+                    } catch (\Exception $e) {
+                        \Log::error('Failed to send booking expiration notification: ' . $e->getMessage());
+                    }
+
                     $canceledCount++;
-                    $this->info("Canceled booking #{$booking->id} - Payment slip {$slip->slip_number}");
+                    $this->info("Expired booking #{$booking->id} - Payment slip {$slip->slip_number}");
                 }
 
-                DB::commit();
+                DB::connection('facilities_db')->commit();
             } catch (\Exception $e) {
-                DB::rollBack();
-                $this->error("Failed to cancel booking #{$slip->booking_id}: " . $e->getMessage());
+                DB::connection('facilities_db')->rollBack();
+                $this->error("Failed to expire booking #{$slip->booking_id}: " . $e->getMessage());
             }
         }
 
-        $this->info("Total bookings canceled: {$canceledCount}");
+        $this->info("Total bookings expired: {$canceledCount}");
         return 0;
     }
 }

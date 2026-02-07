@@ -50,39 +50,53 @@ class ExpireUnpaidBookings extends Command
 
             // Check if deadline has passed
             if ($now->greaterThan($deadline)) {
-                // Expire the booking
-                $booking->status = 'expired';
-                $booking->expired_at = $now;
-                $booking->save();
-
-                // Send expiration notification to citizen
                 try {
-                    $user = User::find($booking->user_id);
-                    $bookingWithFacility = DB::connection('facilities_db')
-                        ->table('bookings')
-                        ->join('facilities', 'bookings.facility_id', '=', 'facilities.facility_id')
-                        ->where('bookings.id', $booking->id)
-                        ->selectRaw('bookings.*, facilities.name as facility_name, CONCAT("BK", LPAD(bookings.id, 6, "0")) as booking_reference')
-                        ->first();
-                    
-                    if ($user && $bookingWithFacility) {
-                        $user->notify(new \App\Notifications\BookingExpired($bookingWithFacility));
+                    DB::connection('facilities_db')->beginTransaction();
+
+                    // Expire the booking
+                    $booking->update([
+                        'status' => 'expired',
+                        'expired_at' => $now,
+                        'canceled_reason' => 'Payment deadline exceeded (auto-expired)',
+                    ]);
+
+                    // Also expire the associated payment slip
+                    \App\Models\PaymentSlip::where('booking_id', $booking->id)
+                        ->where('status', 'unpaid')
+                        ->update(['status' => 'expired']);
+
+                    DB::connection('facilities_db')->commit();
+
+                    // Send expiration notification to citizen
+                    try {
+                        $user = User::find($booking->user_id);
+                        $bookingWithFacility = DB::connection('facilities_db')
+                            ->table('bookings')
+                            ->join('facilities', 'bookings.facility_id', '=', 'facilities.facility_id')
+                            ->where('bookings.id', $booking->id)
+                            ->selectRaw('bookings.*, facilities.name as facility_name, CONCAT("BK", LPAD(bookings.id, 6, "0")) as booking_reference')
+                            ->first();
+                        
+                        if ($user && $bookingWithFacility) {
+                            $user->notify(new \App\Notifications\BookingExpired($bookingWithFacility));
+                        }
+                    } catch (\Exception $e) {
+                        \Log::error('Failed to send booking expiration notification: ' . $e->getMessage());
                     }
+
+                    $expiredCount++;
+                    
+                    $this->warn("EXPIRED: Booking #{$booking->id} - {$booking->facility->name}");
+                    $citizenName = $booking->applicant_name ?? $booking->user_name ?? 'N/A';
+                    $this->line("   Citizen: {$citizenName}");
+                    $this->line("   Verified: {$verifiedAt->format('M d, Y h:i A')}");
+                    $this->line("   Deadline: {$deadline->format('M d, Y h:i A')}");
+                    $this->line("   Overdue by: {$deadline->diffForHumans($now, true)}");
+                    $this->newLine();
                 } catch (\Exception $e) {
-                    \Log::error('Failed to send booking expiration notification: ' . $e->getMessage());
+                    DB::connection('facilities_db')->rollBack();
+                    $this->error("Failed to expire booking #{$booking->id}: " . $e->getMessage());
                 }
-
-                $expiredCount++;
-                
-                $this->warn("EXPIRED: Booking #{$booking->id} - {$booking->facility->name}");
-                $this->line("   Citizen: {$booking->applicant_name}");
-                $this->line("   Verified: {$verifiedAt->format('M d, Y h:i A')}");
-                $this->line("   Deadline: {$deadline->format('M d, Y h:i A')}");
-                $this->line("   Overdue by: {$deadline->diffForHumans($now, true)}");
-                $this->newLine();
-
-                // TODO: Send notification to citizen
-                // Notification::send($booking->user, new BookingExpiredNotification($booking));
             }
         }
 
