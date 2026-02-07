@@ -91,13 +91,13 @@
                 <td>{{ $facility->facility_name }}</td>
                 <td>{{ $facility->city_name ?? 'N/A' }}</td>
                 <td class="text-right">{{ $facility->total_bookings }}</td>
-                <td class="text-right">&#8369;{{ number_format($facility->total_revenue, 2) }}</td>
+                <td class="text-right">PHP {{ number_format($facility->total_revenue, 2) }}</td>
             </tr>
             @endforeach
             <tr class="total-row">
                 <td colspan="2">TOTAL</td>
                 <td class="text-right">{{ $totalBookings }}</td>
-                <td class="text-right">&#8369;{{ number_format($totalRevenue, 2) }}</td>
+                <td class="text-right">PHP {{ number_format($totalRevenue, 2) }}</td>
             </tr>
         </tbody>
     </table>
