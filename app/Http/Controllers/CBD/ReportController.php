@@ -221,7 +221,103 @@ class ReportController extends Controller
      */
     public function facilityUtilization(Request $request)
     {
-        return view('cbd.reports.facility-utilization');
+        $selectedMonth = $request->input('month', now()->month);
+        $selectedYear = $request->input('year', now()->year);
+        
+        $startDate = Carbon::createFromDate($selectedYear, $selectedMonth, 1)->startOfMonth();
+        $endDate = Carbon::createFromDate($selectedYear, $selectedMonth, 1)->endOfMonth();
+        $daysInMonth = $startDate->daysInMonth;
+        
+        // Get all facilities with their booking counts and revenue
+        $facilities = DB::connection('facilities_db')
+            ->table('facilities')
+            ->leftJoin('lgu_cities', 'facilities.lgu_city_id', '=', 'lgu_cities.id')
+            ->select(
+                'facilities.facility_id',
+                'facilities.name',
+                'facilities.capacity',
+                'lgu_cities.city_name'
+            )
+            ->where('facilities.status', 'active')
+            ->orderBy('facilities.name')
+            ->get();
+        
+        // Get booking stats per facility for the selected period
+        $bookingStats = DB::connection('facilities_db')
+            ->table('bookings')
+            ->selectRaw('
+                facility_id,
+                COUNT(*) as total_bookings,
+                SUM(CASE WHEN status = "completed" THEN 1 ELSE 0 END) as completed_bookings,
+                SUM(CASE WHEN status = "cancelled" THEN 1 ELSE 0 END) as cancelled_bookings,
+                SUM(CASE WHEN status IN ("pending","staff_verified","payment_pending","confirmed") THEN 1 ELSE 0 END) as active_bookings,
+                COALESCE(SUM(total_amount), 0) as total_revenue,
+                COALESCE(SUM(attendees), 0) as total_attendees,
+                COUNT(DISTINCT DATE(start_time)) as days_booked
+            ')
+            ->whereBetween('start_time', [$startDate, $endDate])
+            ->where('status', '!=', 'cancelled')
+            ->groupBy('facility_id')
+            ->get()
+            ->keyBy('facility_id');
+        
+        // Merge facility info with booking stats
+        $facilityData = $facilities->map(function ($facility) use ($bookingStats, $daysInMonth) {
+            $stats = $bookingStats->get($facility->facility_id);
+            $facility->total_bookings = $stats->total_bookings ?? 0;
+            $facility->completed_bookings = $stats->completed_bookings ?? 0;
+            $facility->cancelled_bookings = $stats->cancelled_bookings ?? 0;
+            $facility->active_bookings = $stats->active_bookings ?? 0;
+            $facility->total_revenue = $stats->total_revenue ?? 0;
+            $facility->total_attendees = $stats->total_attendees ?? 0;
+            $facility->days_booked = $stats->days_booked ?? 0;
+            $facility->utilization_rate = $daysInMonth > 0 ? round(($facility->days_booked / $daysInMonth) * 100, 1) : 0;
+            return $facility;
+        })->sortByDesc('total_bookings');
+        
+        // Summary stats
+        $totalBookings = $facilityData->sum('total_bookings');
+        $totalRevenue = $facilityData->sum('total_revenue');
+        $totalAttendees = $facilityData->sum('total_attendees');
+        $avgUtilization = $facilityData->count() > 0 ? round($facilityData->avg('utilization_rate'), 1) : 0;
+        
+        // Most utilized facility
+        $mostUtilized = $facilityData->sortByDesc('utilization_rate')->first();
+        
+        // Booking trend (daily bookings for the month)
+        $dailyBookings = DB::connection('facilities_db')
+            ->table('bookings')
+            ->selectRaw('DATE(start_time) as booking_date, COUNT(*) as count')
+            ->whereBetween('start_time', [$startDate, $endDate])
+            ->where('status', '!=', 'cancelled')
+            ->groupBy('booking_date')
+            ->orderBy('booking_date')
+            ->pluck('count', 'booking_date')
+            ->toArray();
+        
+        // Month and year options
+        $months = [];
+        for ($i = 1; $i <= 12; $i++) {
+            $months[$i] = Carbon::createFromDate(null, $i, 1)->format('F');
+        }
+        $years = range(now()->year, now()->year - 5);
+        
+        return view('cbd.reports.facility-utilization', compact(
+            'facilityData',
+            'totalBookings',
+            'totalRevenue',
+            'totalAttendees',
+            'avgUtilization',
+            'mostUtilized',
+            'dailyBookings',
+            'months',
+            'years',
+            'selectedMonth',
+            'selectedYear',
+            'startDate',
+            'endDate',
+            'daysInMonth'
+        ));
     }
     
     /**
