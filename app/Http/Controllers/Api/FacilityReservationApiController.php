@@ -1000,6 +1000,22 @@ class FacilityReservationApiController extends Controller
                 ->where('id', $id)
                 ->update($updateData);
 
+            // Notify all treasurers about the refund ready for processing
+            try {
+                $updatedRefund = \App\Models\RefundRequest::find($id);
+                if ($updatedRefund) {
+                    $treasurers = \App\Models\User::where('subsystem_role_id', 5)
+                        ->where('subsystem_id', 4)
+                        ->get();
+
+                    foreach ($treasurers as $treasurer) {
+                        $treasurer->notify(new \App\Notifications\RefundMethodSelected($updatedRefund));
+                    }
+                }
+            } catch (\Exception $e) {
+                \Log::error('Failed to send refund method selected notification: ' . $e->getMessage());
+            }
+
             return response()->json([
                 'status' => 'success',
                 'message' => 'Refund method selected successfully. Your refund will be processed within 1-3 business days.',

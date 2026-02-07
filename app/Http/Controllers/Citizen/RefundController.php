@@ -80,6 +80,19 @@ class RefundController extends Controller
         $refund->status = 'pending_processing';
         $refund->save();
 
+        // Notify all treasurers about the refund ready for processing
+        try {
+            $treasurers = \App\Models\User::where('subsystem_role_id', 5)
+                ->where('subsystem_id', 4)
+                ->get();
+
+            foreach ($treasurers as $treasurer) {
+                $treasurer->notify(new \App\Notifications\RefundMethodSelected($refund));
+            }
+        } catch (\Exception $e) {
+            \Log::error('Failed to send refund method selected notification: ' . $e->getMessage());
+        }
+
         return redirect()
             ->route('citizen.refunds.show', $id)
             ->with('success', 'Refund method selected successfully! Your refund will be processed within 1-3 business days.');
