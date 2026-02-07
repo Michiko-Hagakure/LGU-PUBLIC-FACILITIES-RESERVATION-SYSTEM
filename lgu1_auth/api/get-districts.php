@@ -4,7 +4,15 @@ require_once '../config/config.php';
 header('Content-Type: application/json');
 
 try {
-    $stmt = $conn->query("SELECT * FROM districts ORDER BY name ASC");
+    $city_id = $_GET['city_id'] ?? null;
+    
+    if ($city_id) {
+        $stmt = $conn->prepare("SELECT id, name FROM districts WHERE city_id = ? ORDER BY name ASC");
+        $stmt->execute([$city_id]);
+    } else {
+        $stmt = $conn->query("SELECT id, name FROM districts ORDER BY name ASC");
+    }
+    
     $districts = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     echo json_encode([

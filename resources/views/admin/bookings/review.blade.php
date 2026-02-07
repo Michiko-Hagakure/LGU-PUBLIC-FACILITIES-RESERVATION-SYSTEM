@@ -158,8 +158,14 @@
 
                     <div>
                         <p class="text-caption text-gray-500 mb-1">Event Purpose</p>
-                        <p class="text-body text-lgu-paragraph">{{ $booking->purpose ?? 'Not specified' }}</p>
+                        <p class="text-body text-lgu-paragraph">{{ $booking->event_name ?? $booking->purpose ?? 'Not specified' }}</p>
                     </div>
+                    @if($booking->event_name && $booking->purpose)
+                    <div>
+                        <p class="text-caption text-gray-500 mb-1">Event Description</p>
+                        <p class="text-body text-lgu-paragraph">{{ $booking->purpose }}</p>
+                    </div>
+                    @endif
                 </div>
             </div>
 
@@ -189,21 +195,42 @@
             </div>
             @endif
 
-            <!-- Uploaded Documents -->
+            <!-- Uploaded Documents (hide for Housing & Resettlement or when no documents) -->
+            @php
+                $hasDocuments = collect($documents)->filter()->isNotEmpty();
+            @endphp
+            @if($hasDocuments)
             <div class="bg-white rounded-xl shadow-sm border border-lgu-stroke p-gr-lg">
                 <h2 class="text-h3 font-bold text-lgu-headline mb-gr-md flex items-center gap-2">
                     <i data-lucide="file-check" class="w-6 h-6"></i>
                     Uploaded Documents
                 </h2>
                 <div class="grid grid-cols-3 gap-gr-md">
-                    @foreach($documents as $key => $path)
-                        <div class="border-2 border-lgu-stroke rounded-lg p-gr-sm hover:border-lgu-highlight cursor-pointer transition-colors" onclick="openDocumentModal('{{ asset('storage/' . $path) }}', '{{ ucwords(str_replace('_', ' ', $key)) }}')">
-                            <img src="{{ asset('storage/' . $path) }}" alt="{{ $key }}" class="w-full h-32 object-cover rounded-lg mb-gr-xs">
+                    @foreach($documents as $key => $doc)
+                        @if($doc)
+                        @php
+                            // Handle external URLs (from PF folder) vs local storage paths
+                            if ($doc->is_external ?? false) {
+                                if (str_starts_with($doc->path, '/uploads/')) {
+                                    $docUrl = 'https://local-government-unit-1-ph.com' . $doc->path;
+                                } elseif (str_starts_with($doc->path, 'http')) {
+                                    $docUrl = $doc->path;
+                                } else {
+                                    $docUrl = url($doc->path);
+                                }
+                            } else {
+                                $docUrl = url('/files/' . $doc->path);
+                            }
+                        @endphp
+                        <div class="border-2 border-lgu-stroke rounded-lg p-gr-sm hover:border-lgu-highlight cursor-pointer transition-colors" onclick="openDocumentModal('{{ $docUrl }}', '{{ ucwords(str_replace('_', ' ', $key)) }}')">
+                            <img src="{{ $docUrl }}" alt="{{ $key }}" class="w-full h-32 object-cover rounded-lg mb-gr-xs">
                             <p class="text-caption text-center text-lgu-paragraph">{{ ucwords(str_replace('_', ' ', $key)) }}</p>
                         </div>
+                        @endif
                     @endforeach
                 </div>
             </div>
+            @endif
 
         </div>
 
@@ -213,6 +240,13 @@
             <!-- Payment Summary -->
             <div class="bg-white rounded-xl shadow-sm border border-lgu-stroke p-gr-lg sticky top-4">
                 <h3 class="text-h4 font-bold text-lgu-headline mb-gr-md">Payment Summary</h3>
+                @if($booking->source_system === 'Housing_Resettlement' || $booking->total_amount == 0)
+                <div class="bg-blue-50 border-2 border-blue-200 rounded-lg p-gr-md text-center">
+                    <i data-lucide="shield-check" class="w-10 h-10 text-blue-600 mx-auto mb-2"></i>
+                    <p class="text-body font-bold text-blue-900">Free - Government Inter-Agency</p>
+                    <p class="text-small text-blue-700">No payment required</p>
+                </div>
+                @else
                 <div class="space-y-gr-sm">
                     <div class="flex justify-between text-small">
                         <span class="text-lgu-paragraph">Base Rate</span>
@@ -237,6 +271,7 @@
                         </div>
                     </div>
                 </div>
+                @endif
 
                 <!-- Action Buttons -->
                 <div class="mt-gr-lg space-y-gr-sm">
@@ -264,6 +299,11 @@
                                 Final Confirmation
                             </button>
                         </form>
+
+                        <button onclick="openRejectBookingModal()" class="w-full px-gr-lg py-gr-md bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-colors flex items-center justify-center gap-2">
+                            <i data-lucide="x-circle" class="w-5 h-5"></i>
+                            Reject Booking
+                        </button>
 
                     @elseif($booking->status === 'confirmed')
                         <div class="bg-green-50 border-2 border-green-200 rounded-lg p-gr-md text-center">
@@ -315,6 +355,34 @@
                 </button>
                 <button type="submit" class="flex-1 px-gr-lg py-gr-sm bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-colors">
                     Reject Payment
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Reject Booking Modal (for paid/confirmed bookings - triggers refund) -->
+<div id="rejectBookingModal" class="hidden fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-gr-lg">
+        <h3 class="text-h3 font-bold text-red-600 mb-gr-sm">Reject Booking</h3>
+        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-gr-sm mb-gr-md">
+            <p class="text-small text-yellow-800">
+                <i data-lucide="alert-triangle" class="w-4 h-4 inline-block mr-1"></i>
+                <strong>This booking has been paid.</strong> Rejecting it will automatically create a <strong>100% refund (₱{{ number_format($booking->total_amount, 2) }})</strong> for the citizen. The refund will be processed within 1-3 business days.
+            </p>
+        </div>
+        <form method="POST" action="{{ URL::signedRoute('admin.bookings.reject-booking', $booking->id) }}">
+            @csrf
+            <div class="mb-gr-md">
+                <label class="block text-small font-medium text-lgu-paragraph mb-gr-xs">Rejection Reason <span class="text-red-500">*</span></label>
+                <textarea name="rejection_reason" rows="4" required class="w-full px-gr-md py-gr-sm border border-lgu-stroke rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500" placeholder="Explain why this booking is being rejected..."></textarea>
+            </div>
+            <div class="flex gap-gr-sm">
+                <button type="button" onclick="closeRejectBookingModal()" class="flex-1 px-gr-lg py-gr-sm bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold rounded-lg transition-colors">
+                    Cancel
+                </button>
+                <button type="submit" class="flex-1 px-gr-lg py-gr-sm bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-colors">
+                    Reject & Issue Refund
                 </button>
             </div>
         </form>
@@ -376,11 +444,21 @@ function closeRejectModal() {
     document.getElementById('rejectModal').classList.add('hidden');
 }
 
+function openRejectBookingModal() {
+    document.getElementById('rejectBookingModal').classList.remove('hidden');
+    lucide.createIcons();
+}
+
+function closeRejectBookingModal() {
+    document.getElementById('rejectBookingModal').classList.add('hidden');
+}
+
 // Close modals on escape key
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
         closeDocumentModal();
         closeRejectModal();
+        closeRejectBookingModal();
     }
 });
 

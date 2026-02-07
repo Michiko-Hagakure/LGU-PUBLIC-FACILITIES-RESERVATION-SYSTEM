@@ -550,6 +550,9 @@ class PaymentController extends Controller
         // Get payment details
         $paymentDetails = $paymongoService->getPaymentDetails($checkoutSessionId);
         
+        // Auto-generate Official Receipt number
+        $orNumber = $this->generateOfficialReceiptNumber();
+
         // Update payment slip as paid
         DB::connection('facilities_db')
             ->table('payment_slips')
@@ -560,6 +563,7 @@ class PaymentController extends Controller
                 'payment_channel' => 'paymongo',
                 'transaction_reference' => $paymentDetails['reference_number'] ?? $checkoutSessionId,
                 'gateway_reference_number' => $paymentDetails['payment_id'] ?? $checkoutSessionId,
+                'or_number' => $orNumber,
                 'paid_at' => Carbon::now(),
                 'updated_at' => Carbon::now(),
             ]);
@@ -659,6 +663,30 @@ class PaymentController extends Controller
         }
 
         return response()->json(['status' => $result['status']]);
+    }
+
+    /**
+     * Auto-generate Official Receipt number.
+     * Format: OR-YYYY-NNNN (e.g., OR-2026-0008)
+     */
+    private function generateOfficialReceiptNumber()
+    {
+        $year = now()->year;
+
+        $lastPayment = DB::connection('facilities_db')
+            ->table('payment_slips')
+            ->where('or_number', 'like', "OR-{$year}-%")
+            ->orderBy('or_number', 'desc')
+            ->first();
+
+        if ($lastPayment && $lastPayment->or_number) {
+            $lastNumber = intval(substr($lastPayment->or_number, -4));
+            $newNumber = str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
+        } else {
+            $newNumber = '0001';
+        }
+
+        return "OR-{$year}-{$newNumber}";
     }
 }
 

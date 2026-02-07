@@ -84,6 +84,9 @@ Route::prefix('facility-reservation')->group(function () {
     // GET https://facilities.local-government-unit-1-ph.com/api/facility-reservation/calendar-bookings
     Route::get('/calendar-bookings', [\App\Http\Controllers\Api\FacilityReservationApiController::class, 'calendarBookings']);
     
+    // GET https://facilities.local-government-unit-1-ph.com/api/facility-reservation/my-bookings?email=...
+    Route::get('/my-bookings', [\App\Http\Controllers\Api\FacilityReservationApiController::class, 'myBookings']);
+
     // GET https://facilities.local-government-unit-1-ph.com/api/facility-reservation/status/{reference}
     Route::get('/status/{reference}', [\App\Http\Controllers\Api\FacilityReservationApiController::class, 'checkStatus']);
     
@@ -92,6 +95,15 @@ Route::prefix('facility-reservation')->group(function () {
     
     // POST https://facilities.local-government-unit-1-ph.com/api/facility-reservation/payment-complete
     Route::post('/payment-complete', [\App\Http\Controllers\Api\FacilityReservationApiController::class, 'paymentComplete']);
+    
+    // POST https://facilities.local-government-unit-1-ph.com/api/facility-reservation/submit-cashless-payment
+    Route::post('/submit-cashless-payment', [\App\Http\Controllers\Api\FacilityReservationApiController::class, 'submitCashlessPayment']);
+
+    // GET https://facilities.local-government-unit-1-ph.com/api/facility-reservation/refunds?email=...
+    Route::get('/refunds', [\App\Http\Controllers\Api\FacilityReservationApiController::class, 'getRefunds']);
+
+    // POST https://facilities.local-government-unit-1-ph.com/api/facility-reservation/refunds/{id}/select-method
+    Route::post('/refunds/{id}/select-method', [\App\Http\Controllers\Api\FacilityReservationApiController::class, 'selectRefundMethod']);
 });
 
 /*

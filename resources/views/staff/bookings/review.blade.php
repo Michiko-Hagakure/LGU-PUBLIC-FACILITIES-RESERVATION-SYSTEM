@@ -30,11 +30,11 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-gr-md">
                 <div>
                     <label class="text-caption font-semibold text-gray-500 uppercase">Facility</label>
-                    <p class="text-body font-semibold text-gray-900 mt-1">{{ $booking->facility_name }}</p>
+                    <p class="text-body font-semibold text-gray-900 mt-1">{{ $booking->facility->name ?? 'N/A' }}</p>
                 </div>
                 <div>
                     <label class="text-caption font-semibold text-gray-500 uppercase">Location</label>
-                    <p class="text-body font-semibold text-gray-900 mt-1">{{ $booking->city_name }}</p>
+                    <p class="text-body font-semibold text-gray-900 mt-1">{{ $booking->facility->lguCity->city_name ?? 'N/A' }}</p>
                 </div>
                 <div>
                     <label class="text-caption font-semibold text-gray-500 uppercase">Event Date</label>
@@ -52,12 +52,14 @@
                 </div>
                 <div>
                     <label class="text-caption font-semibold text-gray-500 uppercase">Event Purpose</label>
-                    <p class="text-body font-semibold text-gray-900 mt-1">{{ $booking->purpose ?? 'N/A' }}</p>
+                    <p class="text-body font-semibold text-gray-900 mt-1">{{ $booking->event_name ?? $booking->purpose ?? 'N/A' }}</p>
                 </div>
+                @if($booking->event_name && $booking->purpose)
                 <div class="md:col-span-2">
                     <label class="text-caption font-semibold text-gray-500 uppercase">Event Description</label>
-                    <p class="text-body text-gray-700 mt-1">{{ $booking->event_description ?? 'No description provided' }}</p>
+                    <p class="text-body text-gray-700 mt-1">{{ $booking->purpose }}</p>
                 </div>
+                @endif
             </div>
         </div>
 
@@ -191,9 +193,19 @@
                 @foreach($documents as $doc)
                 @php
                     // Handle external URLs (from PF folder) vs local storage paths
-                    $docUrl = ($doc->is_external ?? false) 
-                        ? (str_starts_with($doc->path, '/') ? url($doc->path) : $doc->path)
-                        : asset('storage/' . $doc->path);
+                    if ($doc->is_external ?? false) {
+                        // External paths from PF folder need the main domain URL
+                        if (str_starts_with($doc->path, '/uploads/')) {
+                            // Use the main citizen portal domain for PF folder uploads
+                            $docUrl = 'https://local-government-unit-1-ph.com' . $doc->path;
+                        } elseif (str_starts_with($doc->path, 'http')) {
+                            $docUrl = $doc->path;
+                        } else {
+                            $docUrl = url($doc->path);
+                        }
+                    } else {
+                        $docUrl = url('/files/' . $doc->path);
+                    }
                 @endphp
                 <button type="button" onclick="openDocumentModal('{{ $docUrl }}', '{{ $doc->type }}')"
                    class="flex items-center p-3 rounded-lg border border-gray-300 hover:border-lgu-button hover:bg-gray-50 transition-colors cursor-pointer">
@@ -226,6 +238,13 @@
             <!-- Pricing Summary -->
             <div class="bg-white rounded-xl shadow-sm border border-lgu-stroke p-gr-md">
                 <h3 class="text-h4 font-bold text-gray-900 mb-gr-md">Pricing Summary</h3>
+                @if($booking->source_system === 'Housing_Resettlement' || $booking->total_amount == 0)
+                <div class="bg-blue-50 border-2 border-blue-200 rounded-lg p-gr-md text-center">
+                    <i data-lucide="shield-check" class="w-10 h-10 text-blue-600 mx-auto mb-2"></i>
+                    <p class="text-body font-bold text-blue-900">Free - Government Inter-Agency</p>
+                    <p class="text-small text-blue-700">No payment required</p>
+                </div>
+                @else
                 <div class="space-y-2 mb-4">
                     <div class="flex justify-between text-small">
                         <span class="text-gray-600">Facility Fee</span>
@@ -267,6 +286,7 @@
                         <span class="text-h4 font-bold text-lgu-button">₱{{ number_format($booking->total_amount, 2) }}</span>
                     </div>
                 </div>
+                @endif
             </div>
 
             <!-- Schedule Conflict Warning -->

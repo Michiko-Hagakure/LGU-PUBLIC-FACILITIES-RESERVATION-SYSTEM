@@ -308,21 +308,77 @@ class FacilityReservationApiController extends Controller
             $endDateTime = Carbon::parse($validated['booking_date'] . ' ' . $validated['end_time']);
             $bufferHours = 2;
 
+            $activeStatuses = ['pending', 'staff_verified', 'reserved', 'payment_pending', 'confirmed', 'paid'];
+
             $conflict = DB::connection('facilities_db')
                 ->table('bookings')
                 ->where('facility_id', $validated['facility_id'])
-                ->whereIn('status', ['pending', 'staff_verified', 'reserved', 'payment_pending', 'confirmed', 'paid'])
+                ->whereIn('status', $activeStatuses)
                 ->where(function($query) use ($startDateTime, $endDateTime, $bufferHours) {
                     $query->whereRaw('? < DATE_ADD(end_time, INTERVAL ? HOUR)', [$startDateTime, $bufferHours])
                           ->whereRaw('? > start_time', [$endDateTime]);
                 })
                 ->exists();
 
-            return response()->json([
+            $response = [
                 'status' => 'success',
                 'available' => !$conflict,
                 'message' => $conflict ? 'Time slot is not available.' : 'Time slot is available.',
-            ]);
+            ];
+
+            // When conflict exists, return existing bookings for the day and suggest available slots
+            if ($conflict) {
+                $existingBookings = DB::connection('facilities_db')
+                    ->table('bookings')
+                    ->where('facility_id', $validated['facility_id'])
+                    ->whereDate('start_time', $validated['booking_date'])
+                    ->whereIn('status', $activeStatuses)
+                    ->select('start_time', 'end_time', 'status')
+                    ->orderBy('start_time')
+                    ->get()
+                    ->map(function($b) {
+                        return [
+                            'start' => Carbon::parse($b->start_time)->format('H:i'),
+                            'end' => Carbon::parse($b->end_time)->format('H:i'),
+                        ];
+                    });
+
+                $response['existing_bookings'] = $existingBookings;
+
+                // Calculate suggested available 3-hour slots (operating hours 08:00-22:00, 2hr buffer)
+                $opStart = 8;
+                $opEnd = 22;
+                $slotDuration = 3;
+                $suggested = [];
+
+                for ($h = $opStart; $h <= $opEnd - $slotDuration; $h++) {
+                    $slotStart = Carbon::parse($validated['booking_date'] . ' ' . str_pad($h, 2, '0', STR_PAD_LEFT) . ':00');
+                    $slotEnd = $slotStart->copy()->addHours($slotDuration);
+
+                    $slotConflict = DB::connection('facilities_db')
+                        ->table('bookings')
+                        ->where('facility_id', $validated['facility_id'])
+                        ->whereIn('status', $activeStatuses)
+                        ->where(function($query) use ($slotStart, $slotEnd, $bufferHours) {
+                            $query->whereRaw('? < DATE_ADD(end_time, INTERVAL ? HOUR)', [$slotStart, $bufferHours])
+                                  ->whereRaw('? > start_time', [$slotEnd]);
+                        })
+                        ->exists();
+
+                    if (!$slotConflict) {
+                        $suggested[] = [
+                            'start' => $slotStart->format('H:i'),
+                            'end' => $slotEnd->format('H:i'),
+                            'start_display' => $slotStart->format('g:i A'),
+                            'end_display' => $slotEnd->format('g:i A'),
+                        ];
+                    }
+                }
+
+                $response['suggested_slots'] = $suggested;
+            }
+
+            return response()->json($response);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
@@ -507,6 +563,67 @@ class FacilityReservationApiController extends Controller
     }
 
     /**
+     * Get bookings by applicant email
+     * 
+     * GET /api/facility-reservation/my-bookings?email=user@example.com
+     */
+    public function myBookings(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'email' => 'required|email|max:255',
+            ]);
+
+            $bookings = DB::connection('facilities_db')
+                ->table('bookings')
+                ->join('facilities', 'bookings.facility_id', '=', 'facilities.facility_id')
+                ->where('bookings.applicant_email', $validated['email'])
+                ->select(
+                    'bookings.id',
+                    'bookings.status',
+                    'bookings.start_time',
+                    'bookings.end_time',
+                    'bookings.total_amount',
+                    'bookings.applicant_name',
+                    'bookings.applicant_email',
+                    'bookings.rejected_reason',
+                    'bookings.created_at',
+                    'facilities.name as facility_name'
+                )
+                ->orderBy('bookings.created_at', 'desc')
+                ->limit(50)
+                ->get();
+
+            $data = $bookings->map(function ($booking) {
+                return [
+                    'booking_reference' => 'BK' . str_pad($booking->id, 6, '0', STR_PAD_LEFT),
+                    'facility_name' => $booking->facility_name,
+                    'booking_status' => $booking->status,
+                    'start_time' => Carbon::parse($booking->start_time)->format('Y-m-d h:i A'),
+                    'end_time' => Carbon::parse($booking->end_time)->format('Y-m-d h:i A'),
+                    'total_amount' => number_format($booking->total_amount, 2),
+                    'applicant_name' => $booking->applicant_name,
+                    'applicant_email' => $booking->applicant_email,
+                    'rejected_reason' => $booking->rejected_reason,
+                    'submitted_at' => Carbon::parse($booking->created_at)->format('Y-m-d h:i A'),
+                ];
+            });
+
+            return response()->json([
+                'status' => 'success',
+                'data' => $data,
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Validation failed.',
+                'errors' => $e->errors(),
+            ], 422);
+        }
+    }
+
+    /**
      * Calculate pricing for the booking
      */
     private function calculatePricing($facility, $validated, $startDateTime, $endDateTime)
@@ -669,6 +786,253 @@ class FacilityReservationApiController extends Controller
                 'status' => 'error',
                 'message' => 'An error occurred processing payment.',
             ], 500);
+        }
+    }
+
+    /**
+     * Handle manual cashless payment submission from external systems (e.g., PF portal)
+     * Citizens pay via GCash/Maya on their own and submit the reference number.
+     */
+    public function submitCashlessPayment(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'booking_reference' => 'required|string|max:20',
+                'payment_channel' => 'required|string|in:gcash,maya',
+                'reference_number' => 'required|string|max:20',
+                'account_name' => 'nullable|string|max:100',
+                'amount' => 'required|string',
+                'source_system' => 'nullable|string|max:100',
+            ]);
+
+            $bookingId = (int) preg_replace('/[^0-9]/', '', $validated['booking_reference']);
+
+            $booking = DB::connection('facilities_db')
+                ->table('bookings')
+                ->where('id', $bookingId)
+                ->first();
+
+            if (!$booking) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Booking not found.',
+                ], 404);
+            }
+
+            $paymentSlip = DB::connection('facilities_db')
+                ->table('payment_slips')
+                ->where('booking_id', $bookingId)
+                ->first();
+
+            if (!$paymentSlip) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Payment slip not found.',
+                ], 404);
+            }
+
+            if ($paymentSlip->status === 'paid') {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'This payment slip has already been paid.',
+                ], 400);
+            }
+
+            $referenceNumber = strtoupper(trim($validated['reference_number']));
+            $paymentChannel = $validated['payment_channel'];
+            $paymentMethod = $paymentChannel === 'maya' ? 'paymaya' : $paymentChannel;
+
+            // Check for duplicate reference number
+            $duplicate = DB::connection('facilities_db')
+                ->table('payment_slips')
+                ->where('transaction_reference', $referenceNumber)
+                ->where('payment_channel', $paymentChannel)
+                ->where('id', '!=', $paymentSlip->id)
+                ->exists();
+
+            if ($duplicate) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'This reference number has already been used.',
+                ], 400);
+            }
+
+            // Update payment slip with reference number
+            DB::connection('facilities_db')
+                ->table('payment_slips')
+                ->where('id', $paymentSlip->id)
+                ->update([
+                    'payment_method' => $paymentMethod,
+                    'payment_channel' => $paymentChannel,
+                    'transaction_reference' => $referenceNumber,
+                    'account_name' => $validated['account_name'] ?? null,
+                    'gateway_reference_number' => $referenceNumber,
+                    'sent_to_treasurer_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+            // Update booking status
+            DB::connection('facilities_db')
+                ->table('bookings')
+                ->where('id', $bookingId)
+                ->update([
+                    'status' => 'staff_verified',
+                    'updated_at' => now(),
+                ]);
+
+            Log::info('Manual cashless payment submitted via API', [
+                'booking_reference' => $validated['booking_reference'],
+                'payment_channel' => $paymentChannel,
+                'reference_number' => $referenceNumber,
+                'source_system' => $validated['source_system'] ?? 'pf_portal',
+            ]);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Payment submitted successfully. Treasurer will verify within 24 hours.',
+                'data' => [
+                    'booking_reference' => $validated['booking_reference'],
+                    'payment_channel' => $paymentChannel,
+                    'reference_number' => $referenceNumber,
+                ]
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Validation failed.',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('Submit cashless payment API error: ' . $e->getMessage());
+            return response()->json([
+                'status' => 'error',
+                'message' => 'An error occurred processing payment.',
+            ], 500);
+        }
+    }
+
+    /**
+     * Get refund requests for a citizen by email.
+     *
+     * GET /api/facility-reservation/refunds?email=...
+     */
+    public function getRefunds(Request $request)
+    {
+        try {
+            $request->validate([
+                'email' => 'required|email',
+            ]);
+
+            $email = $request->get('email');
+
+            $refunds = DB::connection('facilities_db')
+                ->table('refund_requests')
+                ->where('applicant_email', $email)
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            return response()->json([
+                'status' => 'success',
+                'data' => $refunds,
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Validation failed.',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            \Log::error('Failed to get refunds: ' . $e->getMessage());
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to load refund requests.',
+                'debug' => config('app.debug') ? $e->getMessage() : null,
+            ], 500);
+        }
+    }
+
+    /**
+     * Submit refund method selection from PF folder citizen.
+     *
+     * POST /api/facility-reservation/refunds/{id}/select-method
+     */
+    public function selectRefundMethod(Request $request, $id)
+    {
+        try {
+            $validated = $request->validate([
+                'email' => 'required|email',
+                'refund_method' => 'required|in:cash,gcash,maya,bank_transfer',
+                'account_name' => 'required_unless:refund_method,cash|nullable|string|max:255',
+                'account_number' => 'required_unless:refund_method,cash|nullable|string|max:50',
+                'bank_name' => 'required_if:refund_method,bank_transfer|nullable|string|max:255',
+            ]);
+
+            $refund = DB::connection('facilities_db')
+                ->table('refund_requests')
+                ->where('id', $id)
+                ->where('applicant_email', $validated['email'])
+                ->first();
+
+            if (!$refund) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Refund request not found.',
+                ], 404);
+            }
+
+            if ($refund->status !== 'pending_method') {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Refund method has already been selected.',
+                ], 400);
+            }
+
+            $updateData = [
+                'refund_method' => $validated['refund_method'],
+                'status' => 'pending_processing',
+                'updated_at' => now(),
+            ];
+
+            if ($validated['refund_method'] !== 'cash') {
+                $updateData['account_name'] = $validated['account_name'];
+                $updateData['account_number'] = $validated['account_number'];
+                if ($validated['refund_method'] === 'bank_transfer') {
+                    $updateData['bank_name'] = $validated['bank_name'];
+                }
+            }
+
+            DB::connection('facilities_db')
+                ->table('refund_requests')
+                ->where('id', $id)
+                ->update($updateData);
+
+            // Notify all treasurers about the refund ready for processing
+            try {
+                $updatedRefund = \App\Models\RefundRequest::find($id);
+                if ($updatedRefund) {
+                    $treasurers = \App\Models\User::where('subsystem_role_id', 5)
+                        ->where('subsystem_id', 4)
+                        ->get();
+
+                    foreach ($treasurers as $treasurer) {
+                        $treasurer->notify(new \App\Notifications\RefundMethodSelected($updatedRefund));
+                    }
+                }
+            } catch (\Exception $e) {
+                \Log::error('Failed to send refund method selected notification: ' . $e->getMessage());
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Refund method selected successfully. Your refund will be processed within 1-3 business days.',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Validation failed.',
+                'errors' => $e->errors(),
+            ], 422);
         }
     }
 }

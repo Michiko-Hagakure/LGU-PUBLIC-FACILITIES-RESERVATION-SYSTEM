@@ -665,7 +665,7 @@ function showTermsModal() {
                     <li style="margin-bottom: 8px;"><strong>7+ days before event:</strong> 100% refund</li>
                     <li style="margin-bottom: 8px;"><strong>4-6 days before event:</strong> 50% refund</li>
                     <li style="margin-bottom: 8px;"><strong>Less than 3 days:</strong> No refund</li>
-                    <li style="margin-bottom: 8px;">Refunds will be processed within 10-15 business days.</li>
+                    <li style="margin-bottom: 8px;">Refunds will be processed within 1-3 business days.</li>
                 </ul>
 
                 <h3 style="color: #0F5257; font-weight: 600; margin-top: 20px; margin-bottom: 10px; font-size: 16px;">4. Facility Usage Rules</h3>

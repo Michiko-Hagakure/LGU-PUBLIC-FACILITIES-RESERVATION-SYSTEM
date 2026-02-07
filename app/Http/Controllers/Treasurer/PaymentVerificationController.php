@@ -93,6 +93,7 @@ class PaymentVerificationController extends Controller
             ->select(
                 'payment_slips.*',
                 'bookings.applicant_name',
+                'bookings.applicant_email',
                 'bookings.user_id',
                 'facilities.name as facility_name'
             );
@@ -102,19 +103,33 @@ class PaymentVerificationController extends Controller
             $query->where('payment_slips.status', $status);
         }
 
+        if ($request->filled('search')) {
+            $search = $request->get('search');
+            $query->where(function($q) use ($search) {
+                $q->where('payment_slips.slip_number', 'like', "%{$search}%")
+                  ->orWhere('bookings.applicant_name', 'like', "%{$search}%")
+                  ->orWhere('bookings.applicant_email', 'like', "%{$search}%");
+            });
+        }
+
         $paymentSlips = $query->orderBy('payment_slips.payment_deadline', 'asc')->limit(50)->get();
 
         foreach ($paymentSlips as $slip) {
             if (empty($slip->applicant_name) && $slip->user_id) {
-                $user = DB::connection('auth_db')->table('users')->where('id', $slip->user_id)->first(['full_name']);
-                $slip->applicant_name = $user ? $user->full_name : 'Unknown';
+                $user = DB::connection('auth_db')->table('users')->where('id', $slip->user_id)->first(['full_name', 'email']);
+                if ($user) {
+                    $slip->applicant_name = $user->full_name ?? 'Unknown';
+                    if (empty($slip->applicant_email)) {
+                        $slip->applicant_email = $user->email;
+                    }
+                }
             }
         }
 
         $stats = [
             'unpaid' => DB::connection('facilities_db')->table('payment_slips')->where('status', 'unpaid')->count(),
             'paid' => DB::connection('facilities_db')->table('payment_slips')->where('status', 'paid')->count(),
-            'verified' => DB::connection('facilities_db')->table('payment_slips')->where('status', 'verified')->count(),
+            'expired' => DB::connection('facilities_db')->table('payment_slips')->where('status', 'expired')->count(),
         ];
 
         return response()->json(['data' => $paymentSlips, 'stats' => $stats]);
@@ -237,14 +252,6 @@ class PaymentVerificationController extends Controller
                 
                 if ($user && $bookingWithFacility && $paymentSlipFresh) {
                     $user->notify(new \App\Notifications\PaymentVerified($bookingWithFacility, $paymentSlipFresh));
-                }
-                
-                // Notify all admins that payment is verified and booking is ready for confirmation
-                $adminUsers = User::where('subsystem_role_id', 1) // 1 is the role_id for admin
-                                    ->where('subsystem_id', 4) // 4 is the subsystem_id for facilities
-                                    ->get();
-                foreach ($adminUsers as $admin) {
-                    $admin->notify(new \App\Notifications\PaymentVerified($bookingWithFacility, $paymentSlipFresh));
                 }
             } catch (\Exception $e) {
                 \Log::error('Failed to send payment verification notification: ' . $e->getMessage());

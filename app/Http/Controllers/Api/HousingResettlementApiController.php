@@ -225,8 +225,12 @@ class HousingResettlementApiController extends Controller
                 'facility_id' => $validated['facility_id'],
                 'start_time' => $startDateTime,
                 'end_time' => $endDateTime,
-                'user_name' => $validated['contact_person'] . ' | ' . $validated['contact_email'] . ' | ' . $validated['contact_phone'],
-                'status' => 'pending',
+                'user_name' => $validated['contact_person'],
+                'applicant_name' => $validated['contact_person'],
+                'applicant_email' => $validated['contact_email'],
+                'applicant_phone' => $validated['contact_phone'],
+                'event_name' => $validated['event_name'],
+                'status' => 'paid', // Government inter-agency - skip staff verification, go directly to admin for confirmation
                 'base_rate' => 0, // Government inter-agency - no charge
                 'subtotal' => 0,
                 'total_amount' => 0,
@@ -268,8 +272,8 @@ class HousingResettlementApiController extends Controller
                     'event_name' => $validated['event_name'],
                     'scheduled_date' => $validated['requested_date'],
                     'scheduled_time' => $validated['start_time'] . ' - ' . $validated['end_time'],
-                    'status' => 'pending',
-                    'next_steps' => 'Your request will be reviewed by staff. You will receive confirmation once approved.',
+                    'status' => 'paid',
+                    'next_steps' => 'Your request has been submitted and is awaiting admin confirmation.',
                 ],
                 'timestamp' => now()->toDateTimeString(),
             ], 201);
