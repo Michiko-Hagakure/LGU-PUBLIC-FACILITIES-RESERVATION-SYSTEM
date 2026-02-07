@@ -86,7 +86,7 @@
 
     <!-- Most Utilized Facility Highlight -->
     @if($mostUtilized && $mostUtilized->total_bookings > 0)
-    <div class="bg-gradient-to-r from-[#0f3d3e] to-[#14b8a6] rounded-lg shadow-sm p-6 text-white">
+    <div class="bg-[#0f3d3e] rounded-lg shadow-sm p-6 text-white">
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-sm font-medium text-white/80 mb-1">Most Utilized Facility</p>
