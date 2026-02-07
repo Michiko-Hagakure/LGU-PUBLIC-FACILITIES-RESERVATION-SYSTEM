@@ -251,7 +251,7 @@ class ReportController extends Controller
                 SUM(CASE WHEN status = "cancelled" THEN 1 ELSE 0 END) as cancelled_bookings,
                 SUM(CASE WHEN status IN ("pending","staff_verified","payment_pending","confirmed") THEN 1 ELSE 0 END) as active_bookings,
                 COALESCE(SUM(total_amount), 0) as total_revenue,
-                COALESCE(SUM(attendees), 0) as total_attendees,
+                COALESCE(SUM(expected_attendees), 0) as total_attendees,
                 COUNT(DISTINCT DATE(start_time)) as days_booked
             ')
             ->whereBetween('start_time', [$startDate, $endDate])
