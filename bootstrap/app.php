@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'auth' => \App\Http\Middleware\CheckAuth::class,
             'role' => \App\Http\Middleware\CheckRole::class,
+            'auto.expire' => \App\Http\Middleware\AutoExpireBookings::class,
         ]);
     })
     ->withSchedule(function ($schedule) {

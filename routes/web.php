@@ -1457,7 +1457,7 @@ Route::middleware(['auth', 'role:super admin'])->group(function () {
     })->name('superadmin.dashboard');
 });
 
-Route::middleware(['auth', 'role:Admin'])->group(function () {
+Route::middleware(['auth', 'role:Admin', 'auto.expire'])->group(function () {
     // TEMPORARY: Test route to verify controller is working
     Route::get('/admin/dashboard', function () {
         $admin = Auth::user() ?? (object) [
@@ -1699,7 +1699,7 @@ Route::middleware(['auth', 'role:Admin'])->group(function () {
     })->name('admin.payment-slips.index');
 });
 
-Route::middleware(['auth', 'role:Reservations Staff'])->prefix('staff')->name('staff.')->group(function () {
+Route::middleware(['auth', 'role:Reservations Staff', 'auto.expire'])->prefix('staff')->name('staff.')->group(function () {
     // Staff Dashboard
     Route::get('/dashboard', [\App\Http\Controllers\Staff\BookingVerificationController::class, 'dashboard'])->name('dashboard');
 
@@ -1975,7 +1975,7 @@ Route::middleware(['auth', 'role:super admin'])->prefix('superadmin')->name('sup
 });
 
 // Protected Routes - Admin
-Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
+Route::middleware(['auth', 'role:admin', 'auto.expire'])->prefix('admin')->name('admin.')->group(function () {
     // Admin Dashboard
     Route::get('/dashboard', [\App\Http\Controllers\Admin\DashboardController::class, 'index'])->name('dashboard');
 
