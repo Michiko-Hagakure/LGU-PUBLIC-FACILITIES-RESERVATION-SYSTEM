@@ -942,6 +942,13 @@ class FacilityReservationApiController extends Controller
                 'message' => 'Validation failed.',
                 'errors' => $e->errors(),
             ], 422);
+        } catch (\Exception $e) {
+            \Log::error('Failed to get refunds: ' . $e->getMessage());
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to load refund requests.',
+                'debug' => config('app.debug') ? $e->getMessage() : null,
+            ], 500);
         }
     }
 
