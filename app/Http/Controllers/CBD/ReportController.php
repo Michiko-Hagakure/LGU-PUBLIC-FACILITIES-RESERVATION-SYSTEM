@@ -238,7 +238,6 @@ class ReportController extends Controller
                 'facilities.capacity',
                 'lgu_cities.city_name'
             )
-            ->where('facilities.status', 'active')
             ->orderBy('facilities.name')
             ->get();
         
