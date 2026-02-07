@@ -71,7 +71,7 @@
     <div class="px-gr-md py-gr-sm border-b border-gray-200 flex items-center justify-between">
         <div>
             <h3 class="text-h3 font-bold text-gray-900">Payment Slips</h3>
-            <p class="text-small text-gray-600 mt-gr-xs">{{ $paymentSlips->total() }} total payment slip(s)</p>
+            <p class="text-small text-gray-600 mt-gr-xs" id="total-count">{{ $paymentSlips->total() }} total payment slip(s)</p>
         </div>
         <div class="flex items-center gap-gr-xs">
             @php
@@ -80,10 +80,10 @@
                     'paid' => DB::connection('facilities_db')->table('payment_slips')->where('status', 'paid')->count(),
                 ];
             @endphp
-            <span class="px-gr-sm py-gr-xs bg-orange-100 text-orange-800 text-caption font-bold rounded-full">
+            <span class="px-gr-sm py-gr-xs bg-orange-100 text-orange-800 text-caption font-bold rounded-full" id="stat-pending">
                 {{ $statusCounts['unpaid'] }} Pending
             </span>
-            <span class="px-gr-sm py-gr-xs bg-green-100 text-green-800 text-caption font-bold rounded-full">
+            <span class="px-gr-sm py-gr-xs bg-green-100 text-green-800 text-caption font-bold rounded-full" id="stat-verified">
                 {{ $statusCounts['paid'] }} Verified
             </span>
         </div>
@@ -111,7 +111,7 @@
                         <th class="px-gr-sm py-gr-sm text-left text-caption font-bold text-gray-600 uppercase tracking-wider">Actions</th>
                     </tr>
                 </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
+                <tbody class="bg-white divide-y divide-gray-200" id="payment-tbody">
                     @foreach($paymentSlips as $slip)
                         @php
                             $deadline = \Carbon\Carbon::parse($slip->payment_deadline);
@@ -186,15 +186,94 @@ if (typeof lucide !== 'undefined') {
     lucide.createIcons();
 }
 
-// AJAX Polling for real-time updates
-let lastTotal = {{ $paymentSlips->total() }};
+// AJAX Polling for real-time updates (no page reload)
+const showUrlBase = '{{ url("/treasurer/payment-slips") }}';
+const jsonUrl = '{{ route("treasurer.payment-verification.json") }}';
+
+function formatAmount(val) {
+    return parseFloat(val).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function timeAgo(dateStr) {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = date - now;
+    const diffH = Math.round(diffMs / (1000 * 60 * 60));
+    const diffD = Math.round(diffMs / (1000 * 60 * 60 * 24));
+    if (diffMs < 0) return 'OVERDUE';
+    if (diffH < 1) return 'less than 1 hour';
+    if (diffH < 24) return diffH + ' hour' + (diffH !== 1 ? 's' : '') + ' from now';
+    return diffD + ' day' + (diffD !== 1 ? 's' : '') + ' from now';
+}
+
+function buildStatusBadge(status, isOverdue, isUrgent) {
+    if (status === 'paid') {
+        return '<span class="inline-flex items-center px-gr-sm py-gr-xs rounded-full text-caption font-bold bg-green-100 text-green-800"><i data-lucide="check-circle" class="w-3 h-3 mr-gr-xs"></i>Verified</span>';
+    } else if (status === 'expired') {
+        return '<span class="inline-flex items-center px-gr-sm py-gr-xs rounded-full text-caption font-bold bg-red-100 text-red-800"><i data-lucide="x-circle" class="w-3 h-3 mr-gr-xs"></i>Expired</span>';
+    }
+    const cls = isUrgent ? 'bg-orange-100 text-orange-800' : 'bg-yellow-100 text-yellow-800';
+    return `<span class="inline-flex items-center px-gr-sm py-gr-xs rounded-full text-caption font-bold ${cls}"><i data-lucide="clock" class="w-3 h-3 mr-gr-xs"></i>Pending</span>`;
+}
+
+function buildRow(slip) {
+    const deadline = new Date(slip.payment_deadline);
+    const now = new Date();
+    const isOverdue = slip.status === 'unpaid' && deadline < now;
+    const hoursLeft = (deadline - now) / (1000 * 60 * 60);
+    const isUrgent = slip.status === 'unpaid' && hoursLeft <= 24 && hoursLeft > 0;
+    const deadlineDate = deadline.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const deadlineLabel = timeAgo(slip.payment_deadline);
+    const deadlineCls = isOverdue ? 'text-red-600' : (isUrgent ? 'text-orange-600' : 'text-gray-500');
+    const showUrl = `${showUrlBase}/${slip.id}`;
+    const actionLabel = slip.status === 'unpaid' ? 'Verify' : 'View';
+
+    return `<tr class="hover:bg-gray-50 transition-colors cursor-pointer ${isOverdue ? 'bg-red-50/50' : ''}" onclick="window.location='${showUrl}'">
+        <td class="px-gr-sm py-gr-sm whitespace-nowrap"><span class="text-body font-bold text-lgu-button">${slip.slip_number}</span></td>
+        <td class="px-gr-sm py-gr-sm">
+            <div class="text-body font-semibold text-gray-900 truncate">${slip.applicant_name || 'N/A'}</div>
+            <div class="text-small text-gray-500 mt-gr-xs truncate">${slip.applicant_email || ''}</div>
+        </td>
+        <td class="px-gr-sm py-gr-sm"><span class="text-body text-gray-700 block truncate">${slip.facility_name || 'N/A'}</span></td>
+        <td class="px-gr-sm py-gr-sm whitespace-nowrap"><span class="text-body font-bold text-gray-900">\u20B1${formatAmount(slip.amount_due)}</span></td>
+        <td class="px-gr-sm py-gr-sm whitespace-nowrap">
+            <div class="text-body font-medium text-gray-900">${deadlineDate}</div>
+            <div class="text-caption font-semibold mt-gr-xs ${deadlineCls}">${deadlineLabel}</div>
+        </td>
+        <td class="px-gr-sm py-gr-sm whitespace-nowrap">${buildStatusBadge(slip.status, isOverdue, isUrgent)}</td>
+        <td class="px-gr-sm py-gr-sm whitespace-nowrap">
+            <a href="${showUrl}" class="inline-flex items-center text-body font-semibold text-lgu-button hover:text-lgu-highlight transition-colors" onclick="event.stopPropagation()">
+                ${actionLabel}
+                <i data-lucide="arrow-right" class="w-4 h-4 ml-gr-xs"></i>
+            </a>
+        </td>
+    </tr>`;
+}
+
 function refreshData() {
-    fetch('{{ route("treasurer.payment-verification.json") }}' + window.location.search)
+    const params = new URLSearchParams(window.location.search);
+    const fetchUrl = jsonUrl + '?' + params.toString();
+
+    fetch(fetchUrl)
         .then(res => res.json())
         .then(data => {
-            if ((data.stats.unpaid + data.stats.paid + data.stats.verified) !== lastTotal) {
-                location.reload();
-                lastTotal = data.stats.unpaid + data.stats.paid + data.stats.verified;
+            // Update stats badges
+            const pendingEl = document.getElementById('stat-pending');
+            const verifiedEl = document.getElementById('stat-verified');
+            const totalEl = document.getElementById('total-count');
+            if (pendingEl) pendingEl.textContent = data.stats.unpaid + ' Pending';
+            if (verifiedEl) verifiedEl.textContent = data.stats.paid + ' Verified';
+
+            // Update table body
+            const tbody = document.getElementById('payment-tbody');
+            if (tbody && data.data) {
+                const totalSlips = data.data.length;
+                if (totalEl) totalEl.textContent = totalSlips + ' total payment slip(s)';
+                tbody.innerHTML = data.data.map(buildRow).join('');
+                // Re-initialize Lucide icons for new DOM elements
+                if (typeof lucide !== 'undefined') {
+                    lucide.createIcons();
+                }
             }
         })
         .catch(err => console.log('Refresh error:', err));
