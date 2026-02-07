@@ -104,83 +104,79 @@
     <!-- Facility Utilization Table -->
     <div class="bg-white rounded-lg shadow-sm p-6">
         <h3 class="text-lg font-semibold text-[#0f3d3e] mb-4">Facility Breakdown</h3>
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Facility</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">City</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Bookings</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Attendees</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Revenue</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Days Booked</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Utilization</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                    @forelse($facilityData as $facility)
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="text-sm font-medium text-gray-900">{{ $facility->name }}</div>
-                            @if($facility->capacity)
-                                <div class="text-xs text-gray-500">Capacity: {{ $facility->capacity }}</div>
-                            @endif
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ $facility->city_name ?? 'N/A' }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">{{ $facility->total_bookings }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">{{ number_format($facility->total_attendees) }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold text-[#0f3d3e]">₱{{ number_format($facility->total_revenue, 2) }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">{{ $facility->days_booked }} / {{ $daysInMonth }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="flex items-center gap-2">
-                                <div class="flex-1 bg-gray-200 rounded-full h-2 w-24">
-                                    <div class="h-2 rounded-full {{ $facility->utilization_rate >= 70 ? 'bg-green-500' : ($facility->utilization_rate >= 40 ? 'bg-yellow-500' : 'bg-red-400') }}"
-                                         style="width: {{ min($facility->utilization_rate, 100) }}%"></div>
-                                </div>
-                                <span class="text-sm font-medium {{ $facility->utilization_rate >= 70 ? 'text-green-600' : ($facility->utilization_rate >= 40 ? 'text-yellow-600' : 'text-red-500') }}">
-                                    {{ $facility->utilization_rate }}%
-                                </span>
+        <table class="w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Facility</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Bookings</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Attendees</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Revenue</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Days Booked</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Utilization</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                @forelse($facilityData as $facility)
+                <tr class="hover:bg-gray-50">
+                    <td class="px-4 py-3">
+                        <div class="text-sm font-medium text-gray-900">{{ $facility->name }}</div>
+                        <div class="text-xs text-gray-500">{{ $facility->city_name ?? 'N/A' }}@if($facility->capacity) &middot; Cap: {{ $facility->capacity }}@endif</div>
+                    </td>
+                    <td class="px-4 py-3 text-right text-sm text-gray-900">{{ $facility->total_bookings }}</td>
+                    <td class="px-4 py-3 text-right text-sm text-gray-900">{{ number_format($facility->total_attendees) }}</td>
+                    <td class="px-4 py-3 text-right text-sm font-semibold text-[#0f3d3e]">₱{{ number_format($facility->total_revenue, 2) }}</td>
+                    <td class="px-4 py-3 text-right text-sm text-gray-900">{{ $facility->days_booked }} / {{ $daysInMonth }}</td>
+                    <td class="px-4 py-3">
+                        <div class="flex items-center gap-2">
+                            <div class="bg-gray-200 rounded-full h-2 w-20">
+                                <div class="h-2 rounded-full {{ $facility->utilization_rate >= 70 ? 'bg-green-500' : ($facility->utilization_rate >= 40 ? 'bg-yellow-500' : 'bg-red-400') }}"
+                                     style="width: {{ min($facility->utilization_rate, 100) }}%"></div>
                             </div>
-                        </td>
-                    </tr>
-                    @empty
-                    <tr>
-                        <td colspan="7" class="px-6 py-8 text-center text-gray-500">
-                            <i data-lucide="inbox" class="w-12 h-12 mx-auto mb-2 text-gray-400"></i>
-                            <p>No facilities found.</p>
-                        </td>
-                    </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
+                            <span class="text-sm font-medium {{ $facility->utilization_rate >= 70 ? 'text-green-600' : ($facility->utilization_rate >= 40 ? 'text-yellow-600' : 'text-red-500') }}">
+                                {{ $facility->utilization_rate }}%
+                            </span>
+                        </div>
+                    </td>
+                </tr>
+                @empty
+                <tr>
+                    <td colspan="6" class="px-4 py-8 text-center text-gray-500">
+                        <i data-lucide="inbox" class="w-12 h-12 mx-auto mb-2 text-gray-400"></i>
+                        <p>No facilities found.</p>
+                    </td>
+                </tr>
+                @endforelse
+            </tbody>
+        </table>
     </div>
 
     <!-- Daily Booking Trend -->
     <div class="bg-white rounded-lg shadow-sm p-6">
         <h3 class="text-lg font-semibold text-[#0f3d3e] mb-4">Daily Booking Trend &mdash; {{ $startDate->format('F Y') }}</h3>
         @if(count($dailyBookings) > 0)
-        <div class="overflow-x-auto">
-            <div class="flex items-end gap-1 h-40 min-w-[600px]">
+        <div class="flex items-end gap-1" style="height: 160px;">
+            @php
+                $maxBookings = max(array_values($dailyBookings) ?: [1]);
+            @endphp
+            @for($day = 1; $day <= $daysInMonth; $day++)
                 @php
-                    $maxBookings = max(array_values($dailyBookings) ?: [1]);
+                    $dateKey = $startDate->copy()->day($day)->format('Y-m-d');
+                    $count = $dailyBookings[$dateKey] ?? 0;
+                    $barHeight = $maxBookings > 0 ? round(($count / $maxBookings) * 140) : 0;
                 @endphp
-                @for($day = 1; $day <= $daysInMonth; $day++)
-                    @php
-                        $dateKey = $startDate->copy()->day($day)->format('Y-m-d');
-                        $count = $dailyBookings[$dateKey] ?? 0;
-                        $heightPercent = $maxBookings > 0 ? ($count / $maxBookings) * 100 : 0;
-                    @endphp
-                    <div class="flex-1 flex flex-col items-center justify-end group relative">
-                        <div class="absolute -top-6 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
-                            {{ $startDate->copy()->day($day)->format('M d') }}: {{ $count }} booking{{ $count !== 1 ? 's' : '' }}
-                        </div>
-                        <div class="w-full {{ $count > 0 ? 'bg-[#14b8a6]' : 'bg-gray-200' }} rounded-t transition-all hover:opacity-80"
-                             style="height: {{ max($heightPercent, 4) }}%"></div>
-                        <span class="text-[10px] text-gray-500 mt-1">{{ $day }}</span>
+                <div class="flex-1 flex flex-col items-center justify-end group relative">
+                    <div class="absolute -top-6 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
+                        {{ $startDate->copy()->day($day)->format('M d') }}: {{ $count }} booking{{ $count !== 1 ? 's' : '' }}
                     </div>
-                @endfor
-            </div>
+                    @if($count > 0)
+                        <div class="w-full bg-[#14b8a6] rounded-t transition-all hover:opacity-80"
+                             style="height: {{ max($barHeight, 6) }}px"></div>
+                    @else
+                        <div class="w-full bg-gray-200 rounded-t" style="height: 3px"></div>
+                    @endif
+                    <span class="text-[10px] text-gray-500 mt-1">{{ $day }}</span>
+                </div>
+            @endfor
         </div>
         @else
         <div class="text-center py-8 text-gray-500">
