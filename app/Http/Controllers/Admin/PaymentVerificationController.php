@@ -186,7 +186,7 @@ class PaymentVerificationController extends Controller
                 'booking_reference' => $bookingReference,
                 'applicant_name' => $booking->applicant_name ?? $booking->user_name ?? ($bookingUser ? $bookingUser->first_name . ' ' . $bookingUser->last_name : 'N/A'),
                 'applicant_email' => $booking->applicant_email ?? ($bookingUser->email ?? null),
-                'applicant_phone' => $booking->applicant_phone ?? ($bookingUser->phone ?? null),
+                'applicant_phone' => $booking->applicant_phone ?? ($bookingUser->mobile_number ?? null),
                 'facility_name' => $booking->facility->name ?? 'N/A',
                 'original_amount' => $booking->total_amount,
                 'refund_percentage' => $refundPercentage,
