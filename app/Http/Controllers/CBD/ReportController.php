@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class ReportController extends Controller
 {
@@ -213,7 +214,46 @@ class ReportController extends Controller
             return response()->stream($callback, 200, $headers);
         }
         
-        return response()->json(['message' => 'Only CSV export is currently supported. Excel and PDF coming soon.']);
+        // Export as Excel
+        if ($format === 'excel') {
+            $filename = "revenue_report_{$reportType}_{$selectedYear}_{$selectedMonth}.xlsx";
+            
+            $totalRevenue = $revenueByFacility->sum('total_revenue');
+            $totalBookings = $revenueByFacility->sum('total_bookings');
+            
+            return \Maatwebsite\Excel\Facades\Excel::download(
+                new \App\Exports\CbdRevenueExport(
+                    $revenueByFacility,
+                    $reportType,
+                    $startDate,
+                    $endDate,
+                    $totalRevenue,
+                    $totalBookings
+                ),
+                $filename
+            );
+        }
+        
+        // Export as PDF
+        if ($format === 'pdf') {
+            $filename = "revenue_report_{$reportType}_{$selectedYear}_{$selectedMonth}.pdf";
+            
+            $totalRevenue = $revenueByFacility->sum('total_revenue');
+            $totalBookings = $revenueByFacility->sum('total_bookings');
+            
+            $pdf = Pdf::loadView('cbd.reports.revenue-pdf', [
+                'revenueByFacility' => $revenueByFacility,
+                'reportType' => $reportType,
+                'startDate' => $startDate,
+                'endDate' => $endDate,
+                'totalRevenue' => $totalRevenue,
+                'totalBookings' => $totalBookings,
+            ])->setPaper('a4', 'landscape');
+            
+            return $pdf->download($filename);
+        }
+        
+        return response()->json(['message' => 'Unsupported export format.'], 400);
     }
     
     /**
