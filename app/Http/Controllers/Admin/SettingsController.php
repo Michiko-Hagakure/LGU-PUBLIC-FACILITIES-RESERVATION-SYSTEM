@@ -67,6 +67,10 @@ class SettingsController extends Controller
 
         // Handle profile photo upload if present
         if ($request->hasFile('avatar')) {
+            // Delete old avatar if exists
+            if ($user->profile_photo_path && file_exists(public_path($user->profile_photo_path))) {
+                unlink(public_path($user->profile_photo_path));
+            }
             $fileName = time() . '.' . $request->avatar->extension();
             $request->avatar->move(public_path('uploads/avatars'), $fileName);
             $user->profile_photo_path = 'uploads/avatars/' . $fileName;
@@ -80,13 +84,22 @@ class SettingsController extends Controller
             'user_email' => $user->email,
         ]);
 
+        // Return JSON for AJAX requests
+        if ($request->ajax() || $request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Profile updated successfully.',
+                'avatar_url' => $user->profile_photo_path ? asset($user->profile_photo_path) : null,
+            ]);
+        }
+
         return back()->with('success', 'Profile updated successfully.');
     }
 
     /**
      * Remove profile photo
      */
-    public function removeProfilePhoto()
+    public function removeProfilePhoto(Request $request)
     {
         $userId = session('user_id');
 
@@ -108,6 +121,14 @@ class SettingsController extends Controller
         // Remove from database
         $user->profile_photo_path = null;
         $user->save();
+
+        // Return JSON for AJAX requests
+        if ($request->ajax() || $request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Profile photo removed successfully.',
+            ]);
+        }
 
         return back()->with('success', 'Profile photo removed successfully.');
     }
