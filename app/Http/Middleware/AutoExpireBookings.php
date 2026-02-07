@@ -40,10 +40,16 @@ class AutoExpireBookings
     }
 
     /**
-     * Expire bookings that are past their 48-hour payment deadline.
+     * Expire overdue bookings:
+     * 1. staff_verified past 48-hour payment deadline
+     * 2. Payment slips past explicit deadline
+     * 3. Pending/staff_verified bookings whose event date has already passed
      */
     private function expireOverdueBookings(): void
     {
+        // Method 0: Expire any pending or staff_verified bookings whose event date has passed
+        $this->expirePassedEventBookings();
+
         // Method 1: Expire staff_verified bookings past 48-hour deadline
         $overdueBookings = Booking::where('status', 'staff_verified')
             ->whereNotNull('staff_verified_at')
@@ -138,6 +144,64 @@ class AutoExpireBookings
             } catch (\Exception $e) {
                 DB::connection('facilities_db')->rollBack();
                 Log::error("AutoExpireBookings: Failed to expire via slip #{$slip->id}: " . $e->getMessage());
+            }
+        }
+    }
+
+    /**
+     * Expire pending or staff_verified bookings whose event date has already passed.
+     * No point keeping a booking for an event that already happened.
+     */
+    private function expirePassedEventBookings(): void
+    {
+        $now = Carbon::now();
+
+        // Find bookings that are still pending or staff_verified but event has passed
+        $passedBookings = Booking::whereIn('status', ['pending', 'staff_verified'])
+            ->where(function ($query) use ($now) {
+                // Check by end_time (full datetime) — event already finished
+                $query->where('end_time', '<', $now);
+            })
+            ->get();
+
+        foreach ($passedBookings as $booking) {
+            try {
+                DB::connection('facilities_db')->beginTransaction();
+
+                $booking->update([
+                    'status' => 'expired',
+                    'expired_at' => $now,
+                    'canceled_reason' => 'Event date has passed (auto-expired)',
+                ]);
+
+                // Expire any associated payment slips
+                PaymentSlip::where('booking_id', $booking->id)
+                    ->where('status', 'unpaid')
+                    ->update(['status' => 'expired']);
+
+                DB::connection('facilities_db')->commit();
+
+                // Send notification to citizen
+                try {
+                    $user = \App\Models\User::find($booking->user_id);
+                    $bookingWithFacility = DB::connection('facilities_db')
+                        ->table('bookings')
+                        ->join('facilities', 'bookings.facility_id', '=', 'facilities.facility_id')
+                        ->where('bookings.id', $booking->id)
+                        ->selectRaw('bookings.*, facilities.name as facility_name, CONCAT("BK", LPAD(bookings.id, 6, "0")) as booking_reference')
+                        ->first();
+
+                    if ($user && $bookingWithFacility) {
+                        $user->notify(new \App\Notifications\BookingExpired($bookingWithFacility));
+                    }
+                } catch (\Exception $e) {
+                    Log::error('AutoExpire notification failed for booking #' . $booking->id . ': ' . $e->getMessage());
+                }
+
+                Log::info("AutoExpireBookings: Expired booking #{$booking->id} - event date passed");
+            } catch (\Exception $e) {
+                DB::connection('facilities_db')->rollBack();
+                Log::error("AutoExpireBookings: Failed to expire passed-event booking #{$booking->id}: " . $e->getMessage());
             }
         }
     }
