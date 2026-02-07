@@ -14,12 +14,9 @@
 }
 
 @media print {
-    body * { display: none !important; }
-    #payment-slip-print, #payment-slip-print * { display: block !important; }
-    #payment-slip-print { position: absolute; top: 0; left: 0; width: 100%; }
-    #payment-slip-print table { display: table !important; }
-    #payment-slip-print tr { display: table-row !important; }
-    #payment-slip-print td { display: table-cell !important; }
+    body * { visibility: hidden; }
+    #payment-slip-print { display: block !important; visibility: visible; position: absolute; top: 0; left: 0; width: 100%; }
+    #payment-slip-print * { visibility: visible; }
     body { background: white !important; }
     @page { margin: 2cm; }
 }

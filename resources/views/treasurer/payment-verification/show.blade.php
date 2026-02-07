@@ -430,12 +430,11 @@
 @push('scripts')
 <style>
 @media print {
-    body * { display: none !important; }
-    #print-slip-only, #print-slip-only * { display: block !important; }
-    #print-slip-only { position: absolute; top: 0; left: 0; width: 100%; }
-    #print-slip-only table { display: table !important; }
-    #print-slip-only tr { display: table-row !important; }
-    #print-slip-only td { display: table-cell !important; }
+    body * { visibility: hidden; }
+    #print-slip-only { display: block !important; visibility: visible; position: absolute; top: 0; left: 0; width: 100%; }
+    #print-slip-only * { visibility: visible; }
+    body { background: white !important; }
+    @page { margin: 2cm; }
 }
 </style>
 <script>
