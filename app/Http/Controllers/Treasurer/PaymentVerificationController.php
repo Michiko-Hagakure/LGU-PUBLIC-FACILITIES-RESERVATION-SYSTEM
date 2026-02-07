@@ -253,14 +253,6 @@ class PaymentVerificationController extends Controller
                 if ($user && $bookingWithFacility && $paymentSlipFresh) {
                     $user->notify(new \App\Notifications\PaymentVerified($bookingWithFacility, $paymentSlipFresh));
                 }
-                
-                // Notify all admins that payment is verified and booking is ready for confirmation
-                $adminUsers = User::where('subsystem_role_id', 1) // 1 is the role_id for admin
-                                    ->where('subsystem_id', 4) // 4 is the subsystem_id for facilities
-                                    ->get();
-                foreach ($adminUsers as $admin) {
-                    $admin->notify(new \App\Notifications\PaymentVerified($bookingWithFacility, $paymentSlipFresh));
-                }
             } catch (\Exception $e) {
                 \Log::error('Failed to send payment verification notification: ' . $e->getMessage());
             }
