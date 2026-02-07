@@ -353,7 +353,7 @@
             <h3 class="text-lg font-bold text-gray-900 mb-4">Quick Actions</h3>
             
             <div class="space-y-2">
-                <button onclick="window.print()" class="w-full px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition inline-flex items-center justify-center">
+                <button onclick="printSlipDetails()" class="w-full px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition inline-flex items-center justify-center">
                     <i data-lucide="printer" class="w-4 h-4 mr-2"></i>
                     Print Slip
                 </button>
@@ -374,73 +374,38 @@
     </div>
 </div>
 
-<!-- Print-only payment slip -->
-<div id="print-slip-only" style="display:none;">
-    <div style="max-width:600px;margin:0 auto;padding:40px;font-family:Arial,sans-serif;">
-        <div style="text-align:center;margin-bottom:30px;">
-            <h2 style="font-size:14px;color:#666;margin:0 0 5px 0;font-weight:normal;">Local Government Unit 1</h2>
-            <h1 style="font-size:18px;color:#333;margin:0 0 5px 0;">Payment Slip</h1>
-            <p style="font-size:12px;color:#999;margin:0;">{{ now()->format('m/d/Y, h:i A') }}</p>
-        </div>
-        <div style="text-align:center;margin:40px 0;">
-            <h1 style="font-size:42px;font-weight:bold;color:#1f2937;margin:0;">Slip # {{ $paymentSlip->slip_number }}</h1>
-        </div>
-        <table style="width:100%;border-collapse:collapse;margin:30px 0;font-size:14px;">
-            <tr style="border-bottom:1px solid #eee;">
-                <td style="padding:10px 0;color:#666;width:40%;">Applicant</td>
-                <td style="padding:10px 0;font-weight:bold;color:#333;">{{ $paymentSlip->applicant_name }}</td>
-            </tr>
-            <tr style="border-bottom:1px solid #eee;">
-                <td style="padding:10px 0;color:#666;">Facility</td>
-                <td style="padding:10px 0;font-weight:bold;color:#333;">{{ $paymentSlip->facility_name }}</td>
-            </tr>
-            <tr style="border-bottom:1px solid #eee;">
-                <td style="padding:10px 0;color:#666;">Event Date</td>
-                <td style="padding:10px 0;font-weight:bold;color:#333;">{{ \Carbon\Carbon::parse($paymentSlip->start_time)->format('F d, Y') }}</td>
-            </tr>
-            <tr style="border-bottom:1px solid #eee;">
-                <td style="padding:10px 0;color:#666;">Time</td>
-                <td style="padding:10px 0;font-weight:bold;color:#333;">{{ \Carbon\Carbon::parse($paymentSlip->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($paymentSlip->end_time)->format('g:i A') }}</td>
-            </tr>
-            <tr style="border-bottom:1px solid #eee;">
-                <td style="padding:10px 0;color:#666;">Payment Deadline</td>
-                <td style="padding:10px 0;font-weight:bold;color:#333;">{{ \Carbon\Carbon::parse($paymentSlip->payment_deadline)->format('F d, Y g:i A') }}</td>
-            </tr>
-            <tr style="border-bottom:2px solid #333;">
-                <td style="padding:12px 0;color:#666;font-size:16px;">Amount Due</td>
-                <td style="padding:12px 0;font-weight:bold;color:#333;font-size:24px;">₱{{ number_format($paymentSlip->amount_due, 2) }}</td>
-            </tr>
-            <tr>
-                <td style="padding:10px 0;color:#666;">Status</td>
-                <td style="padding:10px 0;font-weight:bold;color:{{ $paymentSlip->status === 'paid' ? '#16a34a' : '#ea580c' }};">{{ $paymentSlip->status === 'paid' ? 'Verified' : ucfirst($paymentSlip->status) }}</td>
-            </tr>
-            @if($paymentSlip->status === 'paid' && $paymentSlip->transaction_reference)
-            <tr>
-                <td style="padding:10px 0;color:#666;">Official Receipt</td>
-                <td style="padding:10px 0;font-weight:bold;color:#16a34a;">{{ $paymentSlip->transaction_reference }}</td>
-            </tr>
-            @endif
-        </table>
-        <div style="text-align:center;margin-top:40px;padding-top:20px;border-top:1px solid #eee;">
-            <p style="font-size:11px;color:#999;">{{ request()->url() }}</p>
-        </div>
-    </div>
-</div>
-
 @push('scripts')
-<style>
-@media print {
-    body * { visibility: hidden; }
-    #print-slip-only { display: block !important; visibility: visible; position: absolute; top: 0; left: 0; width: 100%; }
-    #print-slip-only * { visibility: visible; }
-    body { background: white !important; }
-    @page { margin: 2cm; }
-}
-</style>
 <script>
-// Global print function - accessible from onclick
+// Print slip in a new window (clean 1-page print)
 function printSlipDetails() {
-    window.print();
+    const w = window.open('', '_blank');
+    w.document.write(`<!DOCTYPE html><html><head><title>Payment Slip - {{ $paymentSlip->slip_number }}</title>
+<style>*{margin:0;padding:0;box-sizing:border-box;}body{font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:40px;}
+.hdr{text-align:center;margin-bottom:30px;}.hdr h2{font-size:14px;color:#666;font-weight:normal;margin-bottom:5px;}
+.hdr h1{font-size:18px;color:#333;margin-bottom:5px;}.hdr p{font-size:12px;color:#999;}
+.slip{text-align:center;margin:40px 0;}.slip h1{font-size:42px;font-weight:bold;color:#1f2937;}
+table{width:100%;border-collapse:collapse;margin:30px 0;font-size:14px;}
+td{padding:10px 0;}td:first-child{color:#666;width:40%;}td:last-child{font-weight:bold;color:#333;}
+tr{border-bottom:1px solid #eee;}.amt td:last-child{font-size:24px;}.amt{border-bottom:2px solid #333;}
+.ftr{text-align:center;margin-top:40px;padding-top:20px;border-top:1px solid #eee;}
+.ftr p{font-size:11px;color:#999;}.no-print{text-align:center;margin-top:30px;}
+@media print{.no-print{display:none;}body{padding:20px;}}</style></head><body>
+<div class="hdr"><h2>Local Government Unit 1</h2><h1>Payment Slip</h1><p>{{ now()->format('m/d/Y, h:i A') }}</p></div>
+<div class="slip"><h1>Slip # {{ $paymentSlip->slip_number }}</h1></div>
+<table>
+<tr><td>Applicant</td><td>{{ $paymentSlip->applicant_name }}</td></tr>
+<tr><td>Facility</td><td>{{ $paymentSlip->facility_name }}</td></tr>
+<tr><td>Event Date</td><td>{{ \Carbon\Carbon::parse($paymentSlip->start_time)->format('F d, Y') }}</td></tr>
+<tr><td>Time</td><td>{{ \Carbon\Carbon::parse($paymentSlip->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($paymentSlip->end_time)->format('g:i A') }}</td></tr>
+<tr><td>Payment Deadline</td><td>{{ \Carbon\Carbon::parse($paymentSlip->payment_deadline)->format('F d, Y g:i A') }}</td></tr>
+<tr class="amt"><td>Amount Due</td><td>\u20b1{{ number_format($paymentSlip->amount_due, 2) }}</td></tr>
+<tr><td>Status</td><td style="color:{{ $paymentSlip->status === 'paid' ? '#16a34a' : '#ea580c' }}">{{ $paymentSlip->status === 'paid' ? 'Verified' : ucfirst($paymentSlip->status) }}</td></tr>
+@if($paymentSlip->status === 'paid' && $paymentSlip->transaction_reference)<tr><td>Official Receipt</td><td style="color:#16a34a">{{ $paymentSlip->transaction_reference }}</td></tr>@endif
+</table>
+<div class="ftr"><p>{{ request()->url() }}</p></div>
+<div class="no-print"><button onclick="window.print()" style="background:#0f5b3a;color:white;border:none;padding:12px 40px;font-size:1rem;border-radius:8px;cursor:pointer;">Print This Slip</button></div>
+</body></html>`);
+    w.document.close();
 }
 
 document.addEventListener('DOMContentLoaded', function() {
