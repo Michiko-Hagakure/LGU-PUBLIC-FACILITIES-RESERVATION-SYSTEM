@@ -308,21 +308,77 @@ class FacilityReservationApiController extends Controller
             $endDateTime = Carbon::parse($validated['booking_date'] . ' ' . $validated['end_time']);
             $bufferHours = 2;
 
+            $activeStatuses = ['pending', 'staff_verified', 'reserved', 'payment_pending', 'confirmed', 'paid'];
+
             $conflict = DB::connection('facilities_db')
                 ->table('bookings')
                 ->where('facility_id', $validated['facility_id'])
-                ->whereIn('status', ['pending', 'staff_verified', 'reserved', 'payment_pending', 'confirmed', 'paid'])
+                ->whereIn('status', $activeStatuses)
                 ->where(function($query) use ($startDateTime, $endDateTime, $bufferHours) {
                     $query->whereRaw('? < DATE_ADD(end_time, INTERVAL ? HOUR)', [$startDateTime, $bufferHours])
                           ->whereRaw('? > start_time', [$endDateTime]);
                 })
                 ->exists();
 
-            return response()->json([
+            $response = [
                 'status' => 'success',
                 'available' => !$conflict,
                 'message' => $conflict ? 'Time slot is not available.' : 'Time slot is available.',
-            ]);
+            ];
+
+            // When conflict exists, return existing bookings for the day and suggest available slots
+            if ($conflict) {
+                $existingBookings = DB::connection('facilities_db')
+                    ->table('bookings')
+                    ->where('facility_id', $validated['facility_id'])
+                    ->whereDate('start_time', $validated['booking_date'])
+                    ->whereIn('status', $activeStatuses)
+                    ->select('start_time', 'end_time', 'status')
+                    ->orderBy('start_time')
+                    ->get()
+                    ->map(function($b) {
+                        return [
+                            'start' => Carbon::parse($b->start_time)->format('H:i'),
+                            'end' => Carbon::parse($b->end_time)->format('H:i'),
+                        ];
+                    });
+
+                $response['existing_bookings'] = $existingBookings;
+
+                // Calculate suggested available 3-hour slots (operating hours 08:00-22:00, 2hr buffer)
+                $opStart = 8;
+                $opEnd = 22;
+                $slotDuration = 3;
+                $suggested = [];
+
+                for ($h = $opStart; $h <= $opEnd - $slotDuration; $h++) {
+                    $slotStart = Carbon::parse($validated['booking_date'] . ' ' . str_pad($h, 2, '0', STR_PAD_LEFT) . ':00');
+                    $slotEnd = $slotStart->copy()->addHours($slotDuration);
+
+                    $slotConflict = DB::connection('facilities_db')
+                        ->table('bookings')
+                        ->where('facility_id', $validated['facility_id'])
+                        ->whereIn('status', $activeStatuses)
+                        ->where(function($query) use ($slotStart, $slotEnd, $bufferHours) {
+                            $query->whereRaw('? < DATE_ADD(end_time, INTERVAL ? HOUR)', [$slotStart, $bufferHours])
+                                  ->whereRaw('? > start_time', [$slotEnd]);
+                        })
+                        ->exists();
+
+                    if (!$slotConflict) {
+                        $suggested[] = [
+                            'start' => $slotStart->format('H:i'),
+                            'end' => $slotEnd->format('H:i'),
+                            'start_display' => $slotStart->format('g:i A'),
+                            'end_display' => $slotEnd->format('g:i A'),
+                        ];
+                    }
+                }
+
+                $response['suggested_slots'] = $suggested;
+            }
+
+            return response()->json($response);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
