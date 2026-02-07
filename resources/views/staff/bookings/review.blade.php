@@ -30,11 +30,11 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-gr-md">
                 <div>
                     <label class="text-caption font-semibold text-gray-500 uppercase">Facility</label>
-                    <p class="text-body font-semibold text-gray-900 mt-1">{{ $booking->facility_name }}</p>
+                    <p class="text-body font-semibold text-gray-900 mt-1">{{ $booking->facility->name ?? 'N/A' }}</p>
                 </div>
                 <div>
                     <label class="text-caption font-semibold text-gray-500 uppercase">Location</label>
-                    <p class="text-body font-semibold text-gray-900 mt-1">{{ $booking->city_name }}</p>
+                    <p class="text-body font-semibold text-gray-900 mt-1">{{ $booking->facility->lguCity->city_name ?? 'N/A' }}</p>
                 </div>
                 <div>
                     <label class="text-caption font-semibold text-gray-500 uppercase">Event Date</label>
