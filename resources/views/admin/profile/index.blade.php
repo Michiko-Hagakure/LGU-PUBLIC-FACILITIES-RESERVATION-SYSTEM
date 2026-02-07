@@ -47,13 +47,9 @@
             <!-- Sidebar Navigation -->
             <div class="lg:col-span-1 bg-gray-50 border-r border-gray-200 p-6">
                 <nav class="space-y-2">
-                    <button onclick="showTab('profile')" id="tab-btn-profile" class="profile-tab-btn w-full text-left px-4 py-3 rounded-lg font-medium transition flex items-center bg-lgu-button text-lgu-button-text">
+                    <button class="profile-tab-btn w-full text-left px-4 py-3 rounded-lg font-medium transition flex items-center bg-lgu-button text-lgu-button-text">
                         <i data-lucide="user-circle" class="w-5 h-5 mr-3"></i>
                         Admin Profile
-                    </button>
-                    <button onclick="showTab('security')" id="tab-btn-security" class="profile-tab-btn w-full text-left px-4 py-3 rounded-lg font-medium transition flex items-center text-gray-700 hover:bg-gray-200">
-                        <i data-lucide="lock" class="w-5 h-5 mr-3"></i>
-                        Password & Security
                     </button>
                 </nav>
             </div>
@@ -146,53 +142,12 @@
                         </div>
                     </form>
                 </div>
-
-                <!-- Password & Security Tab -->
-                <div id="content-security" class="profile-tab-content hidden">
-                    <h2 class="text-2xl font-bold text-lgu-headline mb-6">Password & Security</h2>
-                    <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded-lg">
-                        <div class="flex items-start">
-                            <i data-lucide="alert-circle" class="w-5 h-5 text-yellow-500 mr-3 mt-0.5"></i>
-                            <div>
-                                <p class="font-semibold text-yellow-800">Coming Soon</p>
-                                <p class="text-sm text-yellow-700">Password change functionality will be available in a future update.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-    // Tab switching functionality
-    function showTab(tabName) {
-        // Hide all tab contents
-        document.querySelectorAll('.profile-tab-content').forEach(content => {
-            content.classList.add('hidden');
-        });
-        
-        // Remove active state from all buttons
-        document.querySelectorAll('.profile-tab-btn').forEach(btn => {
-            btn.classList.remove('bg-lgu-button', 'text-lgu-button-text');
-            btn.classList.add('text-gray-700', 'hover:bg-gray-200');
-        });
-        
-        // Show selected tab content
-        document.getElementById('content-' + tabName).classList.remove('hidden');
-        
-        // Activate selected button
-        const activeBtn = document.getElementById('tab-btn-' + tabName);
-        activeBtn.classList.add('bg-lgu-button', 'text-lgu-button-text');
-        activeBtn.classList.remove('text-gray-700', 'hover:bg-gray-200');
-        
-        // Reinitialize Lucide icons
-        if (typeof lucide !== 'undefined') {
-            lucide.createIcons();
-        }
-    }
-
     // Image preview functionality
     function previewImage(input) {
         if (input.files && input.files[0]) {
