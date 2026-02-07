@@ -263,10 +263,6 @@ function exportReport() {
                         <i data-lucide="file-text" class="w-4 h-4 inline mr-2"></i>
                         Export as PDF
                     </button>
-                    <button class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700" onclick="exportAs('csv')">
-                        <i data-lucide="file" class="w-4 h-4 inline mr-2"></i>
-                        Export as CSV
-                    </button>
                 </div>
             </div>
         `,
