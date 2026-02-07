@@ -177,13 +177,16 @@ class PaymentVerificationController extends Controller
             $refundPercentage = RefundRequest::calculateRefundPercentage('admin_rejected', $booking->start_time);
             $refundAmount = round(($booking->total_amount * $refundPercentage) / 100, 2);
 
+            // Get user data as fallback for missing applicant info
+            $bookingUser = $booking->user_id ? \App\Models\User::find($booking->user_id) : null;
+
             $refund = RefundRequest::create([
                 'booking_id' => $booking->id,
                 'user_id' => $booking->user_id,
                 'booking_reference' => $bookingReference,
-                'applicant_name' => $booking->applicant_name ?? $booking->user_name ?? 'N/A',
-                'applicant_email' => $booking->applicant_email,
-                'applicant_phone' => $booking->applicant_phone,
+                'applicant_name' => $booking->applicant_name ?? $booking->user_name ?? ($bookingUser ? $bookingUser->first_name . ' ' . $bookingUser->last_name : 'N/A'),
+                'applicant_email' => $booking->applicant_email ?? ($bookingUser->email ?? null),
+                'applicant_phone' => $booking->applicant_phone ?? ($bookingUser->phone ?? null),
                 'facility_name' => $booking->facility->name ?? 'N/A',
                 'original_amount' => $booking->total_amount,
                 'refund_percentage' => $refundPercentage,
