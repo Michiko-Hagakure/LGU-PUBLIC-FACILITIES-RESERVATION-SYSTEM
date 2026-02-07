@@ -158,7 +158,11 @@
 
                     <div>
                         <p class="text-caption text-gray-500 mb-1">Event Purpose</p>
-                        <p class="text-body text-lgu-paragraph">{{ $booking->purpose ?? 'Not specified' }}</p>
+                        <p class="text-body text-lgu-paragraph">{{ $booking->event_name ?? 'Not specified' }}</p>
+                    </div>
+                    <div>
+                        <p class="text-caption text-gray-500 mb-1">Event Description</p>
+                        <p class="text-body text-lgu-paragraph">{{ $booking->purpose ?? 'No description provided' }}</p>
                     </div>
                 </div>
             </div>
