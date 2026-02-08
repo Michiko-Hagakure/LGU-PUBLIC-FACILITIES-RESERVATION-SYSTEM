@@ -192,6 +192,7 @@
                             </svg>
                             Back to Board
                         </a>
+                        @if(in_array(strtolower(session('user_role', '')), ['admin', 'reservations staff', 'super admin']))
                         <button onclick="window.print()" 
                                 class="block w-full px-4 py-3 bg-gray-100 border-2 border-gray-300 text-gray-700 text-center font-semibold rounded-lg hover:bg-gray-200 transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer flex items-center justify-center gap-2">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -199,6 +200,7 @@
                             </svg>
                             Print
                         </button>
+                        @endif
                     </div>
                 </div>
             </div>
