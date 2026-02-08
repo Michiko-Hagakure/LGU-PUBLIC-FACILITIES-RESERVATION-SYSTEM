@@ -55,9 +55,10 @@ class InquiryManagementController extends Controller
         // Get staff list for assignment
         $staffMembers = DB::connection('auth_db')
             ->table('users')
-            ->whereIn('role', ['admin', 'staff'])
-            ->select('id', 'full_name', 'email', 'role')
-            ->orderBy('full_name')
+            ->join('roles', 'users.role_id', '=', 'roles.id')
+            ->whereIn('roles.name', ['admin', 'staff'])
+            ->select('users.id', 'users.full_name', 'users.email', 'roles.name as role')
+            ->orderBy('users.full_name')
             ->get();
 
         return view('admin.inquiries.show', compact('inquiry', 'staffMembers'));
