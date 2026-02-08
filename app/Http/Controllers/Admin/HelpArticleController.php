@@ -12,7 +12,7 @@ class HelpArticleController extends Controller
 {
     public function index()
     {
-        $articles = HelpArticle::orderBy('display_order')
+        $articles = HelpArticle::orderBy('sort_order')
             ->orderBy('title')
             ->paginate(20);
         
@@ -35,7 +35,7 @@ class HelpArticleController extends Controller
             'video_url' => 'nullable|url|max:500',
             'screenshots' => 'nullable|array',
             'screenshots.*' => 'image|mimes:jpg,jpeg,png|max:2048',
-            'display_order' => 'nullable|integer|min:0',
+            'sort_order' => 'nullable|integer|min:0',
             'is_featured' => 'boolean',
             'is_active' => 'boolean',
         ]);
@@ -79,7 +79,7 @@ class HelpArticleController extends Controller
             'video_url' => 'nullable|url|max:500',
             'screenshots' => 'nullable|array',
             'screenshots.*' => 'image|mimes:jpg,jpeg,png|max:2048',
-            'display_order' => 'nullable|integer|min:0',
+            'sort_order' => 'nullable|integer|min:0',
             'is_featured' => 'boolean',
             'is_active' => 'boolean',
         ]);
