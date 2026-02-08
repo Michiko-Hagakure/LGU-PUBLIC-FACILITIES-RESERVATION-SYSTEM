@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', function() {
         html: `
             <div style="text-align: left; padding: 20px; line-height: 1.6;">
                 <div style="background: #FEF3C7; border-left: 4px solid #F59E0B; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
-                    <i class="fas fa-bullhorn" style="color: #F59E0B; margin-right: 10px;"></i>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:10px;"><path d="m3 11 18-5v12L3 13v-2z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>
                     <strong style="color: #92400E;">Important Notice</strong>
                 </div>
                 @if($announcementImage)

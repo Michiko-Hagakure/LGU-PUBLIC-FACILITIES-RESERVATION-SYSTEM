@@ -59,7 +59,7 @@
                     <td class="p-6">
                         <div class="font-bold text-slate-700 text-sm italic">{{ $req->purpose }}</div>
                         <button @click="openLogistics = true" class="mt-2 text-[10px] font-black uppercase text-blue-500 hover:text-blue-700 underline flex items-center gap-1">
-                            <i class="fas fa-list-ul"></i> View Detailed Logistics
+                            <i data-lucide="list" class="w-3 h-3"></i> View Detailed Logistics
                         </button>
 
                         <div x-show="openLogistics" 
@@ -71,7 +71,7 @@
                             <div class="bg-white rounded-[2rem] max-w-lg w-full p-8 shadow-2xl relative border border-slate-100">
                                 <div class="flex justify-between items-start mb-6">
                                     <h3 class="text-xl font-black uppercase italic tracking-tighter">Itemized Logistics</h3>
-                                    <button @click="openLogistics = false" class="text-slate-400 hover:text-red-500 transition"><i class="fas fa-times"></i></button>
+                                    <button @click="openLogistics = false" class="text-slate-400 hover:text-red-500 transition"><i data-lucide="x" class="w-5 h-5"></i></button>
                                 </div>
                                 
                                 <div class="bg-slate-50 p-6 rounded-2xl text-sm text-slate-600 leading-relaxed whitespace-pre-line border max-h-[60vh] overflow-y-auto font-medium">
@@ -129,7 +129,7 @@
 
         @if(count($requests) == 0)
         <div class="p-20 text-center">
-            <i class="fas fa-folder-open text-slate-200 text-5xl mb-4"></i>
+            <i data-lucide="folder-open" class="w-12 h-12 text-slate-200 mx-auto mb-4"></i>
             <p class="text-slate-400 font-bold uppercase text-xs tracking-widest">No pending fund requests found</p>
         </div>
         @endif
