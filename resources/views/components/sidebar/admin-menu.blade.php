@@ -239,6 +239,12 @@
                 <span>Help Articles</span>
             </a>
         </li>
+        <li>
+            <a href="{{ URL::signedRoute('admin.inquiries.index') }}" class="sidebar-link flex items-center px-gr-sm py-gr-xs text-small font-medium rounded-lg transition-colors duration-200 {{ request()->routeIs('admin.inquiries.*') ? 'active' : '' }}">
+                <i data-lucide="message-square-text" class="w-5 h-5 mr-gr-xs flex-shrink-0"></i>
+                <span>Citizen Inquiries</span>
+            </a>
+        </li>
     </ul>
 </div>
 

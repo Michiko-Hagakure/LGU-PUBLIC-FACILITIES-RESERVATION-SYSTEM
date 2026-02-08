@@ -2046,6 +2046,16 @@ Route::middleware(['auth', 'role:admin', 'auto.expire'])->prefix('admin')->name(
     Route::post('/facility-site-selection/search', [\App\Http\Controllers\Admin\FacilitySiteSelectionController::class, 'search'])->name('facility-site-selection.search');
     Route::post('/facility-site-selection/check-suitability', [\App\Http\Controllers\Admin\FacilitySiteSelectionController::class, 'checkSuitability'])->name('facility-site-selection.check-suitability');
 
+    // Inquiry Management
+    Route::get('/inquiries', [\App\Http\Controllers\Admin\InquiryManagementController::class, 'index'])->name('inquiries.index');
+    Route::get('/inquiries/{id}', [\App\Http\Controllers\Admin\InquiryManagementController::class, 'show'])->name('inquiries.show');
+    Route::post('/inquiries/{id}/assign', [\App\Http\Controllers\Admin\InquiryManagementController::class, 'assign'])->name('inquiries.assign');
+    Route::post('/inquiries/{id}/status', [\App\Http\Controllers\Admin\InquiryManagementController::class, 'updateStatus'])->name('inquiries.status');
+    Route::post('/inquiries/{id}/priority', [\App\Http\Controllers\Admin\InquiryManagementController::class, 'updatePriority'])->name('inquiries.priority');
+    Route::post('/inquiries/{id}/note', [\App\Http\Controllers\Admin\InquiryManagementController::class, 'addNote'])->name('inquiries.note');
+    Route::post('/inquiries/{id}/resolve', [\App\Http\Controllers\Admin\InquiryManagementController::class, 'resolve'])->name('inquiries.resolve');
+    Route::post('/inquiries/{id}/close', [\App\Http\Controllers\Admin\InquiryManagementController::class, 'close'])->name('inquiries.close');
+
 });
 
 // Default Dashboard Route (redirects based on role)
