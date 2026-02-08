@@ -682,6 +682,8 @@ class AnalyticsController extends Controller
 
             ->distinct('user_id')
 
+            ->whereNotNull('user_id')
+
             ->whereBetween(DB::raw('DATE(created_at)'), [$startDate, $endDate])
 
             ->count('user_id');
@@ -693,6 +695,8 @@ class AnalyticsController extends Controller
         $newCitizens = DB::connection('facilities_db')
 
             ->table('bookings')
+
+            ->whereNotNull('user_id')
 
             ->selectRaw('user_id, MIN(DATE(created_at)) as first_booking_date')
 
@@ -713,6 +717,8 @@ class AnalyticsController extends Controller
             ->table('bookings')
 
             ->selectRaw('user_id, COUNT(*) as booking_count')
+
+            ->whereNotNull('user_id')
 
             ->whereBetween(DB::raw('DATE(created_at)'), [$startDate, $endDate])
 
@@ -739,6 +745,8 @@ class AnalyticsController extends Controller
                 SUM(total_amount) as total_spent
 
             ')
+
+            ->whereNotNull('user_id')
 
             ->whereBetween(DB::raw('DATE(created_at)'), [$startDate, $endDate])
 
@@ -795,6 +803,8 @@ class AnalyticsController extends Controller
         $avgBookingsPerCitizen = $totalCitizens > 0
 
             ? DB::connection('facilities_db')->table('bookings')
+
+                ->whereNotNull('user_id')
 
                 ->whereBetween(DB::raw('DATE(created_at)'), [$startDate, $endDate])
 
@@ -1005,6 +1015,8 @@ class AnalyticsController extends Controller
                 SUM(total_amount) as total_spent
 
             ')
+
+            ->whereNotNull('user_id')
 
             ->whereBetween(DB::raw('DATE(created_at)'), [$startDate, $endDate])
 
