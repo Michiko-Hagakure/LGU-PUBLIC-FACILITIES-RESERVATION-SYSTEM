@@ -95,6 +95,8 @@ class PaymentController extends Controller
             ->leftJoin('lgu_cities', 'facilities.lgu_city_id', '=', 'lgu_cities.id')
             ->select(
                 'payment_slips.*',
+                'bookings.applicant_name',
+                'bookings.user_name',
                 'bookings.start_time',
                 'bookings.end_time',
                 'bookings.purpose',

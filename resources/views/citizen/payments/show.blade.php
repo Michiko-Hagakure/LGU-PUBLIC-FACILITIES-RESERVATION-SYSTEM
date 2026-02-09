@@ -476,7 +476,7 @@ tr{border-bottom:1px solid #eee;}.amt td:last-child{font-size:24px;}.amt{border-
 <div class="hdr"><h2>Local Government Unit 1</h2><h1>Payment Slip</h1><p>{{ now()->format('m/d/Y, h:i A') }}</p></div>
 <div class="slip"><h1>Slip # {{ $paymentSlip->slip_number }}</h1></div>
 <table>
-<tr><td>Applicant</td><td>{{ $paymentSlip->applicant_name ?? 'N/A' }}</td></tr>
+<tr><td>Applicant</td><td>{{ $paymentSlip->applicant_name ?? $paymentSlip->user_name ?? 'N/A' }}</td></tr>
 <tr><td>Facility</td><td>{{ $paymentSlip->facility_name }}</td></tr>
 <tr><td>Event Date</td><td>{{ \Carbon\Carbon::parse($paymentSlip->start_time)->format('F d, Y') }}</td></tr>
 <tr><td>Time</td><td>{{ \Carbon\Carbon::parse($paymentSlip->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($paymentSlip->end_time)->format('g:i A') }}</td></tr>
