@@ -218,21 +218,45 @@ class BookingVerificationController extends Controller
                 'staff_notes' => $validated['staff_notes'] ?? null,
             ]);
 
-            // Auto-generate payment slip recording the down payment already made
-            // For partial payments, amount_due = remaining balance (what treasurer needs to collect)
-            // For full payments, amount_due = total amount (already paid)
-            $paymentSlip = PaymentSlip::create([
-                'slip_number' => PaymentSlip::generateSlipNumber(),
-                'booking_id' => $bookingId,
-                'amount_due' => $booking->isFullyPaid() ? $booking->total_amount : $booking->amount_remaining,
-                'payment_deadline' => $booking->isFullyPaid() ? null : now()->addDays(7), // 7 days to settle balance if partial
-                'status' => $booking->isFullyPaid() ? 'paid' : 'unpaid',
-                'payment_method' => $booking->payment_method,
-                'paid_at' => $booking->isFullyPaid() ? $booking->down_payment_paid_at : null,
-                'notes' => $booking->isFullyPaid() 
-                    ? 'Full payment collected at booking time' 
-                    : 'Down payment (' . $booking->payment_tier . '%) of ₱' . number_format($booking->down_payment_amount, 2) . ' collected at booking. Remaining balance to collect: ₱' . number_format($booking->amount_remaining, 2),
-            ]);
+            // Auto-generate payment slip(s)
+            if ($booking->isFullyPaid()) {
+                // Full payment: single slip, already paid
+                $paymentSlip = PaymentSlip::create([
+                    'slip_number' => PaymentSlip::generateSlipNumber(),
+                    'booking_id' => $bookingId,
+                    'amount_due' => $booking->total_amount,
+                    'payment_deadline' => null,
+                    'status' => 'paid',
+                    'payment_method' => $booking->payment_method,
+                    'paid_at' => $booking->down_payment_paid_at,
+                    'notes' => 'Full payment (100%) collected at booking time',
+                ]);
+            } else {
+                // Partial payment: TWO slips
+                // 1. Down payment slip (already collected - marked as paid)
+                $paymentSlip = PaymentSlip::create([
+                    'slip_number' => PaymentSlip::generateSlipNumber(),
+                    'booking_id' => $bookingId,
+                    'amount_due' => $booking->down_payment_amount,
+                    'payment_deadline' => null,
+                    'status' => 'paid',
+                    'payment_method' => $booking->payment_method,
+                    'paid_at' => $booking->down_payment_paid_at,
+                    'notes' => 'Down payment (' . $booking->payment_tier . '%) collected at booking time',
+                ]);
+
+                // 2. Remaining balance slip (unpaid - treasurer needs to collect)
+                PaymentSlip::create([
+                    'slip_number' => PaymentSlip::generateSlipNumber(),
+                    'booking_id' => $bookingId,
+                    'amount_due' => $booking->amount_remaining,
+                    'payment_deadline' => now()->addDays(7),
+                    'status' => 'unpaid',
+                    'payment_method' => $booking->payment_method,
+                    'paid_at' => null,
+                    'notes' => 'Remaining balance (' . (100 - $booking->payment_tier) . '%) to collect. Down payment of ₱' . number_format($booking->down_payment_amount, 2) . ' already received.',
+                ]);
+            }
 
             // Send notification to citizen
             try {
