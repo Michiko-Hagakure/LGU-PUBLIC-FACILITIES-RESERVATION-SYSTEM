@@ -1775,11 +1775,11 @@ Route::middleware(['auth', 'role:Treasurer'])->prefix('treasurer')->name('treasu
     Route::get('/official-receipts/{id}', [\App\Http\Controllers\Treasurer\OfficialReceiptController::class, 'show'])->name('official-receipts.show');
     Route::get('/official-receipts/{id}/print', [\App\Http\Controllers\Treasurer\OfficialReceiptController::class, 'print'])->name('official-receipts.print');
 
-    // Refund Queue
-    Route::get('/refunds', [\App\Http\Controllers\Treasurer\RefundController::class, 'index'])->name('refunds.index');
-    Route::get('/refunds/json', [\App\Http\Controllers\Treasurer\RefundController::class, 'getRefundsJson'])->name('refunds.json');
-    Route::get('/refunds/{id}', [\App\Http\Controllers\Treasurer\RefundController::class, 'show'])->name('refunds.show');
-    Route::post('/refunds/{id}/process', [\App\Http\Controllers\Treasurer\RefundController::class, 'process'])->name('refunds.process');
+    // Refund Queue - REMOVED (no refund policy)
+    // Route::get('/refunds', [\App\Http\Controllers\Treasurer\RefundController::class, 'index'])->name('refunds.index');
+    // Route::get('/refunds/json', [\App\Http\Controllers\Treasurer\RefundController::class, 'getRefundsJson'])->name('refunds.json');
+    // Route::get('/refunds/{id}', [\App\Http\Controllers\Treasurer\RefundController::class, 'show'])->name('refunds.show');
+    // Route::post('/refunds/{id}/process', [\App\Http\Controllers\Treasurer\RefundController::class, 'process'])->name('refunds.process');
 
     // Reports
     Route::get('/reports/daily-collections', [\App\Http\Controllers\Treasurer\ReportController::class, 'dailyCollections'])->name('reports.daily-collections');
@@ -1856,13 +1856,14 @@ Route::middleware(['auth', 'role:citizen', \App\Http\Middleware\CheckSessionTime
     Route::get('/citizen/reservations/json', [\App\Http\Controllers\Citizen\ReservationController::class, 'getReservationsJson'])->name('citizen.reservations.json');
     Route::get('/citizen/reservations/history', [\App\Http\Controllers\Citizen\ReservationController::class, 'history'])->name('citizen.reservation.history');
     Route::get('/citizen/reservations/{id}', [\App\Http\Controllers\Citizen\ReservationController::class, 'show'])->name('citizen.reservations.show');
-    Route::post('/citizen/reservations/{id}/cancel', [\App\Http\Controllers\Citizen\ReservationController::class, 'cancel'])->name('citizen.reservations.cancel');
+    // Cancellation removed - no refund policy
+    // Route::post('/citizen/reservations/{id}/cancel', [\App\Http\Controllers\Citizen\ReservationController::class, 'cancel'])->name('citizen.reservations.cancel');
     Route::post('/citizen/reservations/{id}/upload', [\App\Http\Controllers\Citizen\ReservationController::class, 'uploadDocument'])->name('citizen.reservations.upload');
 
-    // Refunds
-    Route::get('/citizen/refunds', [\App\Http\Controllers\Citizen\RefundController::class, 'index'])->name('citizen.refunds.index');
-    Route::get('/citizen/refunds/{id}', [\App\Http\Controllers\Citizen\RefundController::class, 'show'])->name('citizen.refunds.show');
-    Route::post('/citizen/refunds/{id}/select-method', [\App\Http\Controllers\Citizen\RefundController::class, 'selectMethod'])->name('citizen.refunds.select-method');
+    // Refunds - REMOVED (no refund policy)
+    // Route::get('/citizen/refunds', [\App\Http\Controllers\Citizen\RefundController::class, 'index'])->name('citizen.refunds.index');
+    // Route::get('/citizen/refunds/{id}', [\App\Http\Controllers\Citizen\RefundController::class, 'show'])->name('citizen.refunds.show');
+    // Route::post('/citizen/refunds/{id}/select-method', [\App\Http\Controllers\Citizen\RefundController::class, 'selectMethod'])->name('citizen.refunds.select-method');
 
     // Booking Conflicts (City Events)
     Route::get('/citizen/booking-conflicts', [\App\Http\Controllers\Citizen\BookingConflictController::class, 'index'])->name('citizen.conflicts.index');

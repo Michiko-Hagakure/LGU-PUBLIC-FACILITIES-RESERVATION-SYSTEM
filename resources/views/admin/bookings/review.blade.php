@@ -270,6 +270,37 @@
                             <span class="text-h3 font-bold text-green-600">₱{{ number_format($booking->total_amount, 2) }}</span>
                         </div>
                     </div>
+
+                    @if($booking->payment_tier)
+                    <div class="border-t-2 border-lgu-stroke pt-gr-sm mt-gr-sm space-y-gr-xs">
+                        <p class="text-caption font-bold text-gray-500 uppercase">Payment Status</p>
+                        <div class="flex justify-between text-small">
+                            <span class="text-lgu-paragraph">Payment Tier</span>
+                            <span class="font-bold text-lgu-button">{{ $booking->payment_tier }}%</span>
+                        </div>
+                        <div class="flex justify-between text-small">
+                            <span class="text-lgu-paragraph">Amount Paid</span>
+                            <span class="font-bold text-green-600">₱{{ number_format($booking->amount_paid, 2) }}</span>
+                        </div>
+                        @if($booking->amount_remaining > 0)
+                        <div class="flex justify-between text-small">
+                            <span class="text-lgu-paragraph">Remaining</span>
+                            <span class="font-bold text-yellow-600">₱{{ number_format($booking->amount_remaining, 2) }}</span>
+                        </div>
+                        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-2 mt-1">
+                            <p class="text-xs text-yellow-800"><strong>Partial payment.</strong> Balance must be settled before confirmation.</p>
+                        </div>
+                        @else
+                        <div class="bg-green-50 border border-green-200 rounded-lg p-2 mt-1">
+                            <p class="text-xs text-green-800"><strong>Fully paid.</strong> Ready for final confirmation.</p>
+                        </div>
+                        @endif
+                        <div class="flex justify-between text-small">
+                            <span class="text-lgu-paragraph">Method</span>
+                            <span class="font-semibold text-lgu-headline">{{ ucfirst(str_replace('_', ' ', $booking->payment_method)) }}</span>
+                        </div>
+                    </div>
+                    @endif
                 </div>
                 @endif
 
@@ -361,14 +392,14 @@
     </div>
 </div>
 
-<!-- Reject Booking Modal (for paid/confirmed bookings - triggers refund) -->
+<!-- Reject Booking Modal (for paid/confirmed bookings - NO refund per policy) -->
 <div id="rejectBookingModal" class="hidden fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl max-w-md w-full p-gr-lg">
         <h3 class="text-h3 font-bold text-red-600 mb-gr-sm">Reject Booking</h3>
-        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-gr-sm mb-gr-md">
-            <p class="text-small text-yellow-800">
+        <div class="bg-red-50 border border-red-200 rounded-lg p-gr-sm mb-gr-md">
+            <p class="text-small text-red-800">
                 <i data-lucide="alert-triangle" class="w-4 h-4 inline-block mr-1"></i>
-                <strong>This booking has been paid.</strong> Rejecting it will automatically create a <strong>100% refund (₱{{ number_format($booking->total_amount, 2) }})</strong> for the citizen. The refund will be processed within 1-3 business days.
+                <strong>This booking has been paid (₱{{ number_format($booking->amount_paid, 2) }}).</strong> Per the no-refund policy, payments are non-refundable. Only reject if there is a serious issue.
             </p>
         </div>
         <form method="POST" action="{{ URL::signedRoute('admin.bookings.reject-booking', $booking->id) }}">
@@ -382,7 +413,7 @@
                     Cancel
                 </button>
                 <button type="submit" class="flex-1 px-gr-lg py-gr-sm bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-colors">
-                    Reject & Issue Refund
+                    Reject Booking
                 </button>
             </div>
         </form>

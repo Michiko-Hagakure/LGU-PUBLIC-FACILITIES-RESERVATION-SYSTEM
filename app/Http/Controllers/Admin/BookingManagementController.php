@@ -261,9 +261,14 @@ class BookingManagementController extends Controller
 
         $booking = Booking::findOrFail($bookingId);
 
-        // Verify booking is in correct status
-        if ($booking->status !== 'paid') {
-            return back()->with('error', 'Booking must be paid before final confirmation.');
+        // Verify booking is in correct status (paid = full payment verified, staff_verified with full payment also OK)
+        if (!in_array($booking->status, ['paid', 'staff_verified'])) {
+            return back()->with('error', 'Booking must be paid and verified before final confirmation.');
+        }
+        
+        // Ensure booking is fully paid before admin can confirm
+        if ($booking->amount_remaining > 0) {
+            return back()->with('error', 'Booking has an outstanding balance of ₱' . number_format($booking->amount_remaining, 2) . '. Balance must be settled before confirmation.');
         }
 
         // Update booking status to confirmed (final state)

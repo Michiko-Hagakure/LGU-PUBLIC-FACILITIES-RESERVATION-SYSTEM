@@ -188,12 +188,14 @@ class PaymentVerificationController extends Controller
     
     /**
      * Verify cash payment and generate Official Receipt.
+     * Handles both initial full payments and balance payments for partial down payments.
      */
     public function verifyPayment(Request $request, $id)
     {
         $request->validate([
             'payment_method' => 'required|in:cash,gcash,paymaya,bank_transfer,credit_card',
             'notes' => 'nullable|string|max:1000',
+            'payment_amount' => 'nullable|numeric|min:0',
         ]);
         
         $paymentSlip = PaymentSlip::find($id);
@@ -221,17 +223,31 @@ class PaymentVerificationController extends Controller
             // Update payment slip status
             $paymentSlip->status = 'paid';
             $paymentSlip->payment_method = $request->payment_method;
-            $paymentSlip->or_number = $orNumber; // Store OR number in or_number column
-            // Keep transaction_reference for cashless payments (GCash/Maya reference)
+            $paymentSlip->or_number = $orNumber;
             $paymentSlip->notes = $request->notes;
             $paymentSlip->paid_at = now();
             $paymentSlip->verified_by = session('user_id');
             $paymentSlip->save();
             
-            // Update booking status to 'paid' (Admin will confirm later)
+            // Update booking payment tracking and status
             $booking = Booking::find($paymentSlip->booking_id);
             if ($booking) {
-                $booking->status = 'paid';
+                // Calculate the payment amount (balance payment or full remaining)
+                $paymentAmount = $request->payment_amount ?? $booking->amount_remaining;
+                
+                // Update booking payment fields
+                $newAmountPaid = $booking->amount_paid + $paymentAmount;
+                $newAmountRemaining = max(0, $booking->total_amount - $newAmountPaid);
+                
+                $booking->amount_paid = $newAmountPaid;
+                $booking->amount_remaining = $newAmountRemaining;
+                $booking->payment_recorded_by = session('user_id');
+                
+                // If fully paid now, update status to 'paid' for admin confirmation
+                if ($newAmountRemaining <= 0) {
+                    $booking->status = 'paid';
+                }
+                
                 $booking->save();
             }
             

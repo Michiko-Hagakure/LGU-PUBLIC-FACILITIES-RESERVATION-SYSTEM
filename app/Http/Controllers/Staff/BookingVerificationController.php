@@ -205,24 +205,34 @@ class BookingVerificationController extends Controller
             // Get booking details
             $booking = Booking::findOrFail($bookingId);
 
+            // Determine new status based on payment state
+            // If fully paid (100% tier), go straight to 'paid' for admin confirmation
+            // If partially paid, go to 'staff_verified' and remaining balance tracked by treasurer
+            $newStatus = $booking->isFullyPaid() ? 'paid' : 'staff_verified';
+
             // Update booking status using Eloquent for automatic audit logging
             $booking->update([
-                'status' => 'staff_verified',
+                'status' => $newStatus,
                 'staff_verified_by' => $userId,
                 'staff_verified_at' => now(),
                 'staff_notes' => $validated['staff_notes'] ?? null,
             ]);
 
-            // Auto-generate payment slip
+            // Auto-generate payment slip recording the down payment already made
             $paymentSlip = PaymentSlip::create([
                 'slip_number' => PaymentSlip::generateSlipNumber(),
                 'booking_id' => $bookingId,
                 'amount_due' => $booking->total_amount,
-                'payment_deadline' => now()->addHours(48), // 48-hour deadline
-                'status' => 'unpaid',
+                'payment_deadline' => $booking->isFullyPaid() ? null : now()->addDays(7), // 7 days to settle balance if partial
+                'status' => $booking->isFullyPaid() ? 'paid' : 'partial',
+                'payment_method' => $booking->payment_method,
+                'paid_at' => $booking->down_payment_paid_at,
+                'notes' => $booking->isFullyPaid() 
+                    ? 'Full payment collected at booking time' 
+                    : 'Down payment (' . $booking->payment_tier . '%) collected at booking. Remaining: ₱' . number_format($booking->amount_remaining, 2),
             ]);
 
-            // Send notification to citizen with payment deadline
+            // Send notification to citizen
             try {
                 $user = User::find($booking->user_id);
                 $bookingWithFacility = DB::connection('facilities_db')
@@ -239,8 +249,12 @@ class BookingVerificationController extends Controller
                 \Log::error('Failed to send staff verification notification: ' . $e->getMessage());
             }
 
+            $successMsg = $booking->isFullyPaid()
+                ? 'Booking verified & fully paid. Ready for admin confirmation.'
+                : 'Booking verified. Remaining balance of ₱' . number_format($booking->amount_remaining, 2) . ' to be collected by treasurer.';
+
             return redirect()->route('staff.verification-queue')
-                ->with('success', 'Booking verified successfully. Payment slip ' . $paymentSlip->slip_number . ' generated with 48-hour deadline.');
+                ->with('success', $successMsg);
 
         } catch (\Exception $e) {
             return redirect()->back()
@@ -250,6 +264,8 @@ class BookingVerificationController extends Controller
 
     /**
      * Reject a booking
+     * Supports partial rejection: staff specifies which part needs fixing
+     * (id_issue, facility_issue, document_issue, info_issue)
      */
     public function reject(Request $request, $bookingId)
     {
@@ -260,7 +276,10 @@ class BookingVerificationController extends Controller
         }
 
         $validated = $request->validate([
-            'rejection_reason' => 'required|string|max:1000'
+            'rejection_reason' => 'required|string|max:1000',
+            'rejection_type' => 'nullable|in:id_issue,facility_issue,document_issue,info_issue',
+            'rejection_fields' => 'nullable|array',
+            'rejection_fields.*' => 'string',
         ]);
 
         try {
@@ -273,6 +292,8 @@ class BookingVerificationController extends Controller
                 'staff_verified_by' => $userId,
                 'staff_verified_at' => now(),
                 'rejected_reason' => $validated['rejection_reason'],
+                'rejection_type' => $validated['rejection_type'] ?? null,
+                'rejection_fields' => $validated['rejection_fields'] ?? null,
             ]);
 
             // Send rejection notification to citizen

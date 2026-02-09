@@ -369,6 +369,133 @@
                     </div>
                 </div>
 
+                <!-- Payment Tier Selection -->
+                <div class="bg-white shadow-lg rounded-lg p-6">
+                    <h2 class="text-xl font-bold text-gray-900 mb-2">Payment</h2>
+                    <p class="text-sm text-gray-600 mb-4">Select how much you want to pay upfront to secure your reservation. The time slot is locked once payment is made.</p>
+
+                    <div class="space-y-6">
+                        <!-- Payment Tier -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-3">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline-block mr-1">
+                                    <rect width="20" height="14" x="2" y="5" rx="2"/>
+                                    <line x1="2" x2="22" y1="10" y2="10"/>
+                                </svg>
+                                Down Payment Amount <span class="text-red-500">*</span>
+                            </label>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-3" id="paymentTierOptions">
+                                <label class="relative cursor-pointer">
+                                    <input type="radio" name="payment_tier" value="25" class="peer sr-only" required>
+                                    <div class="border-2 border-gray-300 rounded-lg p-4 text-center transition-all peer-checked:border-lgu-button peer-checked:bg-lgu-button/5 hover:border-gray-400">
+                                        <p class="text-2xl font-bold text-gray-900">25%</p>
+                                        <p class="text-sm text-gray-600 mt-1">Down Payment</p>
+                                        <p class="text-xs font-semibold text-lgu-button mt-2" id="tier25Amount">-</p>
+                                    </div>
+                                </label>
+                                <label class="relative cursor-pointer">
+                                    <input type="radio" name="payment_tier" value="50" class="peer sr-only">
+                                    <div class="border-2 border-gray-300 rounded-lg p-4 text-center transition-all peer-checked:border-lgu-button peer-checked:bg-lgu-button/5 hover:border-gray-400">
+                                        <p class="text-2xl font-bold text-gray-900">50%</p>
+                                        <p class="text-sm text-gray-600 mt-1">Down Payment</p>
+                                        <p class="text-xs font-semibold text-lgu-button mt-2" id="tier50Amount">-</p>
+                                    </div>
+                                </label>
+                                <label class="relative cursor-pointer">
+                                    <input type="radio" name="payment_tier" value="75" class="peer sr-only">
+                                    <div class="border-2 border-gray-300 rounded-lg p-4 text-center transition-all peer-checked:border-lgu-button peer-checked:bg-lgu-button/5 hover:border-gray-400">
+                                        <p class="text-2xl font-bold text-gray-900">75%</p>
+                                        <p class="text-sm text-gray-600 mt-1">Down Payment</p>
+                                        <p class="text-xs font-semibold text-lgu-button mt-2" id="tier75Amount">-</p>
+                                    </div>
+                                </label>
+                                <label class="relative cursor-pointer">
+                                    <input type="radio" name="payment_tier" value="100" class="peer sr-only">
+                                    <div class="border-2 border-gray-300 rounded-lg p-4 text-center transition-all peer-checked:border-lgu-button peer-checked:bg-lgu-button/5 hover:border-gray-400">
+                                        <p class="text-2xl font-bold text-gray-900">100%</p>
+                                        <p class="text-sm text-gray-600 mt-1">Full Payment</p>
+                                        <p class="text-xs font-semibold text-lgu-button mt-2" id="tier100Amount">-</p>
+                                    </div>
+                                </label>
+                            </div>
+                            <div id="paymentTierInfo" class="mt-3 hidden">
+                                <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                                    <p class="text-sm text-blue-800">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline-block mr-1">
+                                            <circle cx="12" cy="12" r="10"/>
+                                            <path d="M12 16v-4"/>
+                                            <path d="M12 8h.01"/>
+                                        </svg>
+                                        <strong>You will pay: <span id="selectedTierPayAmount">-</span></strong>
+                                        <span id="selectedTierRemainingText" class="ml-2"></span>
+                                    </p>
+                                </div>
+                            </div>
+                            @error('payment_tier')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <!-- Payment Method -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-3">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline-block mr-1">
+                                    <line x1="12" x2="12" y1="1" y2="23"/>
+                                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                                </svg>
+                                Payment Method <span class="text-red-500">*</span>
+                            </label>
+                            <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                <label class="relative cursor-pointer">
+                                    <input type="radio" name="payment_method" value="cash" class="peer sr-only" required>
+                                    <div class="border-2 border-gray-300 rounded-lg p-3 text-center transition-all peer-checked:border-lgu-button peer-checked:bg-lgu-button/5 hover:border-gray-400">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mx-auto mb-1 text-green-600">
+                                            <rect width="20" height="12" x="2" y="6" rx="2"/>
+                                            <circle cx="12" cy="12" r="2"/>
+                                            <path d="M6 12h.01M18 12h.01"/>
+                                        </svg>
+                                        <p class="text-sm font-medium">Cash</p>
+                                        <p class="text-xs text-gray-500">At City Hall</p>
+                                    </div>
+                                </label>
+                                <label class="relative cursor-pointer">
+                                    <input type="radio" name="payment_method" value="gcash" class="peer sr-only">
+                                    <div class="border-2 border-gray-300 rounded-lg p-3 text-center transition-all peer-checked:border-lgu-button peer-checked:bg-lgu-button/5 hover:border-gray-400">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mx-auto mb-1 text-blue-600">
+                                            <rect width="20" height="14" x="2" y="5" rx="2"/>
+                                            <line x1="2" x2="22" y1="10" y2="10"/>
+                                        </svg>
+                                        <p class="text-sm font-medium">GCash</p>
+                                        <p class="text-xs text-gray-500">Online</p>
+                                    </div>
+                                </label>
+                                <label class="relative cursor-pointer">
+                                    <input type="radio" name="payment_method" value="bank_transfer" class="peer sr-only">
+                                    <div class="border-2 border-gray-300 rounded-lg p-3 text-center transition-all peer-checked:border-lgu-button peer-checked:bg-lgu-button/5 hover:border-gray-400">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mx-auto mb-1 text-purple-600">
+                                            <line x1="3" x2="21" y1="22" y2="22"/>
+                                            <line x1="6" x2="6" y1="18" y2="11"/>
+                                            <line x1="10" x2="10" y1="18" y2="11"/>
+                                            <line x1="14" x2="14" y1="18" y2="11"/>
+                                            <line x1="18" x2="18" y1="18" y2="11"/>
+                                            <polygon points="12 2 20 7 4 7"/>
+                                        </svg>
+                                        <p class="text-sm font-medium">Bank Transfer</p>
+                                        <p class="text-xs text-gray-500">Online</p>
+                                    </div>
+                                </label>
+                            </div>
+                            <p class="mt-2 text-xs text-gray-500">
+                                <strong>Cash:</strong> Pay at the City Treasurer's Office. 
+                                <strong>Cashless:</strong> The treasurer will verify your online payment.
+                            </p>
+                            @error('payment_method')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Terms and Conditions -->
                 <div class="bg-white shadow-lg rounded-lg p-6">
                     <div class="flex items-start">
@@ -377,7 +504,7 @@
                         <label for="terms" class="ml-3 text-sm text-gray-700 cursor-pointer">
                             I agree to the <span class="text-lgu-button font-semibold">Reservation Terms & Conditions</span> 
                             and confirm that all information provided is accurate. I understand that my booking is subject 
-                            to staff verification and approval.
+                            to staff verification and approval. <strong>I also understand that all payments are non-refundable once processed.</strong>
                         </label>
                     </div>
                 </div>
@@ -448,9 +575,23 @@
                         </div>
                     </div>
 
-                    <div class="flex justify-between text-xl font-bold text-lgu-button mb-6">
+                    <div class="flex justify-between text-xl font-bold text-lgu-button mb-4">
                         <span>Total Amount</span>
                         <span id="displayTotal">₱{{ number_format($pricing['subtotal'], 2) }}</span>
+                    </div>
+
+                    <!-- Down Payment Display (shown when tier is selected) -->
+                    <div id="sidebarPaymentInfo" class="hidden mb-6">
+                        <div class="bg-green-50 border border-green-200 rounded-lg p-3 space-y-2">
+                            <div class="flex justify-between text-sm font-semibold text-green-800">
+                                <span>Pay Now (<span id="sidebarTierLabel">-</span>)</span>
+                                <span id="sidebarPayNow">₱0.00</span>
+                            </div>
+                            <div class="flex justify-between text-xs text-green-600" id="sidebarRemainingRow">
+                                <span>Remaining Balance</span>
+                                <span id="sidebarRemaining">₱0.00</span>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Navigation Buttons -->
@@ -578,7 +719,80 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const total = subtotal - residentDiscount - specialDiscount;
         document.getElementById('displayTotal').textContent = '₱' + total.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+        // Update payment tier amounts
+        updatePaymentTierAmounts(total);
     }
+
+    // Payment tier logic
+    function updatePaymentTierAmounts(total) {
+        const tiers = [25, 50, 75, 100];
+        tiers.forEach(tier => {
+            const amount = total * (tier / 100);
+            const el = document.getElementById('tier' + tier + 'Amount');
+            if (el) {
+                el.textContent = '₱' + amount.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            }
+        });
+
+        // Update the selected tier info box if a tier is already selected
+        const selectedTier = document.querySelector('input[name="payment_tier"]:checked');
+        if (selectedTier) {
+            updateSelectedTierInfo(parseInt(selectedTier.value), total);
+        }
+    }
+
+    function updateSelectedTierInfo(tier, total) {
+        if (!total) {
+            // Recalculate total
+            const selectedCity = '{{ $user->city_name ?? "" }}';
+            const specialDiscountType = document.getElementById('special_discount_type').value;
+            let residentDiscount = 0;
+            let specialDiscount = 0;
+            if (facilityCity && selectedCity.toLowerCase() === facilityCity.toLowerCase()) {
+                residentDiscount = subtotal * 0.30;
+            }
+            if (specialDiscountType) {
+                specialDiscount = (subtotal - residentDiscount) * 0.20;
+            }
+            total = subtotal - residentDiscount - specialDiscount;
+        }
+
+        const payAmount = total * (tier / 100);
+        const remaining = total - payAmount;
+
+        document.getElementById('selectedTierPayAmount').textContent = '₱' + payAmount.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        
+        const remainingText = document.getElementById('selectedTierRemainingText');
+        if (tier < 100) {
+            remainingText.textContent = '| Remaining balance: ₱' + remaining.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        } else {
+            remainingText.textContent = '| Fully paid - no remaining balance';
+        }
+
+        document.getElementById('paymentTierInfo').classList.remove('hidden');
+
+        // Update sidebar
+        document.getElementById('sidebarPaymentInfo').classList.remove('hidden');
+        document.getElementById('sidebarTierLabel').textContent = tier + '%';
+        document.getElementById('sidebarPayNow').textContent = '₱' + payAmount.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        document.getElementById('sidebarRemaining').textContent = '₱' + remaining.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        if (tier === 100) {
+            document.getElementById('sidebarRemainingRow').classList.add('hidden');
+        } else {
+            document.getElementById('sidebarRemainingRow').classList.remove('hidden');
+        }
+    }
+
+    // Listen for payment tier selection
+    document.querySelectorAll('input[name="payment_tier"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            updateSelectedTierInfo(parseInt(this.value));
+        });
+    });
+
+    // Initial calculation of tier amounts
+    updatePaymentTierAmounts(subtotal);
 });
 
 // Image preview function
@@ -637,12 +851,13 @@ function showTermsModal() {
                     </p>
                 </div>
 
-                <h3 style="color: #0F5257; font-weight: 600; margin-top: 20px; margin-bottom: 10px; font-size: 16px;">1. Reservation Policy</h3>
+                <h3 style="color: #0F5257; font-weight: 600; margin-top: 20px; margin-bottom: 10px; font-size: 16px;">1. Reservation & Payment Policy</h3>
                 <ul style="margin-left: 20px; color: #374151;">
                     <li style="margin-bottom: 8px;">All reservations must be made at least <strong>7 business days</strong> in advance.</li>
-                    <li style="margin-bottom: 8px;">Bookings are subject to <strong>staff verification and approval</strong> within 2-3 business days.</li>
-                    <li style="margin-bottom: 8px;">Reservation status will be communicated via email or phone.</li>
-                    <li style="margin-bottom: 8px;">Approved bookings require <strong>payment within 48 hours</strong> to confirm the reservation.</li>
+                    <li style="margin-bottom: 8px;">A <strong>down payment (minimum 25%)</strong> is required at the time of booking to secure the time slot.</li>
+                    <li style="margin-bottom: 8px;">Time slots are <strong>only locked once payment is made</strong>. Without payment, other citizens may book the same slot.</li>
+                    <li style="margin-bottom: 8px;">Bookings are subject to <strong>staff verification and approval</strong> after payment.</li>
+                    <li style="margin-bottom: 8px;">Any remaining balance must be settled before the event date.</li>
                 </ul>
 
                 <h3 style="color: #0F5257; font-weight: 600; margin-top: 20px; margin-bottom: 10px; font-size: 16px;">2. City Event Priority</h3>
@@ -660,13 +875,14 @@ function showTermsModal() {
                     <li style="margin-bottom: 8px;"><strong>Option C:</strong> Request a full refund of all payments made</li>
                 </ul>
 
-                <h3 style="color: #0F5257; font-weight: 600; margin-top: 20px; margin-bottom: 10px; font-size: 16px;">3. Cancellation & Refund Policy</h3>
-                <ul style="margin-left: 20px; color: #374151;">
-                    <li style="margin-bottom: 8px;"><strong>7+ days before event:</strong> 100% refund</li>
-                    <li style="margin-bottom: 8px;"><strong>4-6 days before event:</strong> 50% refund</li>
-                    <li style="margin-bottom: 8px;"><strong>Less than 3 days:</strong> No refund</li>
-                    <li style="margin-bottom: 8px;">Refunds will be processed within 1-3 business days.</li>
-                </ul>
+                <h3 style="color: #0F5257; font-weight: 600; margin-top: 20px; margin-bottom: 10px; font-size: 16px;">3. No Refund Policy</h3>
+                <div style="background: #FEE2E2; border-left: 4px solid #DC2626; padding: 15px; margin-bottom: 15px; border-radius: 4px;">
+                    <p style="margin: 0; color: #991B1B; font-weight: 600;">
+                        All payments made for facility reservations are <strong>strictly non-refundable</strong>. 
+                        This includes down payments, partial payments, and full payments. By proceeding with your 
+                        reservation, you acknowledge and accept this no-refund policy.
+                    </p>
+                </div>
 
                 <h3 style="color: #0F5257; font-weight: 600; margin-top: 20px; margin-bottom: 10px; font-size: 16px;">4. Facility Usage Rules</h3>
                 <ul style="margin-left: 20px; color: #374151;">

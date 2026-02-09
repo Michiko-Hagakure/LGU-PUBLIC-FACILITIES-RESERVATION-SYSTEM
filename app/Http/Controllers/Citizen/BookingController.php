@@ -290,6 +290,8 @@ class BookingController extends Controller
             'valid_id_back' => 'required|file|mimes:jpg,jpeg,png|max:5120',
             'valid_id_selfie' => 'required|file|mimes:jpg,jpeg,png|max:5120',
             'special_requests' => 'nullable|string|max:1000',
+            'payment_tier' => 'required|in:25,50,75,100',
+            'payment_method' => 'required|in:cash,gcash,paymaya,bank_transfer,credit_card',
         ]);
 
         try {
@@ -354,6 +356,11 @@ class BookingController extends Controller
             $totalDiscount = $residentDiscountAmount + $specialDiscountAmount;
             $totalAmount = $pricing['subtotal'] - $totalDiscount;
 
+            // Calculate down payment based on selected tier
+            $paymentTier = (int) $validated['payment_tier'];
+            $downPaymentAmount = Booking::calculateDownPayment($totalAmount, $paymentTier);
+            $amountRemaining = $totalAmount - $downPaymentAmount;
+
             // Create booking using Eloquent for automatic audit logging
             $startDateTime = Carbon::parse($step1Data['booking_date'] . ' ' . $step1Data['start_time']);
             $endDateTime = Carbon::parse($step1Data['booking_date'] . ' ' . $step1Data['end_time']);
@@ -386,6 +393,13 @@ class BookingController extends Controller
                 'valid_id_front_path' => $validIdFrontPath,
                 'valid_id_back_path' => $validIdBackPath,
                 'valid_id_selfie_path' => $validIdSelfiePath,
+                // Down payment system fields
+                'payment_tier' => $paymentTier,
+                'down_payment_amount' => $downPaymentAmount,
+                'amount_paid' => $downPaymentAmount,
+                'amount_remaining' => $amountRemaining,
+                'payment_method' => $validated['payment_method'],
+                'down_payment_paid_at' => Carbon::now(),
             ]);
 
             $bookingId = $booking->id;
@@ -623,6 +637,7 @@ class BookingController extends Controller
             ->table('bookings')
             ->where('facility_id', $facilityId)
             ->whereIn('status', ['pending', 'staff_verified', 'reserved', 'payment_pending', 'confirmed', 'paid'])
+            ->where('amount_paid', '>', 0) // Only paid bookings lock time slots
             ->where(function($query) use ($startDateTime, $endDateTime, $bufferHours) {
                 $query->where(function($q) use ($startDateTime, $endDateTime, $bufferHours) {
                     // Check if new booking overlaps with existing booking + buffer
@@ -647,6 +662,7 @@ class BookingController extends Controller
                 ->table('bookings')
                 ->where('facility_id', $facilityId)
                 ->whereIn('status', ['pending', 'staff_verified', 'reserved', 'payment_pending', 'confirmed', 'paid'])
+                ->where('amount_paid', '>', 0) // Only paid bookings lock time slots
                 ->whereDate('start_time', $bookingDate)
                 ->orderBy('start_time')
                 ->get();

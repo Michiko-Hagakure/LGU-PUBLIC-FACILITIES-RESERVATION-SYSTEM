@@ -88,7 +88,17 @@ class Booking extends Model
         'admin_approval_notes',
         'reserved_until',
         'source_system',
-        'expired_at'
+        'expired_at',
+        // Down payment system fields
+        'payment_tier',
+        'down_payment_amount',
+        'amount_paid',
+        'amount_remaining',
+        'payment_method',
+        'down_payment_paid_at',
+        'payment_recorded_by',
+        'rejection_type',
+        'rejection_fields'
     ];
 
     /**
@@ -116,6 +126,13 @@ class Booking extends Model
         'admin_approved_at' => 'datetime',
         'reserved_until' => 'datetime',
         'canceled_at' => 'datetime',
+        // Down payment system casts
+        'payment_tier' => 'integer',
+        'down_payment_amount' => 'decimal:2',
+        'amount_paid' => 'decimal:2',
+        'amount_remaining' => 'decimal:2',
+        'down_payment_paid_at' => 'datetime',
+        'rejection_fields' => 'array',
     ];
 
     /**
@@ -253,6 +270,59 @@ class Booking extends Model
     }
 
     /**
+     * Check if booking has a down payment recorded
+     */
+    public function hasDownPayment(): bool
+    {
+        return $this->amount_paid > 0;
+    }
+
+    /**
+     * Check if booking is fully paid
+     */
+    public function isFullyPaid(): bool
+    {
+        return $this->amount_remaining <= 0 && $this->amount_paid > 0;
+    }
+
+    /**
+     * Check if booking has a remaining balance
+     */
+    public function hasRemainingBalance(): bool
+    {
+        return $this->amount_remaining > 0;
+    }
+
+    /**
+     * Check if booking was partially rejected (specific field needs fixing)
+     */
+    public function isPartiallyRejected(): bool
+    {
+        return $this->status === 'rejected' && !empty($this->rejection_type);
+    }
+
+    /**
+     * Calculate down payment amount based on tier and total
+     */
+    public static function calculateDownPayment(float $totalAmount, int $tier): float
+    {
+        $validTiers = [25, 50, 75, 100];
+        if (!in_array($tier, $validTiers)) {
+            $tier = 100;
+        }
+        return round($totalAmount * ($tier / 100), 2);
+    }
+
+    /**
+     * Get payment progress percentage
+     */
+    public function getPaymentProgressAttribute(): float
+    {
+        if ($this->total_amount <= 0) return 100;
+        return min(100, round(($this->amount_paid / $this->total_amount) * 100, 1));
+    }
+
+    /**
      * Check for schedule conflicts with other bookings
      * Single source of truth for conflict detection - NO REDUNDANCY
      * 
@@ -268,7 +338,8 @@ class Booking extends Model
         $conflicts = self::where('facility_id', $this->facility_id)
             ->where('id', '!=', $this->id) // Exclude current booking
             ->where('event_date', $this->event_date) // Same date
-            ->whereIn('status', ['staff_verified', 'paid', 'confirmed']) // Only check locked bookings
+            ->whereIn('status', ['staff_verified', 'paid', 'confirmed']) // Only check locked bookings (must have down payment)
+            ->where('amount_paid', '>', 0) // Only bookings with payment lock slots
             ->where(function($query) {
                 // Time overlap detection:
                 // Overlap exists if: (start1 < end2) AND (end1 > start2)

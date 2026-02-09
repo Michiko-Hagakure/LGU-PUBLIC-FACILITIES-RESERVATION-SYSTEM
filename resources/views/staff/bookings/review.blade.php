@@ -286,6 +286,51 @@
                         <span class="text-h4 font-bold text-lgu-button">₱{{ number_format($booking->total_amount, 2) }}</span>
                     </div>
                 </div>
+
+                @if($booking->payment_tier)
+                <div class="mt-4 pt-4 border-t border-gray-200">
+                    <h4 class="text-small font-bold text-gray-700 mb-2">Payment Info</h4>
+                    <div class="space-y-2">
+                        <div class="flex justify-between text-small">
+                            <span class="text-gray-600">Payment Tier</span>
+                            <span class="font-semibold text-lgu-button">{{ $booking->payment_tier }}%</span>
+                        </div>
+                        <div class="flex justify-between text-small">
+                            <span class="text-gray-600">Down Payment</span>
+                            <span class="font-semibold text-green-600">₱{{ number_format($booking->down_payment_amount, 2) }}</span>
+                        </div>
+                        <div class="flex justify-between text-small">
+                            <span class="text-gray-600">Amount Paid</span>
+                            <span class="font-semibold text-green-600">₱{{ number_format($booking->amount_paid, 2) }}</span>
+                        </div>
+                        @if($booking->amount_remaining > 0)
+                        <div class="flex justify-between text-small">
+                            <span class="text-gray-600">Remaining Balance</span>
+                            <span class="font-semibold text-yellow-600">₱{{ number_format($booking->amount_remaining, 2) }}</span>
+                        </div>
+                        @endif
+                        <div class="flex justify-between text-small">
+                            <span class="text-gray-600">Method</span>
+                            <span class="font-semibold text-gray-900">{{ ucfirst(str_replace('_', ' ', $booking->payment_method)) }}</span>
+                        </div>
+                        @if($booking->down_payment_paid_at)
+                        <div class="flex justify-between text-small">
+                            <span class="text-gray-600">Paid At</span>
+                            <span class="font-semibold text-gray-900">{{ $booking->down_payment_paid_at->format('M d, g:i A') }}</span>
+                        </div>
+                        @endif
+                    </div>
+                    @if($booking->amount_remaining > 0)
+                    <div class="mt-2 bg-yellow-50 border border-yellow-200 rounded-lg p-2">
+                        <p class="text-xs text-yellow-800"><strong>Partial payment.</strong> Remaining ₱{{ number_format($booking->amount_remaining, 2) }} to be collected by treasurer.</p>
+                    </div>
+                    @else
+                    <div class="mt-2 bg-green-50 border border-green-200 rounded-lg p-2">
+                        <p class="text-xs text-green-800"><strong>Fully paid.</strong> Ready for admin confirmation after verification.</p>
+                    </div>
+                    @endif
+                </div>
+                @endif
                 @endif
             </div>
 
@@ -390,6 +435,8 @@
                 <form action="{{ URL::signedRoute('staff.bookings.reject', $booking->id) }}" method="POST" id="rejectForm">
                     @csrf
                     <input type="hidden" name="rejection_reason" id="rejection_reason">
+                    <input type="hidden" name="rejection_type" id="rejection_type">
+                    <input type="hidden" name="rejection_fields[]" id="rejection_fields_value">
                     <button type="button" onclick="confirmReject()" 
                             class="w-full px-4 py-3 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-colors shadow-sm flex items-center justify-center">
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x-circle mr-2">
@@ -609,26 +656,44 @@ function confirmVerify() {
 function confirmReject() {
     Swal.fire({
         title: 'Reject This Booking?',
-        text: 'Please provide a reason for rejection:',
-        input: 'textarea',
-        inputPlaceholder: 'Enter rejection reason...',
-        inputAttributes: {
-            'aria-label': 'Enter rejection reason'
-        },
+        html: `
+            <div class="text-left">
+                <label class="block text-sm font-medium text-gray-700 mb-2">What needs to be fixed?</label>
+                <select id="swal_rejection_type" class="w-full px-3 py-2 border border-gray-300 rounded-lg mb-4 text-sm">
+                    <option value="">Full Rejection (entire booking)</option>
+                    <option value="id_issue">ID Issue - Re-upload valid ID</option>
+                    <option value="document_issue">Document Issue - Re-upload documents</option>
+                    <option value="facility_issue">Facility Issue - Choose another facility</option>
+                    <option value="info_issue">Info Issue - Correct booking details</option>
+                </select>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Rejection Reason <span class="text-red-500">*</span></label>
+                <textarea id="swal_rejection_reason" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" rows="4" placeholder="Explain what needs to be corrected..."></textarea>
+            </div>
+        `,
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#dc2626',
         cancelButtonColor: '#6b7280',
         confirmButtonText: 'Reject Booking',
         cancelButtonText: 'Cancel',
-        inputValidator: (value) => {
-            if (!value) {
-                return 'Please provide a rejection reason!';
+        preConfirm: () => {
+            const reason = document.getElementById('swal_rejection_reason').value;
+            if (!reason) {
+                Swal.showValidationMessage('Please provide a rejection reason!');
+                return false;
             }
+            return {
+                reason: reason,
+                type: document.getElementById('swal_rejection_type').value
+            };
         }
     }).then((result) => {
         if (result.isConfirmed) {
-            document.getElementById('rejection_reason').value = result.value;
+            document.getElementById('rejection_reason').value = result.value.reason;
+            document.getElementById('rejection_type').value = result.value.type;
+            if (result.value.type) {
+                document.getElementById('rejection_fields_value').value = result.value.type;
+            }
             document.getElementById('rejectForm').submit();
         }
     });

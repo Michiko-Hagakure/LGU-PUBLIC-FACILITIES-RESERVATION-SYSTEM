@@ -17,14 +17,49 @@
         <p class="text-green-700">Booking Reference: <span class="font-mono font-bold">#BK{{ str_pad($booking->id, 6, '0', STR_PAD_LEFT) }}</span></p>
     </div>
 
+    <!-- Payment Summary -->
+    @if($booking->payment_tier)
+    <div class="bg-white shadow-lg rounded-lg p-6 mb-8">
+        <h3 class="text-lg font-bold text-gray-900 mb-4">Payment Summary</h3>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="text-center p-3 bg-gray-50 rounded-lg">
+                <p class="text-xs text-gray-500 uppercase">Payment Tier</p>
+                <p class="text-2xl font-bold text-lgu-button">{{ $booking->payment_tier }}%</p>
+            </div>
+            <div class="text-center p-3 bg-green-50 rounded-lg">
+                <p class="text-xs text-gray-500 uppercase">Amount Paid</p>
+                <p class="text-2xl font-bold text-green-600">₱{{ number_format($booking->amount_paid, 2) }}</p>
+            </div>
+            <div class="text-center p-3 {{ $booking->amount_remaining > 0 ? 'bg-yellow-50' : 'bg-green-50' }} rounded-lg">
+                <p class="text-xs text-gray-500 uppercase">Remaining Balance</p>
+                <p class="text-2xl font-bold {{ $booking->amount_remaining > 0 ? 'text-yellow-600' : 'text-green-600' }}">₱{{ number_format($booking->amount_remaining, 2) }}</p>
+            </div>
+            <div class="text-center p-3 bg-blue-50 rounded-lg">
+                <p class="text-xs text-gray-500 uppercase">Payment Method</p>
+                <p class="text-lg font-bold text-blue-600">{{ ucfirst(str_replace('_', ' ', $booking->payment_method)) }}</p>
+            </div>
+        </div>
+        @if($booking->amount_remaining > 0)
+            <div class="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                <p class="text-sm text-yellow-800">
+                    <strong>Note:</strong> You have a remaining balance of <strong>₱{{ number_format($booking->amount_remaining, 2) }}</strong>. 
+                    Please settle this at the City Treasurer's Office before your event date.
+                </p>
+            </div>
+        @endif
+    </div>
+    @endif
+
     <!-- What's Next -->
     <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
         <h3 class="text-lg font-bold text-blue-900 mb-3">What happens next?</h3>
         <ol class="list-decimal list-inside space-y-2 text-sm text-blue-800">
             <li><strong>Staff Verification</strong> - Our staff will review your booking request and uploaded documents (usually within 1-2 business days)</li>
-            <li><strong>Admin Approval</strong> - After staff verification, an admin will approve your booking</li>
-            <li><strong>Payment</strong> - Once approved, you'll receive a payment slip with instructions</li>
-            <li><strong>Confirmation</strong> - After payment verification, your booking will be confirmed</li>
+            @if($booking->amount_remaining > 0)
+                <li><strong>Balance Payment</strong> - Settle your remaining balance of ₱{{ number_format($booking->amount_remaining, 2) }} at the City Treasurer's Office</li>
+            @endif
+            <li><strong>Admin Confirmation</strong> - Once verified{{ $booking->amount_remaining > 0 ? ' and fully paid' : '' }}, an admin will confirm your reservation</li>
+            <li><strong>Done!</strong> - You'll receive a confirmation notification. Your time slot is secured.</li>
         </ol>
     </div>
 
@@ -141,9 +176,16 @@
                     </svg>
                     <div>
                         <p class="font-medium text-yellow-900">Status: <span class="uppercase">{{ $booking->status }}</span></p>
-                        <p class="text-sm text-yellow-700">Awaiting staff verification</p>
+                        <p class="text-sm text-yellow-700">Your {{ $booking->payment_tier }}% payment has been recorded. Awaiting staff verification.</p>
                     </div>
                 </div>
+            </div>
+
+            <!-- No Refund Notice -->
+            <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                <p class="text-sm text-red-800">
+                    <strong>Reminder:</strong> All payments are non-refundable as per our reservation terms and conditions.
+                </p>
             </div>
         </div>
 
