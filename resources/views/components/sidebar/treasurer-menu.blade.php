@@ -37,12 +37,7 @@
                 <span>Official Receipts</span>
             </a>
         </li>
-        <li>
-            <a href="{{ route('treasurer.refunds.index') }}" class="sidebar-link flex items-center px-gr-sm py-gr-xs text-small font-medium rounded-lg transition-colors duration-200 {{ request()->routeIs('treasurer.refunds*') ? 'active' : '' }}">
-                <i data-lucide="undo-2" class="w-5 h-5 mr-gr-xs flex-shrink-0"></i>
-                <span>Refund Queue</span>
-            </a>
-        </li>
+        {{-- Refunds removed - no refund policy --}}
     </ul>
 </div>
 
