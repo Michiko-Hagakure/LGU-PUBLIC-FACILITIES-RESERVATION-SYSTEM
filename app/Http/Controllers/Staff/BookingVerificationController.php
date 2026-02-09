@@ -233,7 +233,7 @@ class BookingVerificationController extends Controller
                 ]);
             } else {
                 // Partial payment: TWO slips
-                // 1. Down payment slip (already collected - marked as paid)
+                // 1. Down payment slip (already collected - marked as paid with OR number)
                 $paymentSlip = PaymentSlip::create([
                     'slip_number' => PaymentSlip::generateSlipNumber(),
                     'booking_id' => $bookingId,
@@ -242,6 +242,8 @@ class BookingVerificationController extends Controller
                     'status' => 'paid',
                     'payment_method' => $booking->payment_method,
                     'paid_at' => $booking->down_payment_paid_at,
+                    'or_number' => $this->generateOfficialReceiptNumber(),
+                    'verified_by' => $userId,
                     'notes' => 'Down payment (' . $booking->payment_tier . '%) collected at booking time',
                 ]);
 
@@ -407,5 +409,26 @@ class BookingVerificationController extends Controller
 
         return view('staff.bookings.index', compact('bookings', 'facilities'));
     }
-}
 
+    /**
+     * Auto-generate Official Receipt number.
+     * Format: OR-YYYY-NNNN (e.g., OR-2026-0001)
+     */
+    private function generateOfficialReceiptNumber()
+    {
+        $year = now()->year;
+
+        $lastPayment = PaymentSlip::where('or_number', 'like', "OR-{$year}-%")
+            ->orderBy('or_number', 'desc')
+            ->first();
+
+        if ($lastPayment && $lastPayment->or_number) {
+            $lastNumber = intval(substr($lastPayment->or_number, -4));
+            $newNumber = str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
+        } else {
+            $newNumber = '0001';
+        }
+
+        return "OR-{$year}-{$newNumber}";
+    }
+}
