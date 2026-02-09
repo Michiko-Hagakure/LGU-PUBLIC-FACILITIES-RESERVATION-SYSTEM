@@ -224,7 +224,7 @@ class BookingVerificationController extends Controller
                 'booking_id' => $bookingId,
                 'amount_due' => $booking->total_amount,
                 'payment_deadline' => $booking->isFullyPaid() ? null : now()->addDays(7), // 7 days to settle balance if partial
-                'status' => $booking->isFullyPaid() ? 'paid' : 'partial',
+                'status' => $booking->isFullyPaid() ? 'paid' : 'unpaid',
                 'payment_method' => $booking->payment_method,
                 'paid_at' => $booking->down_payment_paid_at,
                 'notes' => $booking->isFullyPaid() 

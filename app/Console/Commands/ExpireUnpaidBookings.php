@@ -91,7 +91,7 @@ class ExpireUnpaidBookings extends Command
 
             // Also expire associated payment slips
             \App\Models\PaymentSlip::where('booking_id', $booking->id)
-                ->whereIn('status', ['unpaid', 'partial'])
+                ->where('status', 'unpaid')
                 ->update(['status' => 'expired']);
 
             DB::connection('facilities_db')->commit();
