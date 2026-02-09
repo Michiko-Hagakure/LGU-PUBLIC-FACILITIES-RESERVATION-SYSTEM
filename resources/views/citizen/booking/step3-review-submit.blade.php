@@ -504,7 +504,7 @@
                         <label for="terms" class="ml-3 text-sm text-gray-700 cursor-pointer">
                             I agree to the <span class="text-lgu-button font-semibold">Reservation Terms & Conditions</span> 
                             and confirm that all information provided is accurate. I understand that my booking is subject 
-                            to staff verification and approval. <strong>I also understand that all payments are non-refundable once processed.</strong>
+                            to staff verification and approval. <strong>I also understand that I may cancel my reservation, but all payments are non-refundable.</strong>
                         </label>
                     </div>
                 </div>
@@ -875,12 +875,16 @@ function showTermsModal() {
                     <li style="margin-bottom: 8px;"><strong>Option C:</strong> Request a full refund of all payments made</li>
                 </ul>
 
-                <h3 style="color: #0F5257; font-weight: 600; margin-top: 20px; margin-bottom: 10px; font-size: 16px;">3. No Refund Policy</h3>
+                <h3 style="color: #0F5257; font-weight: 600; margin-top: 20px; margin-bottom: 10px; font-size: 16px;">3. Cancellation & No Refund Policy</h3>
+                <ul style="margin-left: 20px; color: #374151;">
+                    <li style="margin-bottom: 8px;">You may cancel your reservation at any time before it is confirmed by providing a valid reason (e.g., change of date/time, no longer needed).</li>
+                    <li style="margin-bottom: 8px;">Cancellation will release the time slot for other citizens to book.</li>
+                </ul>
                 <div style="background: #FEE2E2; border-left: 4px solid #DC2626; padding: 15px; margin-bottom: 15px; border-radius: 4px;">
                     <p style="margin: 0; color: #991B1B; font-weight: 600;">
-                        All payments made for facility reservations are <strong>strictly non-refundable</strong>. 
-                        This includes down payments, partial payments, and full payments. By proceeding with your 
-                        reservation, you acknowledge and accept this no-refund policy.
+                        All payments made for facility reservations are <strong>strictly non-refundable</strong>, 
+                        even if you cancel. This includes down payments, partial payments, and full payments. 
+                        By proceeding with your reservation, you acknowledge and accept this no-refund policy.
                     </p>
                 </div>
 

@@ -590,11 +590,16 @@
                         </a>
                     @endif
 
-                    @if(in_array($booking->status, ['pending', 'staff_verified', 'payment_pending']))
+                    @if(in_array($booking->status, ['pending', 'staff_verified', 'payment_pending', 'paid']))
                         <button type="button" onclick="cancelBooking({{ $booking->id }})"
                                 class="block w-full px-4 py-3 bg-red-100 text-red-700 text-center font-semibold rounded-lg hover:bg-red-200 transition">
                             Cancel Booking
                         </button>
+                        @if(($booking->amount_paid ?? 0) > 0)
+                        <p class="text-xs text-red-600 text-center mt-1">
+                            <strong>Note:</strong> Payments are non-refundable.
+                        </p>
+                        @endif
                     @endif
 
                     <a href="{{ URL::signedRoute('citizen.reservations') }}" 
@@ -780,15 +785,24 @@ function openUploadModal(documentType) {
 
 // Cancel Booking with SweetAlert2
 function cancelBooking(bookingId) {
+    const amountPaid = {{ $booking->amount_paid ?? 0 }};
+    const noRefundWarning = amountPaid > 0 
+        ? `<div class="bg-red-50 border border-red-300 rounded-lg p-3 mb-4">
+               <p class="text-red-800 text-sm font-semibold">⚠ No Refund Policy</p>
+               <p class="text-red-700 text-sm">Your payment of ₱${amountPaid.toLocaleString('en-PH', {minimumFractionDigits: 2})} is <strong>non-refundable</strong>. You will not receive any refund if you cancel.</p>
+           </div>` 
+        : '';
+
     Swal.fire({
         title: 'Cancel Booking?',
         html: `
             <div class="text-left">
+                ${noRefundWarning}
                 <p class="text-gray-600 mb-4">Please provide a reason for cancelling this booking:</p>
                 <textarea id="cancellation_reason" 
                           class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500" 
                           rows="4" 
-                          placeholder="Enter your reason here..."
+                          placeholder="e.g., I want to change the date/time, I no longer need the facility..."
                           style="resize: none;"></textarea>
             </div>
         `,

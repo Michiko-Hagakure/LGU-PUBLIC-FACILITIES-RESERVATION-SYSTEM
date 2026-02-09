@@ -206,8 +206,9 @@ class ReservationController extends Controller
             return redirect()->route('citizen.reservations')->with('error', 'Booking not found.');
         }
 
-        // Check if booking can be cancelled (only pending, staff_verified, payment_pending)
-        if (!in_array($booking->status, ['pending', 'staff_verified', 'payment_pending'])) {
+        // Check if booking can be cancelled (pending, staff_verified, payment_pending, paid)
+        // Note: confirmed bookings cannot be cancelled
+        if (!in_array($booking->status, ['pending', 'staff_verified', 'payment_pending', 'paid'])) {
             return redirect()->back()->with('error', 'This booking cannot be cancelled at this stage.');
         }
 
@@ -219,13 +220,14 @@ class ReservationController extends Controller
             return redirect()->back()->withErrors($validator)->withInput();
         }
 
-        // Update booking status
+        // Update booking status - NO refund is issued regardless of payment status
         DB::connection('facilities_db')
             ->table('bookings')
             ->where('id', $id)
             ->update([
                 'status' => 'cancelled',
-                'rejected_reason' => $request->cancellation_reason,
+                'canceled_reason' => $request->cancellation_reason,
+                'canceled_at' => Carbon::now(),
                 'updated_at' => Carbon::now(),
             ]);
 
