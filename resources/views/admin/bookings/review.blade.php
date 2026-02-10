@@ -307,19 +307,20 @@
                 <!-- Action Buttons -->
                 <div class="mt-gr-lg space-y-gr-sm">
                     @if($booking->status === 'staff_verified')
-                        <!-- Payment Verification Actions -->
-                        <form method="POST" action="{{ URL::signedRoute('admin.bookings.confirm-payment', $booking->id) }}" id="confirmPaymentForm">
-                            @csrf
-                            <button type="button" onclick="confirmPayment()" class="w-full px-gr-lg py-gr-md bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg transition-colors flex items-center justify-center gap-2">
-                                <i data-lucide="check-circle" class="w-5 h-5"></i>
-                                Confirm Payment
-                            </button>
-                        </form>
-                        
-                        <button onclick="openRejectModal()" class="w-full px-gr-lg py-gr-md bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-colors flex items-center justify-center gap-2">
-                            <i data-lucide="x-circle" class="w-5 h-5"></i>
-                            Reject Payment
-                        </button>
+                        <!-- Waiting for Treasurer -->
+                        <div class="bg-amber-50 border-2 border-amber-200 rounded-lg p-gr-md text-center">
+                            <i data-lucide="clock" class="w-12 h-12 text-amber-500 mx-auto mb-2"></i>
+                            <p class="text-body font-bold text-amber-900">Awaiting Full Payment</p>
+                            <p class="text-small text-amber-700 mt-1">
+                                Remaining balance of <strong>₱{{ number_format($booking->amount_remaining, 2) }}</strong> 
+                                must be collected by the Treasurer before you can confirm this booking.
+                            </p>
+                            @if($booking->down_payment_amount > 0)
+                            <p class="text-small text-amber-600 mt-2">
+                                Down payment of ₱{{ number_format($booking->down_payment_amount, 2) }} ({{ $booking->payment_tier }}%) already received.
+                            </p>
+                            @endif
+                        </div>
 
                     @elseif($booking->status === 'paid')
                         <!-- Final Confirmation -->
