@@ -1854,6 +1854,7 @@ Route::middleware(['auth', 'role:citizen', \App\Http\Middleware\CheckSessionTime
     // PayMongo GCash Payment Callbacks
     Route::get('/citizen/paymongo/success/{bookingId}', [\App\Http\Controllers\Citizen\PayMongoController::class, 'success'])->name('citizen.paymongo.success');
     Route::get('/citizen/paymongo/failed/{bookingId}', [\App\Http\Controllers\Citizen\PayMongoController::class, 'failed'])->name('citizen.paymongo.failed');
+    Route::get('/citizen/paymongo/retry/{bookingId}', [\App\Http\Controllers\Citizen\PayMongoController::class, 'retry'])->name('citizen.paymongo.retry');
 
     // Reservations
     Route::get('/citizen/reservations', [\App\Http\Controllers\Citizen\ReservationController::class, 'index'])->name('citizen.reservations');

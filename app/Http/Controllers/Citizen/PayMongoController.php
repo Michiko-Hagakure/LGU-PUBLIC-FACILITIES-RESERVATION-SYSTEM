@@ -84,6 +84,80 @@ class PayMongoController extends Controller
     }
 
     /**
+     * Retry GCash payment for a booking with unpaid down payment
+     */
+    public function retry(Request $request, $bookingId)
+    {
+        $userId = session('user_id');
+        if (!$userId) {
+            return redirect()->route('login')->with('error', 'Please login to continue.');
+        }
+
+        $booking = Booking::where('id', $bookingId)
+            ->where('user_id', $userId)
+            ->first();
+
+        if (!$booking) {
+            return redirect()->route('citizen.reservations')
+                ->with('error', 'Booking not found.');
+        }
+
+        // Only allow retry if payment hasn't been made
+        if ($booking->down_payment_paid_at) {
+            return redirect()->route('citizen.booking.confirmation', $bookingId)
+                ->with('info', 'Payment has already been received for this booking.');
+        }
+
+        // Only allow for GCash bookings
+        if ($booking->payment_method !== 'gcash') {
+            return redirect()->route('citizen.booking.confirmation', $bookingId)
+                ->with('error', 'Retry is only available for GCash payments.');
+        }
+
+        try {
+            $paymongo = new PaymongoService();
+
+            // Get facility name
+            $facility = DB::connection('facilities_db')
+                ->table('facilities')
+                ->where('facility_id', $booking->facility_id)
+                ->first();
+
+            $checkoutData = (object) [
+                'id' => $booking->id,
+                'booking_id' => $booking->id,
+                'amount_due' => $booking->down_payment_amount,
+                'slip_number' => 'BK' . str_pad($booking->id, 6, '0', STR_PAD_LEFT),
+            ];
+
+            $bookingData = (object) [
+                'facility_name' => $facility->name ?? 'Facility Reservation',
+            ];
+
+            $successUrl = url("/citizen/paymongo/success/{$bookingId}");
+            $cancelUrl = url("/citizen/paymongo/failed/{$bookingId}");
+
+            $result = $paymongo->createCheckoutSession($checkoutData, $bookingData, $successUrl, $cancelUrl);
+
+            if ($result['success']) {
+                $booking->update([
+                    'paymongo_checkout_id' => $result['checkout_session_id'],
+                ]);
+
+                return redirect()->away($result['checkout_url']);
+            } else {
+                Log::error("PayMongo retry failed for booking #{$bookingId}: " . ($result['error'] ?? 'Unknown'));
+                return redirect()->route('citizen.booking.confirmation', $bookingId)
+                    ->with('error', 'Unable to create GCash payment. Please try again or pay at the City Treasurer\'s Office.');
+            }
+        } catch (\Exception $e) {
+            Log::error("PayMongo retry error for booking #{$bookingId}: " . $e->getMessage());
+            return redirect()->route('citizen.booking.confirmation', $bookingId)
+                ->with('error', 'Payment service error. Please try again later or pay at the City Treasurer\'s Office.');
+        }
+    }
+
+    /**
      * Handle failed/cancelled payment from PayMongo checkout
      */
     public function failed(Request $request, $bookingId)
