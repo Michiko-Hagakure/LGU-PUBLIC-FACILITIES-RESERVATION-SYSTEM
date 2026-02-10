@@ -466,7 +466,7 @@
                                             <line x1="2" x2="22" y1="10" y2="10"/>
                                         </svg>
                                         <p class="text-sm font-medium">GCash</p>
-                                        <p class="text-xs text-gray-500">Online</p>
+                                        <p class="text-xs text-gray-500">via PayMongo</p>
                                     </div>
                                 </label>
                                 <label class="relative cursor-pointer">
@@ -487,8 +487,21 @@
                             </div>
                             <p class="mt-2 text-xs text-gray-500">
                                 <strong>Cash:</strong> Pay at the City Treasurer's Office. 
-                                <strong>Cashless:</strong> The treasurer will verify your online payment.
+                                <strong>GCash:</strong> Pay instantly via PayMongo checkout.
+                                <strong>Bank Transfer:</strong> The treasurer will verify your online payment.
                             </p>
+                            <div id="gcashPaymongoInfo" class="mt-3 hidden">
+                                <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                                    <p class="text-sm text-blue-800">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline-block mr-1">
+                                            <circle cx="12" cy="12" r="10"/>
+                                            <path d="M12 16v-4"/>
+                                            <path d="M12 8h.01"/>
+                                        </svg>
+                                        <strong>You will be redirected to PayMongo</strong> to complete your GCash payment securely after submitting your booking.
+                                    </p>
+                                </div>
+                            </div>
                             @error('payment_method')
                                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror
@@ -793,6 +806,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initial calculation of tier amounts
     updatePaymentTierAmounts(subtotal);
+
+    // Show/hide GCash PayMongo info when payment method changes
+    document.querySelectorAll('input[name="payment_method"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            const gcashInfo = document.getElementById('gcashPaymongoInfo');
+            if (gcashInfo) {
+                gcashInfo.classList.toggle('hidden', this.value !== 'gcash');
+            }
+        });
+    });
 });
 
 // Image preview function

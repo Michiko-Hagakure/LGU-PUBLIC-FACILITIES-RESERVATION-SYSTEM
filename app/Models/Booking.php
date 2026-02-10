@@ -98,7 +98,9 @@ class Booking extends Model
         'down_payment_paid_at',
         'payment_recorded_by',
         'rejection_type',
-        'rejection_fields'
+        'rejection_fields',
+        'paymongo_checkout_id',
+        'paymongo_payment_id',
     ];
 
     /**

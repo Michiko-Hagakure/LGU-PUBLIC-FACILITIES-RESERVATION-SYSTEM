@@ -37,7 +37,7 @@ class PaymongoService
      * @param string $cancelUrl URL to redirect if payment is cancelled
      * @return array Checkout session data
      */
-    public function createCheckoutSession($paymentSlip, $booking, $successUrl, $cancelUrl): array
+    public function createCheckoutSession($paymentSlip, $booking, $successUrl, $cancelUrl, $paymentMethodTypes = ['gcash']): array
     {
         try {
             if (!$this->isEnabled()) {
@@ -67,7 +67,7 @@ class PaymongoService
                                     'description' => "Booking Reference: {$paymentSlip->slip_number}"
                                 ]
                             ],
-                            'payment_method_types' => ['qrph'],
+                            'payment_method_types' => $paymentMethodTypes,
                             'description' => $description,
                             'metadata' => [
                                 'payment_slip_id' => (string) $paymentSlip->id,

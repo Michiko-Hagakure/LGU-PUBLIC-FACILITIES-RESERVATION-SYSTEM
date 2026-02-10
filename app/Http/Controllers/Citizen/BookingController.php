@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Storage;
+use App\Services\PaymongoService;
 
 class BookingController extends Controller
 {
@@ -365,6 +366,9 @@ class BookingController extends Controller
             $startDateTime = Carbon::parse($step1Data['booking_date'] . ' ' . $step1Data['start_time']);
             $endDateTime = Carbon::parse($step1Data['booking_date'] . ' ' . $step1Data['end_time']);
 
+            // For GCash via PayMongo: don't record payment yet (will be confirmed after checkout)
+            $isGcashPaymongo = $validated['payment_method'] === 'gcash' && config('payment.paymongo_enabled');
+
             $booking = Booking::create([
                 'user_id' => $userId,
                 'facility_id' => $step1Data['facility_id'],
@@ -396,10 +400,10 @@ class BookingController extends Controller
                 // Down payment system fields
                 'payment_tier' => $paymentTier,
                 'down_payment_amount' => $downPaymentAmount,
-                'amount_paid' => $downPaymentAmount,
-                'amount_remaining' => $amountRemaining,
+                'amount_paid' => $isGcashPaymongo ? 0 : $downPaymentAmount,
+                'amount_remaining' => $isGcashPaymongo ? $totalAmount : $amountRemaining,
                 'payment_method' => $validated['payment_method'],
-                'down_payment_paid_at' => Carbon::now(),
+                'down_payment_paid_at' => $isGcashPaymongo ? null : Carbon::now(),
             ]);
 
             $bookingId = $booking->id;
@@ -429,6 +433,64 @@ class BookingController extends Controller
             }
 
             DB::connection('facilities_db')->commit();
+
+            // For GCash: Create PayMongo checkout session and redirect
+            if ($isGcashPaymongo) {
+                try {
+                    $paymongo = new PaymongoService();
+
+                    // Build a mock object for the service (it expects payment slip-like data)
+                    $checkoutData = (object) [
+                        'id' => $bookingId,
+                        'booking_id' => $bookingId,
+                        'amount_due' => $downPaymentAmount,
+                        'slip_number' => 'BK' . str_pad($bookingId, 6, '0', STR_PAD_LEFT),
+                    ];
+
+                    $bookingData = (object) [
+                        'facility_name' => $facility->name ?? 'Facility Reservation',
+                    ];
+
+                    $successUrl = url("/citizen/paymongo/success/{$bookingId}");
+                    $cancelUrl = url("/citizen/paymongo/failed/{$bookingId}");
+
+                    $result = $paymongo->createCheckoutSession($checkoutData, $bookingData, $successUrl, $cancelUrl);
+
+                    if ($result['success']) {
+                        // Save checkout session ID to booking
+                        $booking->update([
+                            'paymongo_checkout_id' => $result['checkout_session_id'],
+                        ]);
+
+                        // Clear session data
+                        session()->forget(['booking_step1', 'booking_equipment']);
+
+                        // Redirect to PayMongo checkout page
+                        return redirect()->away($result['checkout_url']);
+                    } else {
+                        // PayMongo failed — fall back to manual payment
+                        \Log::error('PayMongo checkout creation failed for booking #' . $bookingId . ': ' . ($result['error'] ?? 'Unknown error'));
+
+                        // Update booking to record payment as cash fallback
+                        $booking->update([
+                            'amount_paid' => $downPaymentAmount,
+                            'amount_remaining' => $amountRemaining,
+                            'down_payment_paid_at' => Carbon::now(),
+                            'payment_method' => 'cash',
+                        ]);
+                    }
+                } catch (\Exception $e) {
+                    \Log::error('PayMongo error for booking #' . $bookingId . ': ' . $e->getMessage());
+
+                    // Fall back to cash payment
+                    $booking->update([
+                        'amount_paid' => $downPaymentAmount,
+                        'amount_remaining' => $amountRemaining,
+                        'down_payment_paid_at' => Carbon::now(),
+                        'payment_method' => 'cash',
+                    ]);
+                }
+            }
 
             // Send notification to citizen
             try {

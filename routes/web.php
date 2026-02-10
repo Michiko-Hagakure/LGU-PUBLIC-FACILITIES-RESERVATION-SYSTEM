@@ -1851,6 +1851,10 @@ Route::middleware(['auth', 'role:citizen', \App\Http\Middleware\CheckSessionTime
     Route::get('/citizen/booking/confirmation/{bookingId}', [\App\Http\Controllers\Citizen\BookingController::class, 'confirmation'])->name('citizen.booking.confirmation');
     Route::post('/citizen/booking/check-availability', [\App\Http\Controllers\Citizen\BookingController::class, 'checkAvailability'])->name('citizen.booking.check-availability');
 
+    // PayMongo GCash Payment Callbacks
+    Route::get('/citizen/paymongo/success/{bookingId}', [\App\Http\Controllers\Citizen\PayMongoController::class, 'success'])->name('citizen.paymongo.success');
+    Route::get('/citizen/paymongo/failed/{bookingId}', [\App\Http\Controllers\Citizen\PayMongoController::class, 'failed'])->name('citizen.paymongo.failed');
+
     // Reservations
     Route::get('/citizen/reservations', [\App\Http\Controllers\Citizen\ReservationController::class, 'index'])->name('citizen.reservations');
     Route::get('/citizen/reservations/json', [\App\Http\Controllers\Citizen\ReservationController::class, 'getReservationsJson'])->name('citizen.reservations.json');
