@@ -59,13 +59,13 @@ class PayMongoController extends Controller
                         'payment_id' => $paymentDetails['payment_id'] ?? 'N/A',
                     ]);
 
-                    return $this->redirectAfterPayment($booking, 'Payment received via GCash! Booking submitted successfully.');
+                    return $this->redirectAfterPayment($booking, 'Payment received! Booking submitted successfully.');
                 }
             }
 
             // Payment not confirmed yet — could be pending
             Log::warning("PayMongo payment not yet confirmed for booking #{$bookingId}");
-            return $this->redirectAfterPayment($booking, 'Booking submitted. Your GCash payment is being processed and will be confirmed shortly.', 'warning');
+            return $this->redirectAfterPayment($booking, 'Booking submitted. Your payment is being processed and will be confirmed shortly.', 'warning');
 
         } catch (\Exception $e) {
             Log::error("PayMongo verification error for booking #{$bookingId}: " . $e->getMessage());
@@ -74,7 +74,7 @@ class PayMongoController extends Controller
     }
 
     /**
-     * Retry GCash payment for a booking with unpaid down payment
+     * Retry cashless payment for a booking with unpaid down payment
      */
     public function retry(Request $request, $bookingId)
     {
@@ -98,10 +98,10 @@ class PayMongoController extends Controller
                 ->with('info', 'Payment has already been received for this booking.');
         }
 
-        // Only allow for GCash bookings
-        if ($booking->payment_method !== 'gcash') {
+        // Only allow for cashless bookings
+        if ($booking->payment_method !== 'cashless') {
             return redirect()->route('citizen.booking.confirmation', $bookingId)
-                ->with('error', 'Retry is only available for GCash payments.');
+                ->with('error', 'Retry is only available for cashless payments.');
         }
 
         try {
@@ -127,7 +127,9 @@ class PayMongoController extends Controller
             $successUrl = url("/citizen/paymongo/success/{$bookingId}");
             $cancelUrl = url("/citizen/paymongo/failed/{$bookingId}");
 
-            $result = $paymongo->createCheckoutSession($checkoutData, $bookingData, $successUrl, $cancelUrl);
+            $result = $paymongo->createCheckoutSession($checkoutData, $bookingData, $successUrl, $cancelUrl, [
+                'gcash', 'grab_pay', 'paymaya', 'card', 'dob', 'dob_ubp', 'brankas_bdo', 'brankas_landbank', 'brankas_metrobank', 'qrph',
+            ]);
 
             if ($result['success']) {
                 $booking->update([
@@ -138,7 +140,7 @@ class PayMongoController extends Controller
             } else {
                 Log::error("PayMongo retry failed for booking #{$bookingId}: " . ($result['error'] ?? 'Unknown'));
                 return redirect()->route('citizen.booking.confirmation', $bookingId)
-                    ->with('error', 'Unable to create GCash payment. Please try again or pay at the City Treasurer\'s Office.');
+                    ->with('error', 'Unable to create payment session. Please try again or pay at the City Treasurer\'s Office.');
             }
         } catch (\Exception $e) {
             Log::error("PayMongo retry error for booking #{$bookingId}: " . $e->getMessage());
@@ -164,7 +166,7 @@ class PayMongoController extends Controller
 
         return $this->redirectAfterPayment(
             $booking,
-            'GCash payment was not completed. Your booking has been submitted but payment is still required. You can pay at the City Treasurer\'s Office or retry via your booking details.',
+            'Payment was not completed. Your booking has been submitted but payment is still required. You can pay at the City Treasurer\'s Office or retry via your booking details.',
             'warning'
         );
     }

@@ -7,7 +7,7 @@
 @section('page-content')
 <div class="max-w-4xl mx-auto">
     <!-- Success Message -->
-    @if($booking->payment_method === 'gcash' && $booking->amount_paid <= 0)
+    @if($booking->payment_method === 'cashless' && $booking->amount_paid <= 0)
     <div class="bg-yellow-50 border-2 border-yellow-500 rounded-lg p-8 text-center mb-8">
         <div class="inline-flex items-center justify-center w-16 h-16 bg-yellow-500 text-white rounded-full mb-4">
             <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -16,16 +16,16 @@
                 <path d="M12 8h.01"/>
             </svg>
         </div>
-        <h2 class="text-2xl font-bold text-yellow-800 mb-2">Booking Submitted — GCash Payment Pending</h2>
+        <h2 class="text-2xl font-bold text-yellow-800 mb-2">Booking Submitted — Cashless Payment Pending</h2>
         <p class="text-yellow-700 mb-4">Booking Reference: <span class="font-mono font-bold">#BK{{ str_pad($booking->id, 6, '0', STR_PAD_LEFT) }}</span></p>
-        <p class="text-sm text-yellow-700 mb-4">Your GCash down payment of <strong>₱{{ number_format($booking->down_payment_amount, 2) }}</strong> has not been received yet.</p>
+        <p class="text-sm text-yellow-700 mb-4">Your cashless down payment of <strong>₱{{ number_format($booking->down_payment_amount, 2) }}</strong> has not been received yet.</p>
         <a href="{{ URL::signedRoute('citizen.paymongo.retry', ['bookingId' => $booking->id]) }}" 
            class="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition shadow">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2">
                 <rect width="20" height="14" x="2" y="5" rx="2"/>
                 <line x1="2" x2="22" y1="10" y2="10"/>
             </svg>
-            Pay Now via GCash
+            Pay Now via PayMongo
         </a>
         <p class="text-xs text-yellow-600 mt-3">Or pay at the City Treasurer's Office instead.</p>
     </div>
@@ -200,8 +200,8 @@
                     </svg>
                     <div>
                         <p class="font-medium text-yellow-900">Status: <span class="uppercase">{{ $booking->status }}</span></p>
-                        @if($booking->payment_method === 'gcash' && $booking->amount_paid <= 0)
-                            <p class="text-sm text-yellow-700">Your GCash down payment is pending. Please complete payment or visit the City Treasurer's Office.</p>
+                        @if($booking->payment_method === 'cashless' && $booking->amount_paid <= 0)
+                            <p class="text-sm text-yellow-700">Your cashless down payment is pending. Please complete payment or visit the City Treasurer's Office.</p>
                         @else
                             <p class="text-sm text-yellow-700">Your {{ $booking->payment_tier }}% payment has been recorded. Awaiting staff verification.</p>
                         @endif

@@ -1823,7 +1823,7 @@ Route::post('/ping-session', function () {
     ]);
 })->name('ping-session');
 
-// PayMongo GCash Payment Callbacks - Outside auth middleware so they work when session expires during checkout
+// PayMongo Cashless Payment Callbacks - Outside auth middleware so they work when session expires during checkout
 Route::get('/citizen/paymongo/success/{bookingId}', [\App\Http\Controllers\Citizen\PayMongoController::class, 'success'])->name('citizen.paymongo.success');
 Route::get('/citizen/paymongo/failed/{bookingId}', [\App\Http\Controllers\Citizen\PayMongoController::class, 'failed'])->name('citizen.paymongo.failed');
 
@@ -1855,7 +1855,7 @@ Route::middleware(['auth', 'role:citizen', \App\Http\Middleware\CheckSessionTime
     Route::get('/citizen/booking/confirmation/{bookingId}', [\App\Http\Controllers\Citizen\BookingController::class, 'confirmation'])->name('citizen.booking.confirmation');
     Route::post('/citizen/booking/check-availability', [\App\Http\Controllers\Citizen\BookingController::class, 'checkAvailability'])->name('citizen.booking.check-availability');
 
-    // PayMongo GCash - Retry (requires auth)
+    // PayMongo Cashless - Retry (requires auth)
     Route::get('/citizen/paymongo/retry/{bookingId}', [\App\Http\Controllers\Citizen\PayMongoController::class, 'retry'])->name('citizen.paymongo.retry');
 
     // Reservations

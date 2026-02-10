@@ -445,61 +445,48 @@
                                 </svg>
                                 Payment Method <span class="text-red-500">*</span>
                             </label>
-                            <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                            <div class="grid grid-cols-2 gap-3">
                                 <label class="relative cursor-pointer">
                                     <input type="radio" name="payment_method" value="cash" class="peer sr-only" required>
-                                    <div class="border-2 border-gray-300 rounded-lg p-3 text-center transition-all peer-checked:border-lgu-button peer-checked:bg-lgu-button/5 hover:border-gray-400">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mx-auto mb-1 text-green-600">
+                                    <div class="border-2 border-gray-300 rounded-lg p-4 text-center transition-all peer-checked:border-lgu-button peer-checked:bg-lgu-button/5 hover:border-gray-400">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mx-auto mb-2 text-green-600">
                                             <rect width="20" height="12" x="2" y="6" rx="2"/>
                                             <circle cx="12" cy="12" r="2"/>
                                             <path d="M6 12h.01M18 12h.01"/>
                                         </svg>
-                                        <p class="text-sm font-medium">Cash</p>
-                                        <p class="text-xs text-gray-500">At City Hall</p>
+                                        <p class="text-sm font-bold">Cash</p>
+                                        <p class="text-xs text-gray-500">Pay at City Treasurer's Office</p>
                                     </div>
                                 </label>
                                 <label class="relative cursor-pointer">
-                                    <input type="radio" name="payment_method" value="gcash" class="peer sr-only">
-                                    <div class="border-2 border-gray-300 rounded-lg p-3 text-center transition-all peer-checked:border-lgu-button peer-checked:bg-lgu-button/5 hover:border-gray-400">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mx-auto mb-1 text-blue-600">
+                                    <input type="radio" name="payment_method" value="cashless" class="peer sr-only">
+                                    <div class="border-2 border-gray-300 rounded-lg p-4 text-center transition-all peer-checked:border-blue-600 peer-checked:bg-blue-50 hover:border-gray-400">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mx-auto mb-2 text-blue-600">
                                             <rect width="20" height="14" x="2" y="5" rx="2"/>
                                             <line x1="2" x2="22" y1="10" y2="10"/>
                                         </svg>
-                                        <p class="text-sm font-medium">GCash</p>
+                                        <p class="text-sm font-bold">Pay Cashless</p>
                                         <p class="text-xs text-gray-500">via PayMongo</p>
-                                    </div>
-                                </label>
-                                <label class="relative cursor-pointer">
-                                    <input type="radio" name="payment_method" value="bank_transfer" class="peer sr-only">
-                                    <div class="border-2 border-gray-300 rounded-lg p-3 text-center transition-all peer-checked:border-lgu-button peer-checked:bg-lgu-button/5 hover:border-gray-400">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mx-auto mb-1 text-purple-600">
-                                            <line x1="3" x2="21" y1="22" y2="22"/>
-                                            <line x1="6" x2="6" y1="18" y2="11"/>
-                                            <line x1="10" x2="10" y1="18" y2="11"/>
-                                            <line x1="14" x2="14" y1="18" y2="11"/>
-                                            <line x1="18" x2="18" y1="18" y2="11"/>
-                                            <polygon points="12 2 20 7 4 7"/>
-                                        </svg>
-                                        <p class="text-sm font-medium">Bank Transfer</p>
-                                        <p class="text-xs text-gray-500">Online</p>
                                     </div>
                                 </label>
                             </div>
                             <p class="mt-2 text-xs text-gray-500">
                                 <strong>Cash:</strong> Pay at the City Treasurer's Office. 
-                                <strong>GCash:</strong> Pay instantly via PayMongo checkout.
-                                <strong>Bank Transfer:</strong> The treasurer will verify your online payment.
+                                <strong>Cashless:</strong> Pay instantly via GCash, PayMaya, Online Banking, Credit/Debit Card, or QR Ph.
                             </p>
-                            <div id="gcashPaymongoInfo" class="mt-3 hidden">
+                            <div id="cashlessPaymongoInfo" class="mt-3 hidden">
                                 <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                                    <p class="text-sm text-blue-800">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline-block mr-1">
+                                    <div class="flex items-start">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-600 mt-0.5 mr-2 flex-shrink-0">
                                             <circle cx="12" cy="12" r="10"/>
                                             <path d="M12 16v-4"/>
                                             <path d="M12 8h.01"/>
                                         </svg>
-                                        <strong>You will be redirected to PayMongo</strong> to complete your GCash payment securely after submitting your booking.
-                                    </p>
+                                        <div>
+                                            <p class="text-sm font-semibold text-blue-800 mb-1">You will be redirected to PayMongo</p>
+                                            <p class="text-xs text-blue-700">Choose from GCash, PayMaya, GrabPay, Online Banking (BPI, UnionBank, BDO, etc.), Credit/Debit Card, or QR Ph to complete your payment securely.</p>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                             @error('payment_method')
@@ -807,12 +794,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initial calculation of tier amounts
     updatePaymentTierAmounts(subtotal);
 
-    // Show/hide GCash PayMongo info when payment method changes
+    // Show/hide Cashless PayMongo info when payment method changes
     document.querySelectorAll('input[name="payment_method"]').forEach(radio => {
         radio.addEventListener('change', function() {
-            const gcashInfo = document.getElementById('gcashPaymongoInfo');
-            if (gcashInfo) {
-                gcashInfo.classList.toggle('hidden', this.value !== 'gcash');
+            const cashlessInfo = document.getElementById('cashlessPaymongoInfo');
+            if (cashlessInfo) {
+                cashlessInfo.classList.toggle('hidden', this.value !== 'cashless');
             }
         });
     });

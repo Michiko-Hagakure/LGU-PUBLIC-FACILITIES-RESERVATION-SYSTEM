@@ -486,7 +486,9 @@ class PaymentController extends Controller
         $successUrl = route('citizen.payment-slips.paymongo-success', ['id' => $id]);
         $cancelUrl = route('citizen.payment-slips.show', $id);
 
-        $result = $paymongoService->createCheckoutSession($paymentSlip, $booking, $successUrl, $cancelUrl);
+        $result = $paymongoService->createCheckoutSession($paymentSlip, $booking, $successUrl, $cancelUrl, [
+            'gcash', 'grab_pay', 'paymaya', 'card', 'dob', 'dob_ubp', 'brankas_bdo', 'brankas_landbank', 'brankas_metrobank', 'qrph',
+        ]);
 
         if (!$result['success']) {
             return redirect()->route('citizen.payment-slips.cashless', $id)

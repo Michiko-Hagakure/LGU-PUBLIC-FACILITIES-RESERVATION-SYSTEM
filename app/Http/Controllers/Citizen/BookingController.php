@@ -292,7 +292,7 @@ class BookingController extends Controller
             'valid_id_selfie' => 'required|file|mimes:jpg,jpeg,png|max:5120',
             'special_requests' => 'nullable|string|max:1000',
             'payment_tier' => 'required|in:25,50,75,100',
-            'payment_method' => 'required|in:cash,gcash,paymaya,bank_transfer,credit_card',
+            'payment_method' => 'required|in:cash,cashless',
         ]);
 
         try {
@@ -366,8 +366,8 @@ class BookingController extends Controller
             $startDateTime = Carbon::parse($step1Data['booking_date'] . ' ' . $step1Data['start_time']);
             $endDateTime = Carbon::parse($step1Data['booking_date'] . ' ' . $step1Data['end_time']);
 
-            // For GCash via PayMongo: don't record payment yet (will be confirmed after checkout)
-            $isGcashPaymongo = $validated['payment_method'] === 'gcash' && config('payment.paymongo_enabled');
+            // For Cashless via PayMongo: don't record payment yet (will be confirmed after checkout)
+            $isCashlessPaymongo = $validated['payment_method'] === 'cashless' && config('payment.paymongo_enabled');
 
             $booking = Booking::create([
                 'user_id' => $userId,
@@ -400,10 +400,10 @@ class BookingController extends Controller
                 // Down payment system fields
                 'payment_tier' => $paymentTier,
                 'down_payment_amount' => $downPaymentAmount,
-                'amount_paid' => $isGcashPaymongo ? 0 : $downPaymentAmount,
-                'amount_remaining' => $isGcashPaymongo ? $totalAmount : $amountRemaining,
+                'amount_paid' => $isCashlessPaymongo ? 0 : $downPaymentAmount,
+                'amount_remaining' => $isCashlessPaymongo ? $totalAmount : $amountRemaining,
                 'payment_method' => $validated['payment_method'],
-                'down_payment_paid_at' => $isGcashPaymongo ? null : Carbon::now(),
+                'down_payment_paid_at' => $isCashlessPaymongo ? null : Carbon::now(),
             ]);
 
             $bookingId = $booking->id;
@@ -434,8 +434,8 @@ class BookingController extends Controller
 
             DB::connection('facilities_db')->commit();
 
-            // For GCash: Create PayMongo checkout session and redirect
-            if ($isGcashPaymongo) {
+            // For Cashless: Create PayMongo checkout session and redirect
+            if ($isCashlessPaymongo) {
                 try {
                     $paymongo = new PaymongoService();
 
@@ -454,7 +454,9 @@ class BookingController extends Controller
                     $successUrl = url("/citizen/paymongo/success/{$bookingId}");
                     $cancelUrl = url("/citizen/paymongo/failed/{$bookingId}");
 
-                    $result = $paymongo->createCheckoutSession($checkoutData, $bookingData, $successUrl, $cancelUrl);
+                    $result = $paymongo->createCheckoutSession($checkoutData, $bookingData, $successUrl, $cancelUrl, [
+                        'gcash', 'grab_pay', 'paymaya', 'card', 'dob', 'dob_ubp', 'brankas_bdo', 'brankas_landbank', 'brankas_metrobank', 'qrph',
+                    ]);
 
                     if ($result['success']) {
                         // Save checkout session ID to booking

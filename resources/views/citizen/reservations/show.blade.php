@@ -568,14 +568,14 @@
 
                 <!-- Action Buttons -->
                 <div class="mt-6 space-y-3">
-                    @if($booking->payment_method === 'gcash' && ($booking->amount_paid ?? 0) <= 0 && !$booking->down_payment_paid_at && in_array($booking->status, ['pending', 'staff_verified']))
+                    @if($booking->payment_method === 'cashless' && ($booking->amount_paid ?? 0) <= 0 && !$booking->down_payment_paid_at && in_array($booking->status, ['pending', 'staff_verified']))
                         <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-2">
                             <p class="text-sm text-yellow-800 mb-2">
-                                <strong>GCash down payment not yet received.</strong> Click below to pay or visit the City Treasurer's Office.
+                                <strong>Cashless down payment not yet received.</strong> Click below to pay or visit the City Treasurer's Office.
                             </p>
                             <a href="{{ URL::signedRoute('citizen.paymongo.retry', ['bookingId' => $booking->id]) }}" 
                                class="block w-full px-4 py-3 bg-blue-600 text-white text-center font-semibold rounded-lg hover:bg-blue-700 transition">
-                                Pay Now via GCash (₱{{ number_format($booking->down_payment_amount, 2) }})
+                                Pay Now via PayMongo (₱{{ number_format($booking->down_payment_amount, 2) }})
                             </a>
                         </div>
                     @endif
