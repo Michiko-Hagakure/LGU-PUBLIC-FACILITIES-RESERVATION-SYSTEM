@@ -14,34 +14,27 @@ class PayMongoController extends Controller
 {
     /**
      * Handle successful payment from PayMongo checkout
+     * This route is OUTSIDE auth middleware so it works even if session expires during checkout
      */
     public function success(Request $request, $bookingId)
     {
-        $userId = session('user_id');
-        if (!$userId) {
-            return redirect()->route('login')->with('error', 'Please login to continue.');
-        }
-
-        $booking = Booking::where('id', $bookingId)
-            ->where('user_id', $userId)
-            ->first();
+        // Find booking by ID only (no session check - user may have lost session during PayMongo checkout)
+        $booking = Booking::find($bookingId);
 
         if (!$booking) {
-            return redirect()->route('citizen.reservations')
-                ->with('error', 'Booking not found.');
+            Log::error("PayMongo success callback: booking #{$bookingId} not found");
+            return redirect()->route('login')->with('error', 'Booking not found. Please login and check your reservations.');
         }
 
-        // If already paid (e.g. user refreshed the page), just redirect to confirmation
+        // If already paid (e.g. user refreshed the page), redirect appropriately
         if ($booking->down_payment_paid_at) {
-            return redirect()->route('citizen.booking.confirmation', $bookingId)
-                ->with('success', 'Booking submitted successfully!');
+            return $this->redirectAfterPayment($booking, 'Booking submitted successfully!');
         }
 
         // Verify payment with PayMongo
         $checkoutSessionId = $booking->paymongo_checkout_id;
         if (!$checkoutSessionId) {
-            return redirect()->route('citizen.booking.confirmation', $bookingId)
-                ->with('warning', 'Booking submitted. Payment verification pending.');
+            return $this->redirectAfterPayment($booking, 'Booking submitted. Payment verification pending.', 'warning');
         }
 
         try {
@@ -66,20 +59,17 @@ class PayMongoController extends Controller
                         'payment_id' => $paymentDetails['payment_id'] ?? 'N/A',
                     ]);
 
-                    return redirect()->route('citizen.booking.confirmation', $bookingId)
-                        ->with('success', 'Payment received via GCash! Booking submitted successfully.');
+                    return $this->redirectAfterPayment($booking, 'Payment received via GCash! Booking submitted successfully.');
                 }
             }
 
             // Payment not confirmed yet — could be pending
             Log::warning("PayMongo payment not yet confirmed for booking #{$bookingId}");
-            return redirect()->route('citizen.booking.confirmation', $bookingId)
-                ->with('warning', 'Booking submitted. Your GCash payment is being processed and will be confirmed shortly.');
+            return $this->redirectAfterPayment($booking, 'Booking submitted. Your GCash payment is being processed and will be confirmed shortly.', 'warning');
 
         } catch (\Exception $e) {
             Log::error("PayMongo verification error for booking #{$bookingId}: " . $e->getMessage());
-            return redirect()->route('citizen.booking.confirmation', $bookingId)
-                ->with('warning', 'Booking submitted. Payment verification is in progress.');
+            return $this->redirectAfterPayment($booking, 'Booking submitted. Payment verification is in progress.', 'warning');
         }
     }
 
@@ -159,28 +149,41 @@ class PayMongoController extends Controller
 
     /**
      * Handle failed/cancelled payment from PayMongo checkout
+     * This route is OUTSIDE auth middleware so it works even if session expires during checkout
      */
     public function failed(Request $request, $bookingId)
     {
-        $userId = session('user_id');
-        if (!$userId) {
-            return redirect()->route('login')->with('error', 'Please login to continue.');
-        }
-
-        $booking = Booking::where('id', $bookingId)
-            ->where('user_id', $userId)
-            ->first();
+        $booking = Booking::find($bookingId);
 
         if (!$booking) {
-            return redirect()->route('citizen.reservations')
-                ->with('error', 'Booking not found.');
+            Log::error("PayMongo failed callback: booking #{$bookingId} not found");
+            return redirect()->route('login')->with('error', 'Booking not found. Please login and check your reservations.');
         }
 
         Log::info("PayMongo payment cancelled/failed for booking #{$bookingId}");
 
-        // Booking was created but payment was not completed
-        // Redirect to confirmation page with a warning
-        return redirect()->route('citizen.booking.confirmation', $bookingId)
-            ->with('warning', 'GCash payment was not completed. Your booking has been submitted but payment is still required. You can pay at the City Treasurer\'s Office.');
+        return $this->redirectAfterPayment(
+            $booking,
+            'GCash payment was not completed. Your booking has been submitted but payment is still required. You can pay at the City Treasurer\'s Office or retry via your booking details.',
+            'warning'
+        );
+    }
+
+    /**
+     * Redirect user after PayMongo callback.
+     * If session is active, go to confirmation page. Otherwise, go to login with a message.
+     */
+    private function redirectAfterPayment(Booking $booking, string $message, string $type = 'success')
+    {
+        $userId = session('user_id');
+
+        if ($userId && $userId == $booking->user_id) {
+            return redirect()->route('citizen.booking.confirmation', $booking->id)
+                ->with($type, $message);
+        }
+
+        // Session expired — redirect to login with context
+        return redirect()->route('login')
+            ->with($type, $message . ' Please login to view your booking #BK' . str_pad($booking->id, 6, '0', STR_PAD_LEFT) . '.');
     }
 }
