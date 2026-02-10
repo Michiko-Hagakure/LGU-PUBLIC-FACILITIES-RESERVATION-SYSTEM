@@ -46,8 +46,9 @@ class PayMongoController extends Controller
                 $isPaid = $paymongo->isPaymentSuccessful($checkoutSessionId);
 
                 if ($isPaid) {
-                    // Update booking with payment confirmation
+                    // Update booking with payment confirmation and promote to pending
                     $booking->update([
+                        'status' => $booking->status === 'awaiting_payment' ? 'pending' : $booking->status,
                         'amount_paid' => $booking->down_payment_amount,
                         'amount_remaining' => $booking->total_amount - $booking->down_payment_amount,
                         'down_payment_paid_at' => Carbon::now(),
@@ -59,17 +60,20 @@ class PayMongoController extends Controller
                         'payment_id' => $paymentDetails['payment_id'] ?? 'N/A',
                     ]);
 
+                    // Send notifications now that payment is confirmed
+                    $this->sendBookingNotifications($booking);
+
                     return $this->redirectAfterPayment($booking, 'Payment received! Booking submitted successfully.');
                 }
             }
 
             // Payment not confirmed yet — could be pending
             Log::warning("PayMongo payment not yet confirmed for booking #{$bookingId}");
-            return $this->redirectAfterPayment($booking, 'Booking submitted. Your payment is being processed and will be confirmed shortly.', 'warning');
+            return $this->redirectAfterPayment($booking, 'Your payment is being processed. Your booking will be submitted once confirmed.', 'warning');
 
         } catch (\Exception $e) {
             Log::error("PayMongo verification error for booking #{$bookingId}: " . $e->getMessage());
-            return $this->redirectAfterPayment($booking, 'Booking submitted. Payment verification is in progress.', 'warning');
+            return $this->redirectAfterPayment($booking, 'Payment verification is in progress. Your booking will be submitted once confirmed.', 'warning');
         }
     }
 
@@ -98,10 +102,15 @@ class PayMongoController extends Controller
                 ->with('info', 'Payment has already been received for this booking.');
         }
 
-        // Only allow for cashless bookings
+        // Only allow for cashless bookings (pending or awaiting_payment)
         if ($booking->payment_method !== 'cashless') {
             return redirect()->route('citizen.booking.confirmation', $bookingId)
                 ->with('error', 'Retry is only available for cashless payments.');
+        }
+
+        if (!in_array($booking->status, ['pending', 'awaiting_payment'])) {
+            return redirect()->route('citizen.booking.confirmation', $bookingId)
+                ->with('error', 'Payment retry is not available for this booking status.');
         }
 
         try {
@@ -164,11 +173,12 @@ class PayMongoController extends Controller
 
         Log::info("PayMongo payment cancelled/failed for booking #{$bookingId}");
 
-        return $this->redirectAfterPayment(
-            $booking,
-            'Payment was not completed. Your booking has been submitted but payment is still required. You can pay at the City Treasurer\'s Office or retry via your booking details.',
-            'warning'
-        );
+        $isAwaitingPayment = $booking->status === 'awaiting_payment';
+        $message = $isAwaitingPayment
+            ? 'Payment was not completed. Your booking will only be submitted after successful payment. Please retry below.'
+            : 'Payment was not completed. You can pay at the City Treasurer\'s Office or retry via your booking details.';
+
+        return $this->redirectAfterPayment($booking, $message, 'warning');
     }
 
     /**
@@ -187,5 +197,36 @@ class PayMongoController extends Controller
         // Session expired — redirect to login with context
         return redirect()->route('login')
             ->with($type, $message . ' Please login to view your booking #BK' . str_pad($booking->id, 6, '0', STR_PAD_LEFT) . '.');
+    }
+
+    /**
+     * Send booking submission notifications to citizen and staff.
+     * Called after cashless payment is confirmed.
+     */
+    private function sendBookingNotifications(Booking $booking)
+    {
+        try {
+            $user = \App\Models\User::find($booking->user_id);
+            $bookingWithFacility = DB::connection('facilities_db')
+                ->table('bookings')
+                ->join('facilities', 'bookings.facility_id', '=', 'facilities.facility_id')
+                ->where('bookings.id', $booking->id)
+                ->selectRaw('bookings.*, facilities.name as facility_name, CONCAT("BK", LPAD(bookings.id, 6, "0")) as booking_reference')
+                ->first();
+
+            if ($user && $bookingWithFacility) {
+                $user->notify(new \App\Notifications\BookingSubmitted($bookingWithFacility));
+
+                $staffMembers = \App\Models\User::where('subsystem_role_id', 3)
+                    ->where('subsystem_id', 4)
+                    ->get();
+
+                foreach ($staffMembers as $staff) {
+                    $staff->notify(new \App\Notifications\BookingSubmitted($bookingWithFacility));
+                }
+            }
+        } catch (\Exception $e) {
+            Log::error('Failed to send booking notification after payment: ' . $e->getMessage());
+        }
     }
 }

@@ -23,8 +23,9 @@ class BookingManagementController extends Controller
             return redirect()->route('login')->with('error', 'Please login to continue.');
         }
 
-        // Build query
-        $query = Booking::with(['facility.lguCity', 'user']);
+        // Build query — exclude awaiting_payment (not yet submitted)
+        $query = Booking::with(['facility.lguCity', 'user'])
+            ->where('status', '!=', 'awaiting_payment');
 
         // Filter by status
         if ($request->filled('status') && $request->input('status') !== 'all') {

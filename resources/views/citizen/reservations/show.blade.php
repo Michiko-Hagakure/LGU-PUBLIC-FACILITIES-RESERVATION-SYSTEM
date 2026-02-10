@@ -20,6 +20,14 @@
     <!-- Status Alert -->
     @php
         $statusInfo = match($booking->status) {
+            'awaiting_payment' => [
+                'bg' => 'bg-orange-50',
+                'border' => 'border-orange-500',
+                'text' => 'text-orange-800',
+                'icon' => 'text-orange-500',
+                'label' => 'Awaiting Payment',
+                'message' => 'Your booking will be submitted for review once your cashless payment is confirmed. Please complete payment via PayMongo.'
+            ],
             'pending' => [
                 'bg' => 'bg-yellow-50',
                 'border' => 'border-yellow-500', 
@@ -568,10 +576,14 @@
 
                 <!-- Action Buttons -->
                 <div class="mt-6 space-y-3">
-                    @if($booking->payment_method === 'cashless' && ($booking->amount_paid ?? 0) <= 0 && !$booking->down_payment_paid_at && in_array($booking->status, ['pending', 'staff_verified']))
-                        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-2">
-                            <p class="text-sm text-yellow-800 mb-2">
-                                <strong>Cashless down payment not yet received.</strong> Click below to pay or visit the City Treasurer's Office.
+                    @if($booking->payment_method === 'cashless' && ($booking->amount_paid ?? 0) <= 0 && !$booking->down_payment_paid_at && in_array($booking->status, ['awaiting_payment', 'pending', 'staff_verified']))
+                        <div class="{{ $booking->status === 'awaiting_payment' ? 'bg-orange-50 border-orange-200' : 'bg-yellow-50 border-yellow-200' }} border rounded-lg p-3 mb-2">
+                            <p class="text-sm {{ $booking->status === 'awaiting_payment' ? 'text-orange-800' : 'text-yellow-800' }} mb-2">
+                                @if($booking->status === 'awaiting_payment')
+                                    <strong>Payment required to submit booking.</strong> Your booking will be submitted for review once payment is received.
+                                @else
+                                    <strong>Cashless down payment not yet received.</strong> Click below to pay or visit the City Treasurer's Office.
+                                @endif
                             </p>
                             <a href="{{ URL::signedRoute('citizen.paymongo.retry', ['bookingId' => $booking->id]) }}" 
                                class="block w-full px-4 py-3 bg-blue-600 text-white text-center font-semibold rounded-lg hover:bg-blue-700 transition">

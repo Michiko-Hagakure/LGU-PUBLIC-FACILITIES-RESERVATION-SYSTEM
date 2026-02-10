@@ -101,6 +101,7 @@
             @foreach($bookings as $booking)
                 @php
                     $statusBadge = match($booking->status) {
+                        'awaiting_payment' => ['bg' => 'bg-orange-100', 'text' => 'text-orange-800', 'border' => 'border-orange-300', 'label' => 'Awaiting Payment'],
                         'pending' => ['bg' => 'bg-yellow-100', 'text' => 'text-yellow-800', 'border' => 'border-yellow-300', 'label' => 'Pending Review'],
                         'staff_verified' => ['bg' => 'bg-purple-100', 'text' => 'text-purple-800', 'border' => 'border-purple-300', 'label' => 'Verified'],
                         'payment_pending' => ['bg' => 'bg-orange-100', 'text' => 'text-orange-800', 'border' => 'border-orange-300', 'label' => 'Awaiting Payment'],
@@ -357,6 +358,7 @@ function confirmCancel(bookingId) {
 
 // Status badge configuration for dynamic rendering
 const statusBadgeConfig = {
+    'awaiting_payment': { bg: 'bg-orange-100', text: 'text-orange-800', border: 'border-orange-300', label: 'Awaiting Payment' },
     'pending': { bg: 'bg-yellow-100', text: 'text-yellow-800', border: 'border-yellow-300', label: 'Pending Review' },
     'staff_verified': { bg: 'bg-purple-100', text: 'text-purple-800', border: 'border-purple-300', label: 'Verified' },
     'payment_pending': { bg: 'bg-orange-100', text: 'text-orange-800', border: 'border-orange-300', label: 'Awaiting Payment' },

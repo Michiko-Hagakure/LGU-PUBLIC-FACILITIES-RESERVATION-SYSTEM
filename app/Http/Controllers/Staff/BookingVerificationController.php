@@ -372,9 +372,9 @@ class BookingVerificationController extends Controller
         }
 
         // Build query for bookings with filters
-        // Exclude pending bookings - they belong in Verification Queue only
+        // Exclude pending and awaiting_payment bookings - they belong in Verification Queue only
         $query = Booking::with(['facility.lguCity'])
-            ->where('status', '!=', 'pending')
+            ->whereNotIn('status', ['pending', 'awaiting_payment'])
             ->orderBy('created_at', 'desc');
 
         // Filter by status

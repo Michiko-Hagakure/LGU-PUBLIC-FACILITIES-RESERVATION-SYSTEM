@@ -50,7 +50,7 @@ class ReservationController extends Controller
         // Filter by status
         if ($status !== 'all') {
             if ($status === 'active') {
-                $query->whereIn('bookings.status', ['pending', 'staff_verified', 'payment_pending', 'confirmed']);
+                $query->whereIn('bookings.status', ['awaiting_payment', 'pending', 'staff_verified', 'payment_pending', 'confirmed']);
             } elseif ($status === 'completed') {
                 $query->where('bookings.status', 'completed');
             } else {
@@ -78,7 +78,7 @@ class ReservationController extends Controller
                 ->count(),
             'active' => DB::connection('facilities_db')->table('bookings')
                 ->where('user_id', $userId)
-                ->whereIn('status', ['pending', 'staff_verified', 'payment_pending', 'confirmed'])
+                ->whereIn('status', ['awaiting_payment', 'pending', 'staff_verified', 'payment_pending', 'confirmed'])
                 ->where('end_time', '>=', Carbon::now())
                 ->count(),
             'completed' => DB::connection('facilities_db')->table('bookings')
@@ -208,7 +208,7 @@ class ReservationController extends Controller
 
         // Check if booking can be cancelled (pending, staff_verified, payment_pending, paid)
         // Note: confirmed bookings cannot be cancelled
-        if (!in_array($booking->status, ['pending', 'staff_verified', 'payment_pending', 'paid'])) {
+        if (!in_array($booking->status, ['awaiting_payment', 'pending', 'staff_verified', 'payment_pending', 'paid'])) {
             return redirect()->back()->with('error', 'This booking cannot be cancelled at this stage.');
         }
 

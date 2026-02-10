@@ -48,7 +48,10 @@ class AutoExpireBookings
      */
     private function expireOverdueBookings(): void
     {
-        // Method 0: Expire any pending or staff_verified bookings whose event date has passed
+        // Method 0: Expire awaiting_payment bookings older than 1 hour (cashless payment not completed)
+        $this->expireAwaitingPaymentBookings();
+
+        // Method 0b: Expire any pending or staff_verified bookings whose event date has passed
         $this->expirePassedEventBookings();
 
         // Method 1: Expire staff_verified bookings past 48-hour deadline
@@ -150,6 +153,33 @@ class AutoExpireBookings
     }
 
     /**
+     * Expire awaiting_payment bookings that are older than 1 hour.
+     * These are cashless bookings where the citizen never completed payment.
+     */
+    private function expireAwaitingPaymentBookings(): void
+    {
+        $cutoff = Carbon::now()->subHour();
+
+        $staleBookings = Booking::where('status', 'awaiting_payment')
+            ->where('created_at', '<', $cutoff)
+            ->get();
+
+        foreach ($staleBookings as $booking) {
+            try {
+                $booking->update([
+                    'status' => 'expired',
+                    'expired_at' => Carbon::now(),
+                    'canceled_reason' => 'Cashless payment not completed within 1 hour (auto-expired)',
+                ]);
+
+                Log::info("AutoExpireBookings: Expired awaiting_payment booking #{$booking->id}");
+            } catch (\Exception $e) {
+                Log::error("AutoExpireBookings: Failed to expire awaiting_payment booking #{$booking->id}: " . $e->getMessage());
+            }
+        }
+    }
+
+    /**
      * Expire pending or staff_verified bookings whose event date has already passed.
      * No point keeping a booking for an event that already happened.
      */
@@ -158,7 +188,7 @@ class AutoExpireBookings
         $now = Carbon::now();
 
         // Find bookings that are still pending or staff_verified but event has passed
-        $passedBookings = Booking::whereIn('status', ['pending', 'staff_verified'])
+        $passedBookings = Booking::whereIn('status', ['pending', 'staff_verified', 'awaiting_payment'])
             ->where(function ($query) use ($now) {
                 // Check by end_time (full datetime) — event already finished
                 $query->where('end_time', '<', $now);

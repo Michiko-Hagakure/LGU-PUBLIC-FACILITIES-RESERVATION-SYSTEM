@@ -166,17 +166,25 @@ class PayMongoWebhookController extends Controller
             // Still process — the webhook is authoritative
         }
 
+        $wasAwaitingPayment = $booking->status === 'awaiting_payment';
+
         $booking->update([
+            'status' => $wasAwaitingPayment ? 'pending' : $booking->status,
             'amount_paid' => $booking->down_payment_amount,
             'amount_remaining' => $booking->total_amount - $booking->down_payment_amount,
             'down_payment_paid_at' => Carbon::now(),
             'paymongo_payment_id' => $paymentId,
         ]);
 
-        Log::info("PayMongo webhook: booking #{$bookingId} down payment confirmed", [
+        Log::info("PayMongo webhook: booking #{$bookingId} down payment confirmed" . ($wasAwaitingPayment ? ' (promoted to pending)' : ''), [
             'amount' => $booking->down_payment_amount,
             'payment_id' => $paymentId,
         ]);
+
+        // Send notifications if booking was just promoted from awaiting_payment
+        if ($wasAwaitingPayment) {
+            $this->sendBookingNotifications($booking);
+        }
     }
 
     /**
@@ -330,5 +338,36 @@ class PayMongoWebhookController extends Controller
         }
 
         return $prefix . $newNumber;
+    }
+
+    /**
+     * Send booking submission notifications to citizen and staff.
+     * Called after cashless payment is confirmed via webhook.
+     */
+    private function sendBookingNotifications(Booking $booking)
+    {
+        try {
+            $user = \App\Models\User::find($booking->user_id);
+            $bookingWithFacility = DB::connection('facilities_db')
+                ->table('bookings')
+                ->join('facilities', 'bookings.facility_id', '=', 'facilities.facility_id')
+                ->where('bookings.id', $booking->id)
+                ->selectRaw('bookings.*, facilities.name as facility_name, CONCAT("BK", LPAD(bookings.id, 6, "0")) as booking_reference')
+                ->first();
+
+            if ($user && $bookingWithFacility) {
+                $user->notify(new \App\Notifications\BookingSubmitted($bookingWithFacility));
+
+                $staffMembers = \App\Models\User::where('subsystem_role_id', 3)
+                    ->where('subsystem_id', 4)
+                    ->get();
+
+                foreach ($staffMembers as $staff) {
+                    $staff->notify(new \App\Notifications\BookingSubmitted($bookingWithFacility));
+                }
+            }
+        } catch (\Exception $e) {
+            Log::error('PayMongo webhook: failed to send booking notification: ' . $e->getMessage());
+        }
     }
 }

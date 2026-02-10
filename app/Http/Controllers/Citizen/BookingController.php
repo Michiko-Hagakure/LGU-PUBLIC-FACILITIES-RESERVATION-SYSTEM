@@ -366,7 +366,7 @@ class BookingController extends Controller
             $startDateTime = Carbon::parse($step1Data['booking_date'] . ' ' . $step1Data['start_time']);
             $endDateTime = Carbon::parse($step1Data['booking_date'] . ' ' . $step1Data['end_time']);
 
-            // For Cashless via PayMongo: don't record payment yet (will be confirmed after checkout)
+            // For Cashless via PayMongo: booking starts as 'awaiting_payment' — only promoted to 'pending' after successful payment
             $isCashlessPaymongo = $validated['payment_method'] === 'cashless' && config('payment.paymongo_enabled');
 
             $booking = Booking::create([
@@ -375,7 +375,7 @@ class BookingController extends Controller
                 'start_time' => $startDateTime,
                 'end_time' => $endDateTime,
                 'user_name' => $userName,
-                'status' => 'pending',
+                'status' => $isCashlessPaymongo ? 'awaiting_payment' : 'pending',
                 'base_rate' => $pricing['base_rate'],
                 'extension_rate' => $pricing['extension_hours'] > 0 ? $pricing['extension_rate'] : 0,
                 'equipment_total' => $pricing['equipment_total'],
@@ -470,11 +470,12 @@ class BookingController extends Controller
                         // Redirect to PayMongo checkout page
                         return redirect()->away($result['checkout_url']);
                     } else {
-                        // PayMongo failed — fall back to manual payment
+                        // PayMongo failed — fall back to cash payment and set status to pending
                         \Log::error('PayMongo checkout creation failed for booking #' . $bookingId . ': ' . ($result['error'] ?? 'Unknown error'));
 
-                        // Update booking to record payment as cash fallback
+                        // Update booking to cash fallback with pending status
                         $booking->update([
+                            'status' => 'pending',
                             'amount_paid' => $downPaymentAmount,
                             'amount_remaining' => $amountRemaining,
                             'down_payment_paid_at' => Carbon::now(),
@@ -484,8 +485,9 @@ class BookingController extends Controller
                 } catch (\Exception $e) {
                     \Log::error('PayMongo error for booking #' . $bookingId . ': ' . $e->getMessage());
 
-                    // Fall back to cash payment
+                    // Fall back to cash payment with pending status
                     $booking->update([
+                        'status' => 'pending',
                         'amount_paid' => $downPaymentAmount,
                         'amount_remaining' => $amountRemaining,
                         'down_payment_paid_at' => Carbon::now(),
@@ -494,34 +496,36 @@ class BookingController extends Controller
                 }
             }
 
-            // Send notification to citizen
-            try {
-                $user = User::find($userId);
-                $bookingWithFacility = DB::connection('facilities_db')
-                    ->table('bookings')
-                    ->join('facilities', 'bookings.facility_id', '=', 'facilities.facility_id')
-                    ->where('bookings.id', $bookingId)
-                    ->selectRaw('bookings.*, facilities.name as facility_name, CONCAT("BK", LPAD(bookings.id, 6, "0")) as booking_reference')
-                    ->first();
-                
-                if ($user && $bookingWithFacility) {
-                    // Notify the citizen
-                    $user->notify(new \App\Notifications\BookingSubmitted($bookingWithFacility));
+            // Send notification to citizen (skip for awaiting_payment — notifications sent after payment)
+            if (!$isCashlessPaymongo || $booking->status === 'pending') {
+                try {
+                    $user = User::find($userId);
+                    $bookingWithFacility = DB::connection('facilities_db')
+                        ->table('bookings')
+                        ->join('facilities', 'bookings.facility_id', '=', 'facilities.facility_id')
+                        ->where('bookings.id', $bookingId)
+                        ->selectRaw('bookings.*, facilities.name as facility_name, CONCAT("BK", LPAD(bookings.id, 6, "0")) as booking_reference')
+                        ->first();
                     
-                    // Notify ALL staff members about the new booking
-                    // Get all users who have "reservations staff" role in session
-                    // Since we can't query by session, we'll query by subsystem_role_id
-                    // Staff role ID is 3 based on the auth system
-                    $staffMembers = User::where('subsystem_role_id', 3)
-                        ->where('subsystem_id', 4) // Facilities subsystem
-                        ->get();
-                    
-                    foreach ($staffMembers as $staff) {
-                        $staff->notify(new \App\Notifications\BookingSubmitted($bookingWithFacility));
+                    if ($user && $bookingWithFacility) {
+                        // Notify the citizen
+                        $user->notify(new \App\Notifications\BookingSubmitted($bookingWithFacility));
+                        
+                        // Notify ALL staff members about the new booking
+                        // Get all users who have "reservations staff" role in session
+                        // Since we can't query by session, we'll query by subsystem_role_id
+                        // Staff role ID is 3 based on the auth system
+                        $staffMembers = User::where('subsystem_role_id', 3)
+                            ->where('subsystem_id', 4) // Facilities subsystem
+                            ->get();
+                        
+                        foreach ($staffMembers as $staff) {
+                            $staff->notify(new \App\Notifications\BookingSubmitted($bookingWithFacility));
+                        }
                     }
+                } catch (\Exception $e) {
+                    \Log::error('Failed to send booking notification: ' . $e->getMessage());
                 }
-            } catch (\Exception $e) {
-                \Log::error('Failed to send booking notification: ' . $e->getMessage());
             }
 
             // Clear session data
