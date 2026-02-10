@@ -273,32 +273,47 @@
 
                     @if($booking->payment_tier)
                     <div class="border-t-2 border-lgu-stroke pt-gr-sm mt-gr-sm space-y-gr-xs">
-                        <p class="text-caption font-bold text-gray-500 uppercase">Payment Status</p>
+                        <p class="text-caption font-bold text-gray-500 uppercase">Payment Breakdown</p>
+                        
                         <div class="flex justify-between text-small">
                             <span class="text-lgu-paragraph">Payment Tier</span>
                             <span class="font-bold text-lgu-button">{{ $booking->payment_tier }}%</span>
                         </div>
                         <div class="flex justify-between text-small">
-                            <span class="text-lgu-paragraph">Amount Paid</span>
-                            <span class="font-bold text-green-600">₱{{ number_format($booking->amount_paid, 2) }}</span>
+                            <span class="text-lgu-paragraph">Method</span>
+                            <span class="font-semibold text-lgu-headline">{{ ucfirst(str_replace('_', ' ', $booking->payment_method)) }}</span>
                         </div>
+
+                        <div class="bg-gray-50 border border-gray-200 rounded-lg p-3 mt-2 space-y-2">
+                            <div class="flex justify-between text-small">
+                                <span class="text-lgu-paragraph">Down Payment ({{ $booking->payment_tier }}%)</span>
+                                <span class="font-semibold text-green-600">₱{{ number_format($booking->down_payment_amount, 2) }}</span>
+                            </div>
+                            @if($booking->payment_tier < 100)
+                            <div class="flex justify-between text-small">
+                                <span class="text-lgu-paragraph">Remaining Balance ({{ 100 - $booking->payment_tier }}%)</span>
+                                @if($booking->amount_remaining <= 0)
+                                    <span class="font-semibold text-green-600">₱{{ number_format($booking->total_amount - $booking->down_payment_amount, 2) }}</span>
+                                @else
+                                    <span class="font-semibold text-yellow-600">₱{{ number_format($booking->amount_remaining, 2) }} unpaid</span>
+                                @endif
+                            </div>
+                            @endif
+                            <div class="border-t border-gray-300 pt-2 flex justify-between text-small">
+                                <span class="font-bold text-lgu-headline">Total Payments</span>
+                                <span class="font-bold text-green-700">₱{{ number_format($booking->amount_paid, 2) }}</span>
+                            </div>
+                        </div>
+
                         @if($booking->amount_remaining > 0)
-                        <div class="flex justify-between text-small">
-                            <span class="text-lgu-paragraph">Remaining</span>
-                            <span class="font-bold text-yellow-600">₱{{ number_format($booking->amount_remaining, 2) }}</span>
-                        </div>
                         <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-2 mt-1">
-                            <p class="text-xs text-yellow-800"><strong>Partial payment.</strong> Balance must be settled before confirmation.</p>
+                            <p class="text-xs text-yellow-800"><strong>Partial payment.</strong> Balance of ₱{{ number_format($booking->amount_remaining, 2) }} must be settled by the Treasurer before confirmation.</p>
                         </div>
                         @else
                         <div class="bg-green-50 border border-green-200 rounded-lg p-2 mt-1">
                             <p class="text-xs text-green-800"><strong>Fully paid.</strong> Ready for final confirmation.</p>
                         </div>
                         @endif
-                        <div class="flex justify-between text-small">
-                            <span class="text-lgu-paragraph">Method</span>
-                            <span class="font-semibold text-lgu-headline">{{ ucfirst(str_replace('_', ' ', $booking->payment_method)) }}</span>
-                        </div>
                     </div>
                     @endif
                 </div>
