@@ -470,29 +470,23 @@ class BookingController extends Controller
                         // Redirect to PayMongo checkout page
                         return redirect()->away($result['checkout_url']);
                     } else {
-                        // PayMongo failed — fall back to cash payment and set status to pending
+                        // PayMongo failed — keep as awaiting_payment so citizen can retry
                         \Log::error('PayMongo checkout creation failed for booking #' . $bookingId . ': ' . ($result['error'] ?? 'Unknown error'));
 
-                        // Update booking to cash fallback with pending status
-                        $booking->update([
-                            'status' => 'pending',
-                            'amount_paid' => $downPaymentAmount,
-                            'amount_remaining' => $amountRemaining,
-                            'down_payment_paid_at' => Carbon::now(),
-                            'payment_method' => 'cash',
-                        ]);
+                        // Clear session data and redirect to confirmation with retry option
+                        session()->forget(['booking_step1', 'booking_equipment']);
+
+                        return redirect()->route('citizen.booking.confirmation', $bookingId)
+                            ->with('warning', 'Could not connect to payment gateway. Please use the "Pay Now" button below to complete your payment.');
                     }
                 } catch (\Exception $e) {
                     \Log::error('PayMongo error for booking #' . $bookingId . ': ' . $e->getMessage());
 
-                    // Fall back to cash payment with pending status
-                    $booking->update([
-                        'status' => 'pending',
-                        'amount_paid' => $downPaymentAmount,
-                        'amount_remaining' => $amountRemaining,
-                        'down_payment_paid_at' => Carbon::now(),
-                        'payment_method' => 'cash',
-                    ]);
+                    // Keep as awaiting_payment — citizen can retry from confirmation page
+                    session()->forget(['booking_step1', 'booking_equipment']);
+
+                    return redirect()->route('citizen.booking.confirmation', $bookingId)
+                        ->with('warning', 'Payment service temporarily unavailable. Please use the "Pay Now" button below to complete your payment.');
                 }
             }
 
