@@ -45,7 +45,7 @@ class ReservationController extends Controller
             ->whereNotIn('bookings.status', ['completed', 'expired', 'cancelled', 'canceled', 'rejected', 'refunded'])
             // Only show upcoming/current events (end_time hasn't passed yet)
             ->where('bookings.end_time', '>=', Carbon::now())
-            ->orderBy('bookings.start_time', 'desc');
+            ->orderBy('bookings.created_at', 'desc');
 
         // Filter by status
         if ($status !== 'all') {
@@ -110,7 +110,7 @@ class ReservationController extends Controller
             ->where('bookings.user_id', $userId)
             ->whereNotIn('bookings.status', ['completed', 'expired', 'cancelled', 'canceled', 'rejected', 'refunded'])
             ->where('bookings.end_time', '>=', Carbon::now())
-            ->orderBy('bookings.start_time', 'desc')
+            ->orderBy('bookings.created_at', 'desc')
             ->limit(50);
 
         $bookings = $query->get();
