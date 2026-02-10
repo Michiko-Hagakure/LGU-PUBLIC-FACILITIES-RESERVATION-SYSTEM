@@ -264,6 +264,30 @@
                         <span class="font-semibold text-lgu-headline">₱{{ number_format($booking->extension_price, 2) }}</span>
                     </div>
                     @endif
+                    @if($booking->subtotal && $booking->subtotal != $booking->total_amount)
+                    <div class="flex justify-between text-small border-t border-lgu-stroke pt-gr-xs mt-gr-xs">
+                        <span class="text-lgu-paragraph">Subtotal</span>
+                        <span class="font-semibold text-lgu-headline">₱{{ number_format($booking->subtotal, 2) }}</span>
+                    </div>
+                    @endif
+                    @if($booking->resident_discount_amount > 0)
+                    <div class="flex justify-between text-small">
+                        <span class="text-lgu-paragraph">Resident Discount ({{ $booking->resident_discount_rate }}%)</span>
+                        <span class="font-semibold text-red-500">-₱{{ number_format($booking->resident_discount_amount, 2) }}</span>
+                    </div>
+                    @endif
+                    @if($booking->special_discount_amount > 0)
+                    <div class="flex justify-between text-small">
+                        <span class="text-lgu-paragraph">{{ ucfirst($booking->special_discount_type ?? 'Special') }} Discount ({{ $booking->special_discount_rate }}%)</span>
+                        <span class="font-semibold text-red-500">-₱{{ number_format($booking->special_discount_amount, 2) }}</span>
+                    </div>
+                    @endif
+                    @if($booking->total_discount > 0)
+                    <div class="flex justify-between text-small">
+                        <span class="text-lgu-paragraph font-medium">Total Discounts</span>
+                        <span class="font-bold text-red-500">-₱{{ number_format($booking->total_discount, 2) }}</span>
+                    </div>
+                    @endif
                     <div class="border-t-2 border-lgu-stroke pt-gr-sm mt-gr-sm">
                         <div class="flex justify-between">
                             <span class="text-body font-bold text-lgu-headline">Total Amount</span>
