@@ -218,36 +218,15 @@ class BookingVerificationController extends Controller
                 'staff_notes' => $validated['staff_notes'] ?? null,
             ]);
 
-            // Auto-generate payment slip(s)
-            if ($booking->isFullyPaid()) {
-                // Full payment: single slip, already paid
-                $paymentSlip = PaymentSlip::create([
-                    'slip_number' => PaymentSlip::generateSlipNumber(),
-                    'booking_id' => $bookingId,
-                    'amount_due' => $booking->total_amount,
-                    'payment_deadline' => null,
-                    'status' => 'paid',
-                    'payment_method' => $booking->payment_method,
-                    'paid_at' => $booking->down_payment_paid_at,
-                    'notes' => 'Full payment (100%) collected at booking time',
-                ]);
-            } else {
-                // Partial payment: TWO slips
-                // 1. Down payment slip (already collected - marked as paid with OR number)
-                $paymentSlip = PaymentSlip::create([
-                    'slip_number' => PaymentSlip::generateSlipNumber(),
-                    'booking_id' => $bookingId,
-                    'amount_due' => $booking->down_payment_amount,
-                    'payment_deadline' => null,
-                    'status' => 'paid',
-                    'payment_method' => $booking->payment_method,
-                    'paid_at' => $booking->down_payment_paid_at,
-                    'or_number' => $this->generateOfficialReceiptNumber(),
-                    'verified_by' => $userId,
-                    'notes' => 'Down payment (' . $booking->payment_tier . '%) collected at booking time',
-                ]);
+            // Down payment slip already exists (created at booking time for cash, or handled by PayMongo for cashless)
+            // Retrieve it for the notification
+            $paymentSlip = PaymentSlip::where('booking_id', $bookingId)
+                ->where('status', 'paid')
+                ->orderBy('paid_at', 'desc')
+                ->first();
 
-                // 2. Remaining balance slip (unpaid - treasurer needs to collect)
+            // If booking has remaining balance, create a remaining balance slip for the treasurer
+            if ($booking->hasRemainingBalance()) {
                 PaymentSlip::create([
                     'slip_number' => PaymentSlip::generateSlipNumber(),
                     'booking_id' => $bookingId,

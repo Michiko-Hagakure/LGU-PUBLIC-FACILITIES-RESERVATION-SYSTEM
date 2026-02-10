@@ -231,9 +231,12 @@ class PaymentVerificationController extends Controller
             
             // Update booking payment tracking and status
             $booking = Booking::find($paymentSlip->booking_id);
+            $wasAwaitingPayment = false;
             if ($booking) {
+                $wasAwaitingPayment = $booking->status === 'awaiting_payment';
+                
                 // Calculate the payment amount (balance payment or full remaining)
-                $paymentAmount = $request->payment_amount ?? $booking->amount_remaining;
+                $paymentAmount = $request->payment_amount ?? $paymentSlip->amount_due;
                 
                 // Update booking payment fields
                 $newAmountPaid = $booking->amount_paid + $paymentAmount;
@@ -243,6 +246,12 @@ class PaymentVerificationController extends Controller
                 $booking->amount_remaining = $newAmountRemaining;
                 $booking->payment_recorded_by = session('user_id');
                 
+                // If booking was awaiting_payment (down payment just confirmed), promote to 'pending' for staff review
+                if ($wasAwaitingPayment) {
+                    $booking->status = 'pending';
+                    $booking->down_payment_paid_at = now();
+                }
+                
                 // If fully paid now, update status to 'paid' for admin confirmation
                 if ($newAmountRemaining <= 0) {
                     $booking->status = 'paid';
@@ -251,7 +260,7 @@ class PaymentVerificationController extends Controller
                 $booking->save();
             }
             
-            // Send notification to citizen about payment verification
+            // Send notifications
             try {
                 $user = User::find($booking->user_id);
                 $bookingWithFacility = DB::connection('facilities_db')
@@ -267,7 +276,22 @@ class PaymentVerificationController extends Controller
                     ->first();
                 
                 if ($user && $bookingWithFacility && $paymentSlipFresh) {
+                    // Notify citizen about payment verification
                     $user->notify(new \App\Notifications\PaymentVerified($bookingWithFacility, $paymentSlipFresh));
+                    
+                    // If booking was just promoted from awaiting_payment, also send booking submission notifications
+                    if ($wasAwaitingPayment) {
+                        $user->notify(new \App\Notifications\BookingSubmitted($bookingWithFacility));
+                        
+                        // Notify staff members about the new booking in their verification queue
+                        $staffMembers = User::where('subsystem_role_id', 3)
+                            ->where('subsystem_id', 4)
+                            ->get();
+                        
+                        foreach ($staffMembers as $staff) {
+                            $staff->notify(new \App\Notifications\BookingSubmitted($bookingWithFacility));
+                        }
+                    }
                 }
             } catch (\Exception $e) {
                 \Log::error('Failed to send payment verification notification: ' . $e->getMessage());

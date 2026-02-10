@@ -366,7 +366,8 @@ class BookingController extends Controller
             $startDateTime = Carbon::parse($step1Data['booking_date'] . ' ' . $step1Data['start_time']);
             $endDateTime = Carbon::parse($step1Data['booking_date'] . ' ' . $step1Data['end_time']);
 
-            // For Cashless via PayMongo: booking starts as 'awaiting_payment' — only promoted to 'pending' after successful payment
+            // ALL bookings start as 'awaiting_payment' — only promoted to 'pending' after payment is confirmed
+            // Cashless: promoted via PayMongo webhook | Cash: promoted when treasurer confirms receipt
             $isCashlessPaymongo = $validated['payment_method'] === 'cashless' && config('payment.paymongo_enabled');
 
             $booking = Booking::create([
@@ -375,7 +376,7 @@ class BookingController extends Controller
                 'start_time' => $startDateTime,
                 'end_time' => $endDateTime,
                 'user_name' => $userName,
-                'status' => $isCashlessPaymongo ? 'awaiting_payment' : 'pending',
+                'status' => 'awaiting_payment',
                 'base_rate' => $pricing['base_rate'],
                 'extension_rate' => $pricing['extension_hours'] > 0 ? $pricing['extension_rate'] : 0,
                 'equipment_total' => $pricing['equipment_total'],
@@ -400,10 +401,10 @@ class BookingController extends Controller
                 // Down payment system fields
                 'payment_tier' => $paymentTier,
                 'down_payment_amount' => $downPaymentAmount,
-                'amount_paid' => $isCashlessPaymongo ? 0 : $downPaymentAmount,
-                'amount_remaining' => $isCashlessPaymongo ? $totalAmount : $amountRemaining,
+                'amount_paid' => 0,
+                'amount_remaining' => $totalAmount,
                 'payment_method' => $validated['payment_method'],
-                'down_payment_paid_at' => $isCashlessPaymongo ? null : Carbon::now(),
+                'down_payment_paid_at' => null,
             ]);
 
             $bookingId = $booking->id;
@@ -430,6 +431,19 @@ class BookingController extends Controller
                         }
                     }
                 }
+            }
+
+            // For cash bookings: create an unpaid down payment slip so the treasurer can track it
+            if (!$isCashlessPaymongo) {
+                PaymentSlip::create([
+                    'slip_number' => PaymentSlip::generateSlipNumber(),
+                    'booking_id' => $booking->id,
+                    'amount_due' => $downPaymentAmount,
+                    'payment_deadline' => now()->addDays(3),
+                    'status' => 'unpaid',
+                    'payment_method' => 'cash',
+                    'notes' => 'Down payment (' . $paymentTier . '%) — pay at City Treasurer\'s Office to submit booking for staff review.',
+                ]);
             }
 
             DB::connection('facilities_db')->commit();
@@ -490,43 +504,14 @@ class BookingController extends Controller
                 }
             }
 
-            // Send notification to citizen (skip for awaiting_payment — notifications sent after payment)
-            if (!$isCashlessPaymongo || $booking->status === 'pending') {
-                try {
-                    $user = User::find($userId);
-                    $bookingWithFacility = DB::connection('facilities_db')
-                        ->table('bookings')
-                        ->join('facilities', 'bookings.facility_id', '=', 'facilities.facility_id')
-                        ->where('bookings.id', $bookingId)
-                        ->selectRaw('bookings.*, facilities.name as facility_name, CONCAT("BK", LPAD(bookings.id, 6, "0")) as booking_reference')
-                        ->first();
-                    
-                    if ($user && $bookingWithFacility) {
-                        // Notify the citizen
-                        $user->notify(new \App\Notifications\BookingSubmitted($bookingWithFacility));
-                        
-                        // Notify ALL staff members about the new booking
-                        // Get all users who have "reservations staff" role in session
-                        // Since we can't query by session, we'll query by subsystem_role_id
-                        // Staff role ID is 3 based on the auth system
-                        $staffMembers = User::where('subsystem_role_id', 3)
-                            ->where('subsystem_id', 4) // Facilities subsystem
-                            ->get();
-                        
-                        foreach ($staffMembers as $staff) {
-                            $staff->notify(new \App\Notifications\BookingSubmitted($bookingWithFacility));
-                        }
-                    }
-                } catch (\Exception $e) {
-                    \Log::error('Failed to send booking notification: ' . $e->getMessage());
-                }
-            }
+            // Notifications are sent AFTER payment is confirmed (by webhook for cashless, by treasurer for cash)
+            // No immediate notifications — booking is in 'awaiting_payment' state
 
             // Clear session data
             session()->forget(['booking_step1', 'booking_equipment']);
 
             return redirect()->route('citizen.booking.confirmation', $bookingId)
-                ->with('success', 'Booking submitted successfully! Please wait for staff verification.');
+                ->with('success', 'Booking created! Please complete your down payment to submit it for staff review.');
 
         } catch (\Exception $e) {
             DB::connection('facilities_db')->rollBack();

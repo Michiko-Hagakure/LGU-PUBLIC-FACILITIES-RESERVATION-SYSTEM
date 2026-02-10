@@ -17,16 +17,28 @@
         </div>
         <h2 class="text-2xl font-bold text-orange-800 mb-2">Payment Required to Submit Booking</h2>
         <p class="text-orange-700 mb-2">Booking Reference: <span class="font-mono font-bold">#BK{{ str_pad($booking->id, 6, '0', STR_PAD_LEFT) }}</span></p>
-        <p class="text-sm text-orange-700 mb-4">Your booking will only be submitted for staff review after you complete the <strong>₱{{ number_format($booking->down_payment_amount, 2) }}</strong> down payment.</p>
-        <a href="{{ URL::signedRoute('citizen.paymongo.retry', ['bookingId' => $booking->id]) }}" 
-           class="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition shadow">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2">
-                <rect width="20" height="14" x="2" y="5" rx="2"/>
-                <line x1="2" x2="22" y1="10" y2="10"/>
-            </svg>
-            Pay Now via PayMongo
-        </a>
-        <p class="text-xs text-orange-600 mt-3">This booking will expire if payment is not received within 1 hour.</p>
+        <p class="text-sm text-orange-700 mb-4">Your booking will only be submitted for staff review after you complete the <strong>₱{{ number_format($booking->down_payment_amount, 2) }}</strong> down payment ({{ $booking->payment_tier }}%).</p>
+        @if($booking->payment_method === 'cashless')
+            <a href="{{ URL::signedRoute('citizen.paymongo.retry', ['bookingId' => $booking->id]) }}" 
+               class="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition shadow">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2">
+                    <rect width="20" height="14" x="2" y="5" rx="2"/>
+                    <line x1="2" x2="22" y1="10" y2="10"/>
+                </svg>
+                Pay Now via PayMongo
+            </a>
+            <p class="text-xs text-orange-600 mt-3">This booking will expire if payment is not received within 1 hour.</p>
+        @else
+            <div class="inline-flex items-center px-6 py-3 bg-green-600 text-white font-semibold rounded-lg shadow">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-2">
+                    <rect width="20" height="12" x="2" y="6" rx="2"/>
+                    <circle cx="12" cy="12" r="2"/>
+                    <path d="M6 12h.01M18 12h.01"/>
+                </svg>
+                Pay ₱{{ number_format($booking->down_payment_amount, 2) }} at City Treasurer's Office
+            </div>
+            <p class="text-xs text-orange-600 mt-3">Please visit the City Treasurer's Office within 3 days to complete your down payment. Your booking will be submitted for staff review once payment is confirmed.</p>
+        @endif
     </div>
     @elseif($booking->payment_method === 'cashless' && $booking->amount_paid <= 0)
     <div class="bg-yellow-50 border-2 border-yellow-500 rounded-lg p-8 text-center mb-8">
@@ -100,7 +112,11 @@
         <h3 class="text-lg font-bold text-blue-900 mb-3">What happens next?</h3>
         <ol class="list-decimal list-inside space-y-2 text-sm text-blue-800">
             @if($booking->status === 'awaiting_payment')
-                <li><strong>Complete Payment</strong> - Pay via PayMongo to officially submit your booking</li>
+                @if($booking->payment_method === 'cashless')
+                    <li><strong>Complete Payment</strong> - Pay via PayMongo to officially submit your booking</li>
+                @else
+                    <li><strong>Complete Down Payment</strong> - Pay ₱{{ number_format($booking->down_payment_amount, 2) }} at the City Treasurer's Office to officially submit your booking</li>
+                @endif
             @endif
             <li><strong>Staff Verification</strong> - Our staff will review your booking request and uploaded documents (usually within 1-2 business days)</li>
             @if($booking->amount_remaining > 0)
@@ -225,7 +241,11 @@
                     <div>
                         <p class="font-medium text-yellow-900">Status: <span class="uppercase">{{ str_replace('_', ' ', $booking->status) }}</span></p>
                         @if($booking->status === 'awaiting_payment')
-                            <p class="text-sm text-yellow-700">Your booking is waiting for cashless payment. It will be submitted for review once payment is confirmed.</p>
+                            @if($booking->payment_method === 'cashless')
+                                <p class="text-sm text-yellow-700">Your booking is waiting for cashless payment. It will be submitted for review once payment is confirmed.</p>
+                            @else
+                                <p class="text-sm text-yellow-700">Your booking is waiting for cash down payment at the City Treasurer's Office. It will be submitted for review once payment is confirmed.</p>
+                            @endif
                         @elseif($booking->payment_method === 'cashless' && $booking->amount_paid <= 0)
                             <p class="text-sm text-yellow-700">Your cashless down payment is pending. Please complete payment or visit the City Treasurer's Office.</p>
                         @else
