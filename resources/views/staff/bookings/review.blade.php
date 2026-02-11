@@ -189,6 +189,22 @@
                 Uploaded Documents
             </h2>
             
+            @if($booking->valid_id_type)
+            <div class="mb-gr-md bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-id-card text-blue-600 mr-2 flex-shrink-0">
+                    <path d="M16 10h2"/>
+                    <path d="M16 14h2"/>
+                    <path d="M6.17 15a3 3 0 0 1 5.66 0"/>
+                    <circle cx="9" cy="11" r="2"/>
+                    <rect x="2" y="5" width="20" height="14" rx="2"/>
+                </svg>
+                <div>
+                    <span class="text-caption font-semibold text-blue-700 uppercase">Valid ID Type</span>
+                    <p class="text-body font-semibold text-blue-900">{{ $booking->valid_id_type }}</p>
+                </div>
+            </div>
+            @endif
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-gr-sm">
                 @foreach($documents as $doc)
                 @php
