@@ -29,6 +29,10 @@ class PaymentVerificationController extends Controller
                     'bookings.applicant_phone',
                     'bookings.user_id',
                     'bookings.start_time',
+                    'bookings.total_amount as booking_total',
+                    'bookings.payment_tier',
+                    'bookings.amount_paid as booking_amount_paid',
+                    'bookings.down_payment_amount',
                     'facilities.name as facility_name'
                 );
             
@@ -95,6 +99,10 @@ class PaymentVerificationController extends Controller
                 'bookings.applicant_name',
                 'bookings.applicant_email',
                 'bookings.user_id',
+                'bookings.total_amount as booking_total',
+                'bookings.payment_tier',
+                'bookings.amount_paid as booking_amount_paid',
+                'bookings.down_payment_amount',
                 'facilities.name as facility_name'
             );
 
