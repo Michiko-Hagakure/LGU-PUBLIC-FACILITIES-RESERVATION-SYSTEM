@@ -50,7 +50,7 @@ class FacilityCalendarController extends Controller
             )
             ->whereYear('bookings.start_time', $year)
             ->whereMonth('bookings.start_time', $month)
-            ->whereIn('bookings.status', ['reserved', 'tentative', 'confirmed', 'staff_verified', 'payment_pending']);
+            ->whereIn('bookings.status', ['pending', 'staff_verified', 'awaiting_payment', 'paid', 'confirmed']);
         
         // Filter by facility if selected
         if ($selectedFacilityId) {
@@ -158,7 +158,7 @@ class FacilityCalendarController extends Controller
                 'facilities.address as facility_location'
             )
             ->whereDate('bookings.start_time', $date)
-            ->whereIn('bookings.status', ['reserved', 'tentative', 'confirmed', 'staff_verified', 'payment_pending'])
+            ->whereIn('bookings.status', ['pending', 'staff_verified', 'awaiting_payment', 'paid', 'confirmed'])
             ->orderBy('bookings.start_time');
         
         if ($facilityId) {
