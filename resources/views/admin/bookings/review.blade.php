@@ -5,6 +5,24 @@
 
 @section('page-content')
 <div class="space-y-gr-xl">
+    <!-- Success/Error Messages -->
+    @if(session('success'))
+        <div class="bg-green-50 border-l-4 border-green-500 p-gr-sm rounded-lg shadow-sm">
+            <div class="flex items-center">
+                <i data-lucide="check-circle" class="w-5 h-5 text-green-600 mr-gr-xs flex-shrink-0"></i>
+                <p class="text-body font-semibold text-green-800">{{ session('success') }}</p>
+            </div>
+        </div>
+    @endif
+    @if(session('error'))
+        <div class="bg-red-50 border-l-4 border-red-500 p-gr-sm rounded-lg shadow-sm">
+            <div class="flex items-center">
+                <i data-lucide="x-circle" class="w-5 h-5 text-red-600 mr-gr-xs flex-shrink-0"></i>
+                <p class="text-body font-semibold text-red-800">{{ session('error') }}</p>
+            </div>
+        </div>
+    @endif
+
     <!-- Page Header with Status -->
     <div class="bg-lgu-headline rounded-2xl p-gr-xl text-white shadow-lg">
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-gr-md">
@@ -205,6 +223,21 @@
                     <i data-lucide="file-check" class="w-6 h-6"></i>
                     Uploaded Documents
                 </h2>
+                @if($booking->valid_id_type)
+                <div class="mb-gr-md bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-600 mr-2 flex-shrink-0">
+                        <path d="M16 10h2"/>
+                        <path d="M16 14h2"/>
+                        <path d="M6.17 15a3 3 0 0 1 5.66 0"/>
+                        <circle cx="9" cy="11" r="2"/>
+                        <rect x="2" y="5" width="20" height="14" rx="2"/>
+                    </svg>
+                    <div>
+                        <span class="text-caption font-semibold text-blue-700 uppercase">Valid ID Type</span>
+                        <p class="text-body font-semibold text-blue-900">{{ $booking->valid_id_type }}</p>
+                    </div>
+                </div>
+                @endif
                 <div class="grid grid-cols-3 gap-gr-md">
                     @foreach($documents as $key => $doc)
                         @if($doc)

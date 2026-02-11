@@ -572,14 +572,26 @@ class PaymentController extends Controller
                 'updated_at' => Carbon::now(),
             ]);
 
-        // Update booking status to paid (admin must still confirm manually)
-        DB::connection('facilities_db')
+        // Update booking payment tracking and status
+        $booking = DB::connection('facilities_db')
             ->table('bookings')
             ->where('id', $paymentSlip->booking_id)
-            ->update([
-                'status' => 'paid',
-                'updated_at' => Carbon::now(),
-            ]);
+            ->first();
+
+        if ($booking) {
+            $newAmountPaid = $booking->amount_paid + $paymentSlip->amount_due;
+            $newAmountRemaining = max(0, $booking->total_amount - $newAmountPaid);
+
+            DB::connection('facilities_db')
+                ->table('bookings')
+                ->where('id', $paymentSlip->booking_id)
+                ->update([
+                    'status' => 'paid',
+                    'amount_paid' => $newAmountPaid,
+                    'amount_remaining' => $newAmountRemaining,
+                    'updated_at' => Carbon::now(),
+                ]);
+        }
 
         // Send notification
         try {
@@ -647,20 +659,32 @@ class PaymentController extends Controller
                     'updated_at' => Carbon::now(),
                 ]);
 
-            // Update booking status
+            // Update booking payment tracking and status
             $paymentSlip = DB::connection('facilities_db')
                 ->table('payment_slips')
                 ->where('id', $id)
                 ->first();
 
             if ($paymentSlip) {
-                DB::connection('facilities_db')
+                $booking = DB::connection('facilities_db')
                     ->table('bookings')
                     ->where('id', $paymentSlip->booking_id)
-                    ->update([
-                        'status' => 'paid',
-                        'updated_at' => Carbon::now(),
-                    ]);
+                    ->first();
+
+                if ($booking) {
+                    $newAmountPaid = $booking->amount_paid + $paymentSlip->amount_due;
+                    $newAmountRemaining = max(0, $booking->total_amount - $newAmountPaid);
+
+                    DB::connection('facilities_db')
+                        ->table('bookings')
+                        ->where('id', $paymentSlip->booking_id)
+                        ->update([
+                            'status' => 'paid',
+                            'amount_paid' => $newAmountPaid,
+                            'amount_remaining' => $newAmountRemaining,
+                            'updated_at' => Carbon::now(),
+                        ]);
+                }
             }
 
             return response()->json(['status' => 'succeeded']);
