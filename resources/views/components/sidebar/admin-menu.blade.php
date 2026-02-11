@@ -32,12 +32,6 @@
             </a>
         </li>
         <li>
-            <a href="{{ URL::signedRoute('admin.schedule-conflicts.index') }}" class="sidebar-link flex items-center px-gr-sm py-gr-xs text-small font-medium rounded-lg transition-colors duration-200 {{ request()->routeIs('admin.schedule-conflicts.*') ? 'active' : '' }}">
-                <i data-lucide="alert-triangle" class="w-5 h-5 mr-gr-xs flex-shrink-0"></i>
-                <span>Schedule Conflicts</span>
-            </a>
-        </li>
-        <li>
             <a href="{{ URL::signedRoute('admin.maintenance.index') }}" class="sidebar-link flex items-center px-gr-sm py-gr-xs text-small font-medium rounded-lg transition-colors duration-200 {{ request()->routeIs('admin.maintenance.*') ? 'active' : '' }}">
                 <i data-lucide="wrench" class="w-5 h-5 mr-gr-xs flex-shrink-0"></i>
                 <span>Maintenance Schedule</span>

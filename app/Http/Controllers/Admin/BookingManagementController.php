@@ -223,11 +223,6 @@ class BookingManagementController extends Controller
         // Get equipment with pricing
         $equipment = $booking->equipmentItems;
 
-        // Check for schedule conflicts
-        $conflictData = $booking->checkScheduleConflicts();
-        $conflicts = $conflictData['conflicts'] ?? collect();
-        $hasConflict = $conflictData['hasConflict'] ?? false;
-
         // Calculate payment deadline (48 hours from staff verification)
         $paymentDeadline = null;
         $hoursRemaining = null;
@@ -242,7 +237,6 @@ class BookingManagementController extends Controller
             'equipment',
             'documents',
             'user',
-            'conflicts',
             'paymentDeadline',
             'hoursRemaining'
         ));

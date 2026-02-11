@@ -350,78 +350,6 @@
                 @endif
             </div>
 
-            <!-- Schedule Conflict Warning -->
-            @if($booking->status === 'pending' && $conflictCheck['hasConflict'])
-            <div class="bg-red-50 border-2 border-red-300 rounded-xl p-gr-md">
-                <div class="flex items-start mb-gr-sm">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-alert-triangle text-red-600 mr-2 flex-shrink-0">
-                        <path d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
-                        <path d="M12 9v4"/>
-                        <path d="M12 17h.01"/>
-                    </svg>
-                    <div>
-                        <h3 class="text-h4 font-bold text-red-800 mb-1">Schedule Conflict Detected</h3>
-                        <p class="text-small text-red-700">{{ $conflictCheck['conflictCount'] }} booking(s) already approved for overlapping times</p>
-                    </div>
-                </div>
-
-                <div class="space-y-2 mb-gr-sm">
-                    @foreach($conflictCheck['conflicts'] as $conflict)
-                    <div class="bg-white border border-red-200 rounded-lg p-3">
-                        <div class="flex items-start justify-between">
-                            <div class="flex-1">
-                                <p class="font-semibold text-gray-900">{{ $conflict->facility->name }}</p>
-                                <div class="flex items-center gap-4 mt-1 text-xs text-gray-600">
-                                    <span class="flex items-center">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-calendar mr-1">
-                                            <path d="M8 2v4"/>
-                                            <path d="M16 2v4"/>
-                                            <rect width="18" height="18" x="3" y="4" rx="2"/>
-                                            <path d="M3 10h18"/>
-                                        </svg>
-                                        {{ \Carbon\Carbon::parse($conflict->event_date ?? $conflict->start_time)->format('M d, Y') }}
-                                    </span>
-                                    <span class="flex items-center">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clock mr-1">
-                                            <circle cx="12" cy="12" r="10"/>
-                                            <polyline points="12 6 12 12 16 14"/>
-                                        </svg>
-                                        {{ \Carbon\Carbon::parse($conflict->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($conflict->end_time)->format('g:i A') }}
-                                    </span>
-                                    <span class="flex items-center">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-hash mr-1">
-                                            <line x1="4" x2="20" y1="9" y2="9"/>
-                                            <line x1="4" x2="20" y1="15" y2="15"/>
-                                            <line x1="10" x2="8" y1="3" y2="21"/>
-                                            <line x1="16" x2="14" y1="3" y2="21"/>
-                                        </svg>
-                                        BK-{{ str_pad($conflict->id, 6, '0', STR_PAD_LEFT) }}
-                                    </span>
-                                </div>
-                                <div class="mt-2">
-                                    @if($conflict->status === 'staff_verified')
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
-                                            Approved (Awaiting Payment)
-                                        </span>
-                                    @elseif($conflict->status === 'paid' || $conflict->status === 'confirmed')
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-                                            Paid & Confirmed
-                                        </span>
-                                    @endif
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    @endforeach
-                </div>
-
-                <div class="bg-red-100 border border-red-200 rounded-lg p-3">
-                    <p class="text-xs text-red-800 font-medium">
-                        <strong>Recommendation:</strong> Reject this booking due to schedule conflict, or verify with the conflicting booking holder first.
-                    </p>
-                </div>
-            </div>
-            @endif
 
             <!-- Verification Actions -->
             @if($booking->status === 'pending')
@@ -606,67 +534,20 @@ document.addEventListener('keydown', function(event) {
 });
 
 function confirmVerify() {
-    // Check if there are schedule conflicts (passed from controller)
-    const hasConflict = {{ $conflictCheck['hasConflict'] ? 'true' : 'false' }};
-    const conflictCount = {{ $conflictCheck['conflictCount'] }};
-
-    if (hasConflict) {
-        // Show stronger warning if conflicts exist
-        Swal.fire({
-            title: 'Schedule Conflict Detected!',
-            html: `
-                <div class="text-left">
-                    <p class="mb-3 text-red-600 font-semibold">
-                        ${conflictCount} booking(s) already approved for overlapping times at this facility.
-                    </p>
-                    <p class="mb-3 text-gray-700">
-                        <strong>Warning:</strong> Approving this booking may cause double-booking issues.
-                    </p>
-                    <p class="text-sm text-gray-600">
-                        <strong>Recommended action:</strong> Reject this booking and inform the applicant that the time slot is already reserved.
-                    </p>
-                </div>
-            `,
-            icon: 'warning',
-            showCancelButton: true,
-            showDenyButton: true,
-            confirmButtonColor: '#dc2626',
-            denyButtonColor: '#16a34a',
-            cancelButtonColor: '#6b7280',
-            confirmButtonText: 'Approve Anyway',
-            denyButtonText: 'Reject Booking',
-            cancelButtonText: 'Cancel',
-            customClass: {
-                confirmButton: 'order-3',
-                denyButton: 'order-1',
-                cancelButton: 'order-2'
-            }
-        }).then((result) => {
-            if (result.isConfirmed) {
-                // User chose to approve anyway despite conflict
-                document.getElementById('verifyForm').submit();
-            } else if (result.isDenied) {
-                // User chose to reject - trigger reject flow
-                confirmReject();
-            }
-        });
-    } else {
-        // No conflicts - show normal confirmation
-        Swal.fire({
-            title: 'Verify This Booking?',
-            text: 'This will forward the booking to admin for final approval.',
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: '#16a34a',
-            cancelButtonColor: '#6b7280',
-            confirmButtonText: 'Yes, Verify',
-            cancelButtonText: 'Cancel'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                document.getElementById('verifyForm').submit();
-            }
-        });
-    }
+    Swal.fire({
+        title: 'Verify This Booking?',
+        text: 'This will forward the booking to admin for final approval.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#16a34a',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Yes, Verify',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            document.getElementById('verifyForm').submit();
+        }
+    });
 }
 
 function confirmReject() {

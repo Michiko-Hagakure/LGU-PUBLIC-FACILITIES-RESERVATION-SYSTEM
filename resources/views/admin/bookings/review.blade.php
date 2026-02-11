@@ -80,39 +80,6 @@
         </div>
     @endif
 
-    <!-- Schedule Conflicts Warning -->
-    @if($conflicts->isNotEmpty())
-        <div class="bg-red-50 border-2 border-red-200 rounded-xl p-gr-lg">
-            <div class="flex items-start gap-gr-md">
-                <div class="w-12 h-12 bg-red-500 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <i data-lucide="alert-octagon" class="w-6 h-6 text-white"></i>
-                </div>
-                <div class="flex-1">
-                    <h3 class="text-h4 font-bold text-red-900 mb-gr-sm">Schedule Conflict Detected!</h3>
-                    <div class="space-y-2">
-                        @foreach($conflicts as $conflict)
-                            @if($conflict && is_object($conflict))
-                                @php
-                                    // Fetch user details from auth_db directly to avoid cross-database relationship issues
-                                    $conflictUser = \DB::connection('auth_db')->table('users')->where('id', $conflict->user_id)->first();
-                                    $conflictUserName = $conflictUser->name ?? $conflict->applicant_name ?? 'N/A';
-                                @endphp
-                                <div class="bg-white rounded-lg p-gr-sm border border-red-200">
-                                    <p class="text-small font-semibold text-red-900">
-                                        Booking #{{ $conflict->id }} - {{ $conflictUserName }}
-                                    </p>
-                                    <p class="text-caption text-red-700">
-                                        {{ \Carbon\Carbon::parse($conflict->start_time)->format('M d, Y g:i A') }} - 
-                                        {{ \Carbon\Carbon::parse($conflict->end_time)->format('g:i A') }}
-                                    </p>
-                                </div>
-                            @endif
-                        @endforeach
-                    </div>
-                </div>
-            </div>
-        </div>
-    @endif
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-gr-lg">
         <!-- Left Column: Booking Details -->

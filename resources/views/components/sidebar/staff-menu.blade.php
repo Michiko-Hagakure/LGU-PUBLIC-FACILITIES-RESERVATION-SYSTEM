@@ -23,25 +23,6 @@
             <a href="{{ URL::signedRoute('staff.verification-queue') }}" class="sidebar-link flex items-center px-gr-sm py-gr-xs text-small font-medium rounded-lg transition-colors duration-200 {{ request()->routeIs('staff.verification-queue') ? 'active' : '' }}">
                 <i data-lucide="clock" class="w-5 h-5 mr-gr-xs flex-shrink-0"></i>
                 <span>Verification Queue</span>
-                @php
-                    // Get conflict count for staff notification
-                    $conflictCount = \Illuminate\Support\Facades\DB::connection('facilities_db')
-                        ->table('bookings as a')
-                        ->join('bookings as b', function ($join) {
-                            $join->on('a.facility_id', '=', 'b.facility_id')
-                                ->on('a.event_date', '=', 'b.event_date')
-                                ->whereRaw('a.id < b.id')
-                                ->whereRaw('(a.start_time < b.end_time AND a.end_time > b.start_time)');
-                        })
-                        ->whereIn('a.status', ['pending', 'staff_verified'])
-                        ->whereIn('b.status', ['pending', 'staff_verified'])
-                        ->where('a.event_date', '>=', now()->toDateString())
-                        ->distinct('a.id')
-                        ->count();
-                @endphp
-                @if($conflictCount > 0)
-                    <span class="ml-auto text-xs bg-lgu-tertiary text-white px-2 py-0.5 rounded-full font-semibold">{{ $conflictCount }}</span>
-                @endif
             </a>
         </li>
         <li>
