@@ -226,7 +226,7 @@ function showDayDetails(dateString) {
     modal.classList.remove('hidden');
     
     const facilityId = document.getElementById('facility_filter').value;
-    fetch(`{{ URL::signedRoute('citizen.facility-calendar.bookings') }}?date=${dateString}&facility_id=${facilityId}`)
+    fetch(`{{ URL::signedRoute('citizen.facility-calendar.bookings') }}&date=${dateString}&facility_id=${facilityId}`)
         .then(response => response.json())
         .then(data => {
             if (data.bookings.length === 0) {
