@@ -238,6 +238,27 @@ class BookingVerificationController extends Controller
                     'notes' => 'Remaining balance (' . (100 - $booking->payment_tier) . '%) to collect. Down payment of ₱' . number_format($booking->down_payment_amount, 2) . ' already received.',
                 ]);
             }
+            // PF/API bookings: no payment was made yet, create a payment slip for the full amount
+            elseif (!$booking->payment_tier && ($booking->amount_paid ?? 0) == 0 && $booking->total_amount > 0) {
+                $booking->update([
+                    'payment_method' => 'cash',
+                    'payment_tier' => 25,
+                    'down_payment_amount' => $booking->total_amount * 0.25,
+                    'amount_paid' => 0,
+                    'amount_remaining' => $booking->total_amount,
+                ]);
+
+                PaymentSlip::create([
+                    'slip_number' => PaymentSlip::generateSlipNumber(),
+                    'booking_id' => $bookingId,
+                    'amount_due' => $booking->total_amount * 0.25,
+                    'payment_deadline' => now()->addDays(3),
+                    'status' => 'unpaid',
+                    'payment_method' => 'cash',
+                    'paid_at' => null,
+                    'notes' => 'Down payment (25%) — pay at City Treasurer\'s Office. Booking submitted via external system.',
+                ]);
+            }
 
             // Send notification to citizen
             try {
