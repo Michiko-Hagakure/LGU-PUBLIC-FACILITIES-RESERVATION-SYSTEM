@@ -23,16 +23,15 @@ class PaymentVerificationController extends Controller
             return redirect()->route('login')->with('error', 'Please login to continue.');
         }
 
-        // Auto-fix: Create payment slips for staff_verified bookings that have none (PF/API bookings)
+        // Auto-fix: Create payment slips for staff_verified bookings that have none
         $stuckBookings = Booking::where('status', 'staff_verified')
-            ->where(function($q) {
-                $q->whereNull('payment_tier')->orWhere('payment_tier', 0);
-            })
             ->whereDoesntHave('paymentSlips')
+            ->where('total_amount', '>', 0)
             ->get();
 
         foreach ($stuckBookings as $stuck) {
-            if ($stuck->total_amount > 0) {
+            // Set payment defaults if not already set
+            if (!$stuck->payment_tier) {
                 $stuck->update([
                     'payment_method' => 'cash',
                     'payment_tier' => 25,
@@ -40,18 +39,20 @@ class PaymentVerificationController extends Controller
                     'amount_paid' => 0,
                     'amount_remaining' => $stuck->total_amount,
                 ]);
-
-                \App\Models\PaymentSlip::create([
-                    'slip_number' => \App\Models\PaymentSlip::generateSlipNumber(),
-                    'booking_id' => $stuck->id,
-                    'amount_due' => $stuck->total_amount * 0.25,
-                    'payment_deadline' => now()->addDays(3),
-                    'status' => 'unpaid',
-                    'payment_method' => 'cash',
-                    'paid_at' => null,
-                    'notes' => 'Down payment (25%) — pay at City Treasurer\'s Office. Booking submitted via external system.',
-                ]);
             }
+
+            $downPayment = $stuck->down_payment_amount ?: $stuck->total_amount * 0.25;
+
+            \App\Models\PaymentSlip::create([
+                'slip_number' => \App\Models\PaymentSlip::generateSlipNumber(),
+                'booking_id' => $stuck->id,
+                'amount_due' => $downPayment,
+                'payment_deadline' => now()->addDays(3),
+                'status' => 'unpaid',
+                'payment_method' => $stuck->payment_method ?? 'cash',
+                'paid_at' => null,
+                'notes' => 'Down payment (25%) — pay at City Treasurer\'s Office.',
+            ]);
         }
 
         // Build query for payment queue
