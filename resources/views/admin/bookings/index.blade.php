@@ -246,7 +246,7 @@
 
                                 <!-- Amount Paid -->
                                 <td class="px-gr-md py-gr-sm">
-                                    <span class="text-small font-semibold text-lgu-headline">₱{{ number_format($booking->amount_paid ?? $booking->total_amount, 2) }}</span>
+                                    <span class="text-small font-semibold text-lgu-headline">₱{{ number_format($booking->total_amount, 2) }}</span>
                                 </td>
 
                                 <!-- Actions -->
@@ -304,7 +304,7 @@
                 <td class="px-gr-md py-gr-sm"><div><p class="text-small font-medium text-lgu-headline">${b.facility_name}</p></div></td>
                 <td class="px-gr-md py-gr-sm"><div><p class="text-small font-medium text-lgu-headline">${b.start_formatted}</p><p class="text-caption text-lgu-paragraph">${b.time_range}</p></div></td>
                 <td class="px-gr-md py-gr-sm"><span class="inline-flex items-center gap-1.5 px-gr-sm py-1 rounded-full border text-caption font-medium ${status.color}"><i data-lucide="${status.icon}" class="w-3.5 h-3.5"></i>${status.label}</span></td>
-                <td class="px-gr-md py-gr-sm"><span class="text-small font-semibold text-lgu-headline">₱${Number(b.amount_paid || b.total_amount).toLocaleString('en-PH', {minimumFractionDigits: 2})}</span></td>
+                <td class="px-gr-md py-gr-sm"><span class="text-small font-semibold text-lgu-headline">₱${Number(b.total_amount).toLocaleString('en-PH', {minimumFractionDigits: 2})}</span></td>
                 <td class="px-gr-md py-gr-sm"><a href="/admin/bookings/${b.id}/review" class="inline-flex items-center gap-1.5 px-gr-sm py-1.5 bg-lgu-button hover:bg-lgu-highlight text-lgu-button-text text-caption font-medium rounded-lg transition-colors"><i data-lucide="eye" class="w-4 h-4"></i>View Details</a></td>
             </tr>`;
         }

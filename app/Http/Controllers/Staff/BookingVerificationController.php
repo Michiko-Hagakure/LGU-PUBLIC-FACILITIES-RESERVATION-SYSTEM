@@ -205,6 +205,17 @@ class BookingVerificationController extends Controller
             // Get booking details
             $booking = Booking::findOrFail($bookingId);
 
+            // Auto-fix: ensure amount_remaining is properly calculated
+            // PF/API bookings may have NULL amount_remaining even though total_amount is set
+            $amountPaid = $booking->amount_paid ?? 0;
+            $totalAmount = $booking->total_amount ?? 0;
+            if (is_null($booking->amount_remaining) && $totalAmount > 0) {
+                $booking->update([
+                    'amount_remaining' => max(0, $totalAmount - $amountPaid),
+                ]);
+                $booking->refresh();
+            }
+
             // Determine new status based on payment state
             // If fully paid (100% tier), go straight to 'paid' for admin confirmation
             // If partially paid, go to 'staff_verified' and remaining balance tracked by treasurer
@@ -225,21 +236,26 @@ class BookingVerificationController extends Controller
                 ->orderBy('paid_at', 'desc')
                 ->first();
 
+            // Check if an unpaid slip already exists (avoid duplicates)
+            $hasUnpaidSlip = PaymentSlip::where('booking_id', $bookingId)
+                ->where('status', 'unpaid')
+                ->exists();
+
             // If booking has remaining balance, create a remaining balance slip for the treasurer
-            if ($booking->hasRemainingBalance()) {
+            if (!$hasUnpaidSlip && $booking->hasRemainingBalance()) {
                 PaymentSlip::create([
                     'slip_number' => PaymentSlip::generateSlipNumber(),
                     'booking_id' => $bookingId,
                     'amount_due' => $booking->amount_remaining,
                     'payment_deadline' => now()->addDays(7),
                     'status' => 'unpaid',
-                    'payment_method' => $booking->payment_method,
+                    'payment_method' => $booking->payment_method ?? 'cash',
                     'paid_at' => null,
-                    'notes' => 'Remaining balance (' . (100 - $booking->payment_tier) . '%) to collect. Down payment of ₱' . number_format($booking->down_payment_amount, 2) . ' already received.',
+                    'notes' => 'Remaining balance (' . (100 - ($booking->payment_tier ?? 0)) . '%) to collect.' . ($booking->down_payment_amount > 0 ? ' Down payment of ₱' . number_format($booking->down_payment_amount, 2) . ' already received.' : ''),
                 ]);
             }
             // PF/API bookings: no payment was made yet, create a payment slip for the full amount
-            elseif (!$booking->payment_tier && ($booking->amount_paid ?? 0) == 0 && $booking->total_amount > 0) {
+            elseif (!$hasUnpaidSlip && !$booking->payment_tier && ($booking->amount_paid ?? 0) == 0 && $booking->total_amount > 0) {
                 $booking->update([
                     'payment_method' => 'cash',
                     'payment_tier' => 25,
