@@ -201,7 +201,7 @@ class PaymentVerificationController extends Controller
 
     /**
      * Reject a booking that has already been paid.
-     * Sets status to 'rejected' and creates a 100% refund request.
+     * Sets status to 'admin_rejected' — citizen decides to reschedule or cancel (no refund).
      */
     public function rejectBooking(Request $request, $bookingId)
     {
@@ -218,48 +218,20 @@ class PaymentVerificationController extends Controller
         $booking = Booking::with('facility')->findOrFail($bookingId);
 
         // Only allow rejecting paid or confirmed bookings
-        if (!in_array($booking->status, ['paid', 'confirmed'])) {
-            return back()->with('error', 'Only paid or confirmed bookings can be rejected with a refund.');
+        if (!in_array($booking->status, ['paid', 'confirmed', 'staff_verified'])) {
+            return back()->with('error', 'This booking cannot be rejected at this stage.');
         }
 
         $reason = $request->input('rejection_reason');
-        $bookingReference = 'BK' . str_pad($booking->id, 6, '0', STR_PAD_LEFT);
-
-        DB::connection('facilities_db')->beginTransaction();
 
         try {
-            // 1. Update booking status to rejected
-            $booking->status = 'rejected';
-            $booking->rejected_reason = $reason;
-            $booking->save();
-
-            // 2. Create 100% refund request (admin rejection = always 100%)
-            $refundPercentage = RefundRequest::calculateRefundPercentage('admin_rejected', $booking->start_time);
-            $refundAmount = round(($booking->total_amount * $refundPercentage) / 100, 2);
-
-            // Get user data as fallback for missing applicant info
-            $bookingUser = $booking->user_id ? \App\Models\User::find($booking->user_id) : null;
-
-            $refund = RefundRequest::create([
-                'booking_id' => $booking->id,
-                'user_id' => $booking->user_id,
-                'booking_reference' => $bookingReference,
-                'applicant_name' => $booking->applicant_name ?? $booking->user_name ?? ($bookingUser ? $bookingUser->first_name . ' ' . $bookingUser->last_name : 'N/A'),
-                'applicant_email' => $booking->applicant_email ?? ($bookingUser->email ?? null),
-                'applicant_phone' => $booking->applicant_phone ?? ($bookingUser->mobile_number ?? null),
-                'facility_name' => $booking->facility->name ?? 'N/A',
-                'original_amount' => $booking->total_amount,
-                'refund_percentage' => $refundPercentage,
-                'refund_amount' => $refundAmount,
-                'refund_type' => 'admin_rejected',
-                'reason' => $reason,
-                'status' => 'pending_method', // Waiting for citizen to choose refund method
-                'initiated_by' => $userId,
+            // Update booking status to admin_rejected — citizen will decide next step
+            $booking->update([
+                'status' => 'admin_rejected',
+                'rejected_reason' => $reason,
             ]);
 
-            DB::connection('facilities_db')->commit();
-
-            // 3. Send notification to citizen
+            // Send notification to citizen
             try {
                 $user = \App\Models\User::find($booking->user_id);
                 $bookingData = DB::connection('facilities_db')
@@ -270,32 +242,18 @@ class PaymentVerificationController extends Controller
                     ->first();
 
                 if ($user && $bookingData) {
-                    $user->notify(new \App\Notifications\BookingRejectedWithRefund($bookingData, $reason, $refund));
+                    $user->notify(new \App\Notifications\BookingAdminRejected($bookingData, $reason));
                 }
             } catch (\Exception $e) {
-                \Log::error('Failed to send rejection+refund notification: ' . $e->getMessage());
-            }
-
-            // 4. Notify treasurers about the new refund request
-            try {
-                $treasurers = \App\Models\User::where('subsystem_role_id', 5)
-                    ->where('subsystem_id', 4)
-                    ->get();
-
-                foreach ($treasurers as $treasurer) {
-                    $treasurer->notify(new \App\Notifications\RefundRequestCreated($refund));
-                }
-            } catch (\Exception $e) {
-                \Log::error('Failed to send refund created notification to treasurers: ' . $e->getMessage());
+                \Log::error('Failed to send admin rejection notification: ' . $e->getMessage());
             }
 
             return redirect()
                 ->route('admin.bookings.review', $bookingId)
-                ->with('warning', 'Booking rejected. A refund of ₱' . number_format($refundAmount, 2) . ' has been queued. The citizen will be notified to choose their refund method.');
+                ->with('warning', 'Booking rejected. The citizen has been notified and can choose to reschedule or cancel (no refund).');
 
         } catch (\Exception $e) {
-            DB::connection('facilities_db')->rollBack();
-            \Log::error('Failed to reject booking with refund: ' . $e->getMessage());
+            \Log::error('Failed to reject booking: ' . $e->getMessage());
             return back()->with('error', 'Failed to process rejection: ' . $e->getMessage());
         }
     }

@@ -206,9 +206,9 @@ class ReservationController extends Controller
             return redirect()->route('citizen.reservations')->with('error', 'Booking not found.');
         }
 
-        // Check if booking can be cancelled (pending, staff_verified, payment_pending, paid)
+        // Check if booking can be cancelled (pending, staff_verified, payment_pending, paid, admin_rejected)
         // Note: confirmed bookings cannot be cancelled
-        if (!in_array($booking->status, ['awaiting_payment', 'pending', 'staff_verified', 'payment_pending', 'paid'])) {
+        if (!in_array($booking->status, ['awaiting_payment', 'pending', 'staff_verified', 'payment_pending', 'paid', 'admin_rejected'])) {
             return redirect()->back()->with('error', 'This booking cannot be cancelled at this stage.');
         }
 
@@ -460,6 +460,104 @@ class ReservationController extends Controller
         $bookings = $query->paginate(15);
 
         return view('citizen.reservations.history', compact('bookings', 'search'));
+    }
+
+    /**
+     * Show the reschedule form for an admin-rejected booking.
+     */
+    public function rescheduleForm(Request $request, $id)
+    {
+        $userId = session('user_id');
+        if (!$userId) {
+            return redirect()->route('login')->with('error', 'Please login to continue.');
+        }
+
+        $booking = DB::connection('facilities_db')
+            ->table('bookings')
+            ->join('facilities', 'bookings.facility_id', '=', 'facilities.facility_id')
+            ->leftJoin('lgu_cities', 'facilities.lgu_city_id', '=', 'lgu_cities.id')
+            ->select(
+                'bookings.*',
+                'facilities.name as facility_name',
+                'facilities.address as facility_address',
+                'facilities.base_hours',
+                'lgu_cities.city_name'
+            )
+            ->where('bookings.id', $id)
+            ->where('bookings.user_id', $userId)
+            ->where('bookings.status', 'admin_rejected')
+            ->first();
+
+        if (!$booking) {
+            return redirect()->route('citizen.reservations')->with('error', 'Booking not found or cannot be rescheduled.');
+        }
+
+        return view('citizen.reservations.reschedule', compact('booking'));
+    }
+
+    /**
+     * Process the reschedule — update date/time and reset to pending.
+     */
+    public function reschedule(Request $request, $id)
+    {
+        $userId = session('user_id');
+        if (!$userId) {
+            return redirect()->route('login')->with('error', 'Please login to continue.');
+        }
+
+        $booking = DB::connection('facilities_db')
+            ->table('bookings')
+            ->where('id', $id)
+            ->where('user_id', $userId)
+            ->where('status', 'admin_rejected')
+            ->first();
+
+        if (!$booking) {
+            return redirect()->route('citizen.reservations')->with('error', 'Booking not found or cannot be rescheduled.');
+        }
+
+        $validated = $request->validate([
+            'booking_date' => 'required|date|after:today',
+            'start_time' => 'required|date_format:H:i',
+            'end_time' => 'required|date_format:H:i|after:start_time',
+        ]);
+
+        $newStart = Carbon::parse($validated['booking_date'] . ' ' . $validated['start_time']);
+        $newEnd = Carbon::parse($validated['booking_date'] . ' ' . $validated['end_time']);
+
+        // Check for schedule conflicts
+        $conflict = DB::connection('facilities_db')
+            ->table('bookings')
+            ->where('facility_id', $booking->facility_id)
+            ->where('id', '!=', $id)
+            ->whereNotIn('status', ['cancelled', 'canceled', 'rejected', 'expired', 'admin_rejected'])
+            ->where(function ($q) use ($newStart, $newEnd) {
+                $q->where(function ($q2) use ($newStart, $newEnd) {
+                    $q2->where('start_time', '<', $newEnd)
+                        ->where('end_time', '>', $newStart);
+                });
+            })
+            ->exists();
+
+        if ($conflict) {
+            return back()->withInput()->with('error', 'The selected date/time conflicts with another booking. Please choose a different schedule.');
+        }
+
+        DB::connection('facilities_db')
+            ->table('bookings')
+            ->where('id', $id)
+            ->update([
+                'start_time' => $newStart,
+                'end_time' => $newEnd,
+                'status' => 'pending',
+                'rejected_reason' => null,
+                'staff_verified_by' => null,
+                'staff_verified_at' => null,
+                'updated_at' => Carbon::now(),
+            ]);
+
+        return redirect()->route('citizen.reservations.show', $id)
+            ->with('success', 'Booking rescheduled successfully! It has been resubmitted for staff review.');
     }
 
     /**

@@ -1868,6 +1868,9 @@ Route::middleware(['auth', 'role:citizen', \App\Http\Middleware\CheckSessionTime
     Route::post('/citizen/reservations/{id}/upload', [\App\Http\Controllers\Citizen\ReservationController::class, 'uploadDocument'])->name('citizen.reservations.upload');
     Route::post('/citizen/reservations/{id}/reupload', [\App\Http\Controllers\Citizen\ReservationController::class, 'reuploadDocument'])->name('citizen.reservations.reupload');
     Route::post('/citizen/reservations/{id}/resubmit', [\App\Http\Controllers\Citizen\ReservationController::class, 'resubmit'])->name('citizen.reservations.resubmit');
+    // Reschedule (admin-rejected bookings — citizen picks new date/time)
+    Route::get('/citizen/reservations/{id}/reschedule', [\App\Http\Controllers\Citizen\ReservationController::class, 'rescheduleForm'])->name('citizen.booking.reschedule');
+    Route::post('/citizen/reservations/{id}/reschedule', [\App\Http\Controllers\Citizen\ReservationController::class, 'reschedule'])->name('citizen.booking.reschedule.submit');
 
     // Refunds - REMOVED (no refund policy)
     // Route::get('/citizen/refunds', [\App\Http\Controllers\Citizen\RefundController::class, 'index'])->name('citizen.refunds.index');

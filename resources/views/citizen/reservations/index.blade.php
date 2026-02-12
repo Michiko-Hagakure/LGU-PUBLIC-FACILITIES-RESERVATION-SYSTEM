@@ -110,6 +110,7 @@
                         'completed' => ['bg' => 'bg-blue-100', 'text' => 'text-blue-800', 'border' => 'border-blue-300', 'label' => 'Completed'],
                         'cancelled' => ['bg' => 'bg-gray-100', 'text' => 'text-gray-800', 'border' => 'border-gray-300', 'label' => 'Cancelled'],
                         'rejected' => ['bg' => 'bg-red-100', 'text' => 'text-red-800', 'border' => 'border-red-300', 'label' => 'Rejected'],
+                        'admin_rejected' => ['bg' => 'bg-orange-100', 'text' => 'text-orange-800', 'border' => 'border-orange-300', 'label' => 'Action Required'],
                         'expired' => ['bg' => 'bg-gray-100', 'text' => 'text-gray-700', 'border' => 'border-gray-300', 'label' => 'Expired'],
                         default => ['bg' => 'bg-gray-100', 'text' => 'text-gray-800', 'border' => 'border-gray-300', 'label' => ucfirst($booking->status)]
                     };
@@ -367,6 +368,7 @@ const statusBadgeConfig = {
     'completed': { bg: 'bg-blue-100', text: 'text-blue-800', border: 'border-blue-300', label: 'Completed' },
     'cancelled': { bg: 'bg-gray-100', text: 'text-gray-800', border: 'border-gray-300', label: 'Cancelled' },
     'rejected': { bg: 'bg-red-100', text: 'text-red-800', border: 'border-red-300', label: 'Rejected' },
+    'admin_rejected': { bg: 'bg-orange-100', text: 'text-orange-800', border: 'border-orange-300', label: 'Action Required' },
     'expired': { bg: 'bg-gray-100', text: 'text-gray-700', border: 'border-gray-300', label: 'Expired' }
 };
 

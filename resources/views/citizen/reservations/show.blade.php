@@ -92,6 +92,14 @@
                 'label' => 'Rejected',
                 'message' => 'Unfortunately, this booking was rejected.'
             ],
+            'admin_rejected' => [
+                'bg' => 'bg-orange-50',
+                'border' => 'border-orange-500',
+                'text' => 'text-orange-800',
+                'icon' => 'text-orange-500',
+                'label' => 'Admin Rejected',
+                'message' => 'The admin has rejected this booking. Please review the reason below and choose to reschedule or cancel.'
+            ],
             default => [
                 'bg' => 'bg-gray-50',
                 'border' => 'border-gray-500',
@@ -509,10 +517,16 @@
             </div>
 
             <!-- Rejection/Cancellation Reason -->
-            @if(in_array($booking->status, ['rejected', 'cancelled']) && $booking->rejected_reason)
-                <div class="bg-red-50 border border-red-200 rounded-lg p-6">
-                    <h3 class="text-lg font-bold text-red-800 mb-2">
-                        {{ $booking->status === 'rejected' ? 'Rejection Reason' : 'Cancellation Reason' }}
+            @if(in_array($booking->status, ['rejected', 'cancelled', 'admin_rejected']) && ($booking->rejected_reason || $booking->canceled_reason))
+                <div class="{{ $booking->status === 'admin_rejected' ? 'bg-orange-50 border border-orange-200' : 'bg-red-50 border border-red-200' }} rounded-lg p-6">
+                    <h3 class="text-lg font-bold {{ $booking->status === 'admin_rejected' ? 'text-orange-800' : 'text-red-800' }} mb-2">
+                        @if($booking->status === 'admin_rejected')
+                            Admin Rejection Reason
+                        @elseif($booking->status === 'rejected')
+                            Rejection Reason
+                        @else
+                            Cancellation Reason
+                        @endif
                     </h3>
 
                     @if($booking->status === 'rejected' && $booking->rejection_type)
@@ -530,9 +544,27 @@
                         </div>
                     @endif
 
-                    <p class="text-red-700">{{ $booking->rejected_reason }}</p>
+                    <p class="{{ $booking->status === 'admin_rejected' ? 'text-orange-700' : 'text-red-700' }}">{{ $booking->rejected_reason ?? $booking->canceled_reason }}</p>
 
-                    @if($booking->status === 'rejected' && $booking->rejection_type)
+                    @if($booking->status === 'admin_rejected')
+                        <div class="mt-4 p-4 bg-white border border-orange-200 rounded-lg">
+                            <h4 class="text-sm font-bold text-gray-900 mb-2">What would you like to do?</h4>
+                            <p class="text-sm text-gray-600 mb-4">You can reschedule this booking to a new date/time, or cancel it. <strong>Payments are non-refundable.</strong></p>
+                            <div class="space-y-3">
+                                <a href="{{ URL::signedRoute('citizen.booking.reschedule', $booking->id) }}"
+                                   class="w-full px-4 py-3 bg-blue-600 text-white text-center font-bold rounded-lg hover:bg-blue-700 transition shadow-md flex items-center justify-center gap-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                                    Reschedule Booking
+                                </a>
+                                <button type="button" onclick="cancelBooking({{ $booking->id }})"
+                                        class="w-full px-4 py-3 bg-red-100 text-red-700 text-center font-bold rounded-lg hover:bg-red-200 transition flex items-center justify-center gap-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                                    Cancel Booking (No Refund)
+                                </button>
+                                <p class="text-xs text-red-600 text-center"><strong>Note:</strong> Payments are non-refundable per policy.</p>
+                            </div>
+                        </div>
+                    @elseif($booking->status === 'rejected' && $booking->rejection_type)
                         <div class="mt-4 p-4 bg-white border border-red-200 rounded-lg">
                             <h4 class="text-sm font-bold text-gray-900 mb-3">Fix & Resubmit</h4>
 
@@ -714,7 +746,7 @@
                         </a>
                     @endif
 
-                    @if(in_array($booking->status, ['pending', 'staff_verified', 'payment_pending', 'paid']))
+                    @if(in_array($booking->status, ['pending', 'staff_verified', 'payment_pending', 'paid', 'admin_rejected']))
                         <button type="button" onclick="cancelBooking({{ $booking->id }})"
                                 class="block w-full px-4 py-3 bg-red-100 text-red-700 text-center font-semibold rounded-lg hover:bg-red-200 transition">
                             Cancel Booking
@@ -764,6 +796,7 @@
                                     'completed' => 'bg-blue-500',
                                     'cancelled' => 'bg-gray-500',
                                     'rejected' => 'bg-red-500',
+                                    'admin_rejected' => 'bg-orange-500',
                                     default => 'bg-gray-500'
                                 };
                             @endphp

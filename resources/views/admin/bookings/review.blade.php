@@ -45,6 +45,7 @@
                         'paid' => ['bg' => 'bg-green-500', 'text' => 'Payment Verified', 'icon' => 'check-circle'],
                         'confirmed' => ['bg' => 'bg-purple-500', 'text' => 'Confirmed', 'icon' => 'badge-check'],
                         'rejected' => ['bg' => 'bg-red-500', 'text' => 'Rejected', 'icon' => 'x-circle'],
+                        'admin_rejected' => ['bg' => 'bg-orange-500', 'text' => 'Admin Rejected', 'icon' => 'alert-triangle'],
                         'cancelled' => ['bg' => 'bg-gray-500', 'text' => 'Cancelled', 'icon' => 'ban'],
                     ];
                     $status = $statusConfig[$booking->status] ?? ['bg' => 'bg-gray-500', 'text' => $booking->status, 'icon' => 'help-circle'];
@@ -432,14 +433,14 @@
     </div>
 </div>
 
-<!-- Reject Booking Modal (for paid/confirmed bookings - NO refund per policy) -->
+<!-- Reject Booking Modal — citizen decides to reschedule or cancel (no refund) -->
 <div id="rejectBookingModal" class="hidden fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl max-w-md w-full p-gr-lg">
         <h3 class="text-h3 font-bold text-red-600 mb-gr-sm">Reject Booking</h3>
-        <div class="bg-red-50 border border-red-200 rounded-lg p-gr-sm mb-gr-md">
-            <p class="text-small text-red-800">
-                <i data-lucide="alert-triangle" class="w-4 h-4 inline-block mr-1"></i>
-                <strong>This booking has been paid (₱{{ number_format($booking->amount_paid, 2) }}).</strong> Per the no-refund policy, payments are non-refundable. Only reject if there is a serious issue.
+        <div class="bg-orange-50 border border-orange-200 rounded-lg p-gr-sm mb-gr-md">
+            <p class="text-small text-orange-800">
+                <i data-lucide="info" class="w-4 h-4 inline-block mr-1"></i>
+                The citizen will be notified with your reason. They can choose to <strong>reschedule</strong> to a new date or <strong>cancel</strong> the booking. <strong>Payments are non-refundable.</strong>
             </p>
         </div>
         <form method="POST" action="{{ URL::signedRoute('admin.bookings.reject-booking', $booking->id) }}">
