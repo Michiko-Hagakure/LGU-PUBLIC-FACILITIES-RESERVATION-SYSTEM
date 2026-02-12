@@ -632,6 +632,12 @@ class FacilityReservationApiController extends Controller
                     'bookings.applicant_email',
                     'bookings.rejected_reason',
                     'bookings.created_at',
+                    'bookings.payment_tier',
+                    'bookings.payment_method',
+                    'bookings.down_payment_amount',
+                    'bookings.amount_paid',
+                    'bookings.amount_remaining',
+                    'bookings.down_payment_paid_at',
                     'facilities.name as facility_name'
                 )
                 ->orderBy('bookings.created_at', 'desc')
@@ -639,6 +645,14 @@ class FacilityReservationApiController extends Controller
                 ->get();
 
             $data = $bookings->map(function ($booking) {
+                // Calculate amount due: for awaiting_payment, it's the down payment; otherwise remaining balance
+                $amountDue = $booking->total_amount;
+                if ($booking->status === 'awaiting_payment' && $booking->down_payment_amount > 0) {
+                    $amountDue = $booking->down_payment_amount;
+                } elseif ($booking->amount_remaining > 0 && $booking->down_payment_paid_at) {
+                    $amountDue = $booking->amount_remaining;
+                }
+
                 return [
                     'booking_reference' => 'BK' . str_pad($booking->id, 6, '0', STR_PAD_LEFT),
                     'facility_name' => $booking->facility_name,
@@ -646,6 +660,13 @@ class FacilityReservationApiController extends Controller
                     'start_time' => Carbon::parse($booking->start_time)->format('Y-m-d h:i A'),
                     'end_time' => Carbon::parse($booking->end_time)->format('Y-m-d h:i A'),
                     'total_amount' => number_format($booking->total_amount, 2),
+                    'amount_due' => number_format($amountDue, 2),
+                    'payment_tier' => $booking->payment_tier,
+                    'payment_method' => $booking->payment_method,
+                    'down_payment_amount' => $booking->down_payment_amount ? number_format($booking->down_payment_amount, 2) : null,
+                    'amount_paid' => number_format($booking->amount_paid ?? 0, 2),
+                    'amount_remaining' => $booking->amount_remaining ? number_format($booking->amount_remaining, 2) : null,
+                    'down_payment_paid' => !is_null($booking->down_payment_paid_at),
                     'applicant_name' => $booking->applicant_name,
                     'applicant_email' => $booking->applicant_email,
                     'rejected_reason' => $booking->rejected_reason,
@@ -850,6 +871,71 @@ class FacilityReservationApiController extends Controller
                 'status' => 'error',
                 'message' => 'An error occurred processing payment.',
             ], 500);
+        }
+    }
+
+    /**
+     * Promote a booking from awaiting_payment to pending after cashless payment.
+     * Used by the PF payment-success page when the PayMongo checkout ID is not in session.
+     * The PayMongo webhook should have already confirmed payment; this just ensures the status is updated.
+     */
+    public function promoteAfterPayment(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'booking_reference' => 'required|string|max:20',
+                'payment_method' => 'nullable|string|in:cash,cashless',
+                'source_system' => 'nullable|string|max:100',
+            ]);
+
+            $bookingId = (int) preg_replace('/[^0-9]/', '', $validated['booking_reference']);
+            $booking = Booking::find($bookingId);
+
+            if (!$booking) {
+                return response()->json(['status' => 'error', 'message' => 'Booking not found.'], 404);
+            }
+
+            // Only promote if currently awaiting_payment
+            if ($booking->status !== 'awaiting_payment') {
+                return response()->json([
+                    'status' => 'success',
+                    'message' => 'Booking already promoted.',
+                    'data' => [
+                        'booking_reference' => $validated['booking_reference'],
+                        'booking_status' => $booking->status,
+                    ]
+                ]);
+            }
+
+            // Promote to pending (staff review) and mark down payment as paid
+            $booking->update([
+                'status' => 'pending',
+                'amount_paid' => $booking->down_payment_amount,
+                'amount_remaining' => $booking->total_amount - $booking->down_payment_amount,
+                'down_payment_paid_at' => Carbon::now(),
+                'payment_method' => 'cashless',
+            ]);
+
+            Log::info('Booking promoted after cashless payment (fallback)', [
+                'booking_reference' => $validated['booking_reference'],
+                'booking_id' => $bookingId,
+                'source_system' => $validated['source_system'] ?? 'unknown',
+            ]);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Booking promoted to pending for staff review.',
+                'data' => [
+                    'booking_reference' => $validated['booking_reference'],
+                    'booking_status' => 'pending',
+                ]
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json(['status' => 'error', 'message' => 'Validation failed.', 'errors' => $e->errors()], 422);
+        } catch (\Exception $e) {
+            Log::error('Promote after payment API error: ' . $e->getMessage());
+            return response()->json(['status' => 'error', 'message' => 'An error occurred.'], 500);
         }
     }
 

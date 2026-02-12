@@ -96,6 +96,9 @@ Route::prefix('facility-reservation')->group(function () {
     // POST https://facilities.local-government-unit-1-ph.com/api/facility-reservation/payment-complete
     Route::post('/payment-complete', [\App\Http\Controllers\Api\FacilityReservationApiController::class, 'paymentComplete']);
     
+    // POST https://facilities.local-government-unit-1-ph.com/api/facility-reservation/promote-after-payment
+    Route::post('/promote-after-payment', [\App\Http\Controllers\Api\FacilityReservationApiController::class, 'promoteAfterPayment']);
+    
     // POST https://facilities.local-government-unit-1-ph.com/api/facility-reservation/submit-cashless-payment
     Route::post('/submit-cashless-payment', [\App\Http\Controllers\Api\FacilityReservationApiController::class, 'submitCashlessPayment']);
 
