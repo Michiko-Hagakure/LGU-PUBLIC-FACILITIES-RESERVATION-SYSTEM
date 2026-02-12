@@ -559,9 +559,7 @@ function confirmReject() {
                 <select id="swal_rejection_type" class="w-full px-3 py-2 border border-gray-300 rounded-lg mb-4 text-sm">
                     <option value="">Full Rejection (entire booking)</option>
                     <option value="id_issue">ID Issue - Re-upload valid ID</option>
-                    <option value="document_issue">Document Issue - Re-upload documents</option>
                     <option value="facility_issue">Facility Issue - Choose another facility</option>
-                    <option value="info_issue">Info Issue - Correct booking details</option>
                 </select>
                 <label class="block text-sm font-medium text-gray-700 mb-2">Rejection Reason <span class="text-red-500">*</span></label>
                 <textarea id="swal_rejection_reason" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" rows="4" placeholder="Explain what needs to be corrected..."></textarea>
