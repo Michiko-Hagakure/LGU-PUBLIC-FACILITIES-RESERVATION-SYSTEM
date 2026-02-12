@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
+use App\Models\PaymentSlip;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -75,6 +76,10 @@ class FacilityReservationApiController extends Controller
                 'valid_id_front' => 'nullable|string|max:500',
                 'valid_id_back' => 'nullable|string|max:500',
                 'valid_id_selfie' => 'nullable|string|max:500',
+                
+                // Payment fields (down payment system)
+                'payment_tier' => 'nullable|integer|in:25,50,75,100',
+                'payment_method' => 'nullable|string|in:cash,cashless',
                 
                 // Equipment (optional array)
                 'equipment' => 'nullable|array',
@@ -167,6 +172,19 @@ class FacilityReservationApiController extends Controller
             $totalDiscount = $residentDiscountAmount + $specialDiscountAmount;
             $totalAmount = $pricing['subtotal'] - $totalDiscount;
 
+            // Calculate down payment if payment_tier is provided
+            $paymentTier = $validated['payment_tier'] ?? null;
+            $paymentMethod = $validated['payment_method'] ?? null;
+            $downPaymentAmount = 0;
+            $amountRemaining = $totalAmount;
+            $bookingStatus = 'pending'; // default for legacy API calls without payment fields
+
+            if ($paymentTier) {
+                $downPaymentAmount = Booking::calculateDownPayment($totalAmount, $paymentTier);
+                $amountRemaining = $totalAmount - $downPaymentAmount;
+                $bookingStatus = 'awaiting_payment'; // requires payment before staff review
+            }
+
             DB::connection('facilities_db')->beginTransaction();
 
             try {
@@ -199,11 +217,18 @@ class FacilityReservationApiController extends Controller
                     'special_discount_amount' => $specialDiscountAmount,
                     'total_discount' => $totalDiscount,
                     'total_amount' => $totalAmount,
-                    'status' => 'pending',
+                    'status' => $bookingStatus,
                     'valid_id_type' => $validated['valid_id_type'] ?? null,
                     'valid_id_front_path' => $validated['valid_id_front'] ?? null,
                     'valid_id_back_path' => $validated['valid_id_back'] ?? null,
                     'valid_id_selfie_path' => $validated['valid_id_selfie'] ?? null,
+                    // Down payment system fields
+                    'payment_tier' => $paymentTier,
+                    'down_payment_amount' => $downPaymentAmount,
+                    'amount_paid' => 0,
+                    'amount_remaining' => $totalAmount,
+                    'payment_method' => $paymentMethod,
+                    'down_payment_paid_at' => null,
                     'staff_notes' => 'Submitted via API from: ' . $validated['source_system'] . 
                                     ($validated['external_reference_id'] ? ' (Ref: ' . $validated['external_reference_id'] . ')' : ''),
                 ]);
@@ -233,17 +258,32 @@ class FacilityReservationApiController extends Controller
                     }
                 }
 
+                // For cash bookings with payment tier: create a payment slip for the treasurer
+                if ($paymentTier && $paymentMethod === 'cash') {
+                    PaymentSlip::create([
+                        'slip_number' => PaymentSlip::generateSlipNumber(),
+                        'booking_id' => $booking->id,
+                        'amount_due' => $downPaymentAmount,
+                        'payment_deadline' => now()->addDays(3),
+                        'status' => 'unpaid',
+                        'payment_method' => 'cash',
+                        'notes' => 'Down payment (' . $paymentTier . '%) — pay at City Treasurer\'s Office to submit booking for staff review. Source: ' . $validated['source_system'],
+                    ]);
+                }
+
                 DB::connection('facilities_db')->commit();
 
                 Log::info('Facility Reservation API: Booking created', [
                     'booking_id' => $bookingId,
                     'booking_reference' => $bookingReference,
                     'source_system' => $validated['source_system'],
+                    'payment_tier' => $paymentTier,
+                    'payment_method' => $paymentMethod,
                 ]);
 
                 return response()->json([
                     'status' => 'success',
-                    'message' => 'Reservation request received and pending approval.',
+                    'message' => $paymentTier ? 'Reservation created. Down payment required to submit for review.' : 'Reservation request received and pending approval.',
                     'data' => [
                         'booking_id' => $bookingId,
                         'booking_reference' => $bookingReference,
@@ -251,7 +291,10 @@ class FacilityReservationApiController extends Controller
                         'booking_date' => $validated['booking_date'],
                         'start_time' => $startDateTime->format('h:i A'),
                         'end_time' => $endDateTime->format('h:i A'),
-                        'status' => 'pending',
+                        'status' => $bookingStatus,
+                        'payment_tier' => $paymentTier,
+                        'payment_method' => $paymentMethod,
+                        'down_payment_amount' => $downPaymentAmount > 0 ? number_format($downPaymentAmount, 2) : null,
                         'pricing' => [
                             'base_rate' => number_format($pricing['base_rate'], 2),
                             'extension_rate' => number_format($pricing['extension_rate'], 2),
@@ -684,6 +727,9 @@ class FacilityReservationApiController extends Controller
 
     /**
      * Handle payment completion notification from external systems (e.g., pure PHP portal)
+     * 
+     * For cashless payments: marks down payment as paid, promotes to pending (staff review), skips treasurer
+     * For cash payments: goes through treasurer verification first
      */
     public function paymentComplete(Request $request)
     {
@@ -691,16 +737,14 @@ class FacilityReservationApiController extends Controller
             $validated = $request->validate([
                 'booking_reference' => 'required|string|max:20',
                 'paymongo_checkout_id' => 'required|string|max:100',
+                'payment_method' => 'nullable|string|in:cash,cashless',
                 'source_system' => 'nullable|string|max:100',
             ]);
 
             // Extract booking ID from reference (BK000001 -> 1)
             $bookingId = (int) preg_replace('/[^0-9]/', '', $validated['booking_reference']);
 
-            $booking = DB::connection('facilities_db')
-                ->table('bookings')
-                ->where('id', $bookingId)
-                ->first();
+            $booking = Booking::find($bookingId);
 
             if (!$booking) {
                 return response()->json([
@@ -709,17 +753,17 @@ class FacilityReservationApiController extends Controller
                 ], 404);
             }
 
-            // Get payment slip
-            $paymentSlip = DB::connection('facilities_db')
-                ->table('payment_slips')
-                ->where('booking_id', $bookingId)
-                ->first();
-
-            if (!$paymentSlip) {
+            // Already paid — skip
+            if ($booking->down_payment_paid_at) {
                 return response()->json([
-                    'status' => 'error',
-                    'message' => 'Payment slip not found.',
-                ], 404);
+                    'status' => 'success',
+                    'message' => 'Payment already confirmed.',
+                    'data' => [
+                        'booking_reference' => $validated['booking_reference'],
+                        'booking_status' => $booking->status,
+                        'payment_status' => 'paid',
+                    ]
+                ]);
             }
 
             // Verify payment with Paymongo
@@ -735,42 +779,61 @@ class FacilityReservationApiController extends Controller
 
             // Get payment details
             $paymentDetails = $paymongoService->getPaymentDetails($validated['paymongo_checkout_id']);
+            $isCashless = ($validated['payment_method'] ?? $booking->payment_method) === 'cashless';
 
-            // Update payment slip
-            DB::connection('facilities_db')
+            // Determine new status based on payment method:
+            // Cashless: awaiting_payment -> pending (for staff review, skip treasurer)
+            // Cash: handled via treasurer verification (not this endpoint)
+            $newStatus = $booking->status === 'awaiting_payment' ? 'pending' : $booking->status;
+
+            // Update booking with payment confirmation
+            $booking->update([
+                'status' => $newStatus,
+                'amount_paid' => $booking->down_payment_amount,
+                'amount_remaining' => $booking->total_amount - $booking->down_payment_amount,
+                'down_payment_paid_at' => Carbon::now(),
+                'paymongo_checkout_id' => $validated['paymongo_checkout_id'],
+                'paymongo_payment_id' => $paymentDetails['payment_id'] ?? null,
+                'payment_method' => 'cashless',
+                'updated_at' => Carbon::now(),
+            ]);
+
+            // Update or create payment slip record
+            $paymentSlip = DB::connection('facilities_db')
                 ->table('payment_slips')
-                ->where('id', $paymentSlip->id)
-                ->update([
-                    'status' => 'paid',
-                    'payment_method' => $paymentDetails['payment_method'] ?? 'paymongo',
-                    'payment_channel' => 'paymongo',
-                    'transaction_reference' => $paymentDetails['reference_number'] ?? $validated['paymongo_checkout_id'],
-                    'gateway_reference_number' => $paymentDetails['payment_id'] ?? $validated['paymongo_checkout_id'],
-                    'paymongo_checkout_id' => $validated['paymongo_checkout_id'],
-                    'paid_at' => now(),
-                    'updated_at' => now(),
-                ]);
+                ->where('booking_id', $bookingId)
+                ->first();
 
-            // Update booking status to confirmed
-            DB::connection('facilities_db')
-                ->table('bookings')
-                ->where('id', $bookingId)
-                ->update([
-                    'status' => 'confirmed',
-                    'updated_at' => now(),
-                ]);
+            if ($paymentSlip) {
+                DB::connection('facilities_db')
+                    ->table('payment_slips')
+                    ->where('id', $paymentSlip->id)
+                    ->update([
+                        'status' => 'paid',
+                        'payment_method' => $paymentDetails['payment_method'] ?? 'paymongo',
+                        'payment_channel' => 'paymongo',
+                        'transaction_reference' => $paymentDetails['reference_number'] ?? $validated['paymongo_checkout_id'],
+                        'gateway_reference_number' => $paymentDetails['payment_id'] ?? $validated['paymongo_checkout_id'],
+                        'paymongo_checkout_id' => $validated['paymongo_checkout_id'],
+                        'paid_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+            }
 
-            Log::info('Payment completed via API', [
+            Log::info('Payment completed via API (cashless — skip treasurer)', [
                 'booking_reference' => $validated['booking_reference'],
+                'booking_id' => $bookingId,
+                'new_status' => $newStatus,
+                'amount' => $booking->down_payment_amount,
                 'source_system' => $validated['source_system'] ?? 'unknown',
             ]);
 
             return response()->json([
                 'status' => 'success',
-                'message' => 'Payment confirmed successfully.',
+                'message' => 'Payment confirmed. Booking submitted for staff review.',
                 'data' => [
                     'booking_reference' => $validated['booking_reference'],
-                    'booking_status' => 'confirmed',
+                    'booking_status' => $newStatus,
                     'payment_status' => 'paid',
                 ]
             ]);
