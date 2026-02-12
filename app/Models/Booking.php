@@ -166,6 +166,14 @@ class Booking extends Model
     }
 
     /**
+     * Get all payment slips for this booking.
+     */
+    public function paymentSlips()
+    {
+        return $this->hasMany(PaymentSlip::class);
+    }
+
+    /**
      * Get the equipment items for this booking.
      */
     public function equipmentItems()
