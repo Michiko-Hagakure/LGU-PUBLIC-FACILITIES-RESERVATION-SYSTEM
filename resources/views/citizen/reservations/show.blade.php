@@ -538,29 +538,66 @@
 
                             @if(in_array($booking->rejection_type, ['id_issue', 'document_issue']))
                                 <p class="text-sm text-gray-600 mb-3">Please re-upload the required documents below, then click "Resubmit for Review".</p>
-                                <div class="flex flex-wrap gap-2 mb-4">
+                                <div class="space-y-3 mb-4">
                                     @if($booking->rejection_type === 'id_issue')
-                                        <button type="button" onclick="openReuploadModal('valid_id_front')"
-                                                class="inline-flex items-center px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                                            Re-upload ID Front
-                                        </button>
-                                        <button type="button" onclick="openReuploadModal('valid_id_back')"
-                                                class="inline-flex items-center px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                                            Re-upload ID Back
-                                        </button>
-                                        <button type="button" onclick="openReuploadModal('valid_id_selfie')"
-                                                class="inline-flex items-center px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                                            Re-upload Selfie
-                                        </button>
+                                        @php
+                                            $idDocs = [
+                                                ['field' => 'valid_id_front', 'label' => 'ID Front', 'path' => $booking->valid_id_front_path],
+                                                ['field' => 'valid_id_back', 'label' => 'ID Back', 'path' => $booking->valid_id_back_path],
+                                                ['field' => 'valid_id_selfie', 'label' => 'Selfie', 'path' => $booking->valid_id_selfie_path],
+                                            ];
+                                        @endphp
+                                        @foreach($idDocs as $doc)
+                                            <div class="flex items-center gap-3 p-2 border border-gray-200 rounded-lg bg-gray-50">
+                                                @if($doc['path'])
+                                                    <a href="{{ url('/files/' . $doc['path']) }}" target="_blank" class="flex-shrink-0">
+                                                        <img src="{{ url('/files/' . $doc['path']) }}" alt="{{ $doc['label'] }}" class="w-16 h-16 object-cover rounded-md border border-gray-300 hover:opacity-80 transition">
+                                                    </a>
+                                                    <div class="flex-1 min-w-0">
+                                                        <p class="text-sm font-medium text-gray-900">{{ $doc['label'] }}</p>
+                                                        <p class="text-xs text-green-600 font-semibold">Uploaded</p>
+                                                    </div>
+                                                @else
+                                                    <div class="w-16 h-16 flex-shrink-0 bg-gray-200 rounded-md flex items-center justify-center">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+                                                    </div>
+                                                    <div class="flex-1 min-w-0">
+                                                        <p class="text-sm font-medium text-gray-900">{{ $doc['label'] }}</p>
+                                                        <p class="text-xs text-red-500 font-semibold">Not uploaded</p>
+                                                    </div>
+                                                @endif
+                                                <button type="button" onclick="openReuploadModal('{{ $doc['field'] }}')"
+                                                        class="flex-shrink-0 inline-flex items-center px-3 py-2 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-1"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                                    Re-upload
+                                                </button>
+                                            </div>
+                                        @endforeach
                                     @else
-                                        <button type="button" onclick="openReuploadModal('supporting_doc')"
-                                                class="inline-flex items-center px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                                            Re-upload Document
-                                        </button>
+                                        <div class="flex items-center gap-3 p-2 border border-gray-200 rounded-lg bg-gray-50">
+                                            @if($booking->supporting_doc_path)
+                                                <a href="{{ url('/files/' . $booking->supporting_doc_path) }}" target="_blank" class="flex-shrink-0">
+                                                    <img src="{{ url('/files/' . $booking->supporting_doc_path) }}" alt="Document" class="w-16 h-16 object-cover rounded-md border border-gray-300 hover:opacity-80 transition">
+                                                </a>
+                                                <div class="flex-1 min-w-0">
+                                                    <p class="text-sm font-medium text-gray-900">Supporting Document</p>
+                                                    <p class="text-xs text-green-600 font-semibold">Uploaded</p>
+                                                </div>
+                                            @else
+                                                <div class="w-16 h-16 flex-shrink-0 bg-gray-200 rounded-md flex items-center justify-center">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+                                                </div>
+                                                <div class="flex-1 min-w-0">
+                                                    <p class="text-sm font-medium text-gray-900">Supporting Document</p>
+                                                    <p class="text-xs text-red-500 font-semibold">Not uploaded</p>
+                                                </div>
+                                            @endif
+                                            <button type="button" onclick="openReuploadModal('supporting_doc')"
+                                                    class="flex-shrink-0 inline-flex items-center px-3 py-2 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-1"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                                Re-upload
+                                            </button>
+                                        </div>
                                     @endif
                                 </div>
                             @else
