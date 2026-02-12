@@ -60,6 +60,28 @@
         <form action="{{ route('citizen.booking.reschedule.submit', $booking->id) }}" method="POST" id="rescheduleForm">
             @csrf
 
+            <!-- Facility Selection -->
+            <div class="mb-6">
+                <label for="facility_id" class="block text-sm font-medium text-gray-700 mb-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-building inline-block mr-1">
+                        <rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/>
+                    </svg>
+                    Facility <span class="text-red-500">*</span>
+                </label>
+                <select name="facility_id" id="facility_id" required
+                        class="block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-lgu-button focus:border-lgu-button bg-white transition text-gray-900">
+                    @foreach($facilities as $facility)
+                        <option value="{{ $facility->facility_id }}" {{ (old('facility_id', $booking->facility_id) == $facility->facility_id) ? 'selected' : '' }}>
+                            {{ $facility->name }}
+                        </option>
+                    @endforeach
+                </select>
+                <p class="mt-1 text-xs text-gray-500">You may choose a different facility if needed.</p>
+                @error('facility_id')
+                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                @enderror
+            </div>
+
             <!-- Date Selection -->
             <div class="mb-6">
                 <label for="booking_date_display" class="block text-sm font-medium text-gray-700 mb-2">
@@ -308,7 +330,7 @@
 
             <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-6">
                 <p class="text-sm text-yellow-800">
-                    <strong>Note:</strong> Your booking will go through staff verification again after rescheduling. Your existing payment will be retained — no additional charges unless the duration changes.
+                    <strong>Note:</strong> Your booking will go through staff verification again after rescheduling. You may also select a different facility. Your existing payment will be retained — no additional charges unless the duration changes.
                 </p>
             </div>
 
@@ -350,7 +372,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentDate = new Date();
     let selectedDate = null;
     const minDate = new Date();
-    minDate.setDate(minDate.getDate() + 1); // Minimum tomorrow for reschedule
+    minDate.setDate(minDate.getDate() + 7); // Minimum 7 days advance
     minDate.setHours(0, 0, 0, 0);
 
     // Open Calendar Modal

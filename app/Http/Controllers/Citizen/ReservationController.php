@@ -492,7 +492,14 @@ class ReservationController extends Controller
             return redirect()->route('citizen.reservations')->with('error', 'Booking not found or cannot be rescheduled.');
         }
 
-        return view('citizen.reservations.reschedule', compact('booking'));
+        // Get all facilities for dropdown (allow facility change)
+        $facilities = DB::connection('facilities_db')
+            ->table('facilities')
+            ->whereNull('deleted_at')
+            ->orderBy('name')
+            ->get();
+
+        return view('citizen.reservations.reschedule', compact('booking', 'facilities'));
     }
 
     /**
@@ -517,18 +524,30 @@ class ReservationController extends Controller
         }
 
         $validated = $request->validate([
+            'facility_id' => 'required|integer',
             'booking_date' => 'required|date|after:today',
             'start_time' => 'required|date_format:H:i',
             'end_time' => 'required|date_format:H:i|after:start_time',
         ]);
 
+        // Verify the selected facility exists
+        $facilityExists = DB::connection('facilities_db')
+            ->table('facilities')
+            ->where('facility_id', $validated['facility_id'])
+            ->whereNull('deleted_at')
+            ->exists();
+
+        if (!$facilityExists) {
+            return back()->withInput()->with('error', 'Selected facility not found.');
+        }
+
         $newStart = Carbon::parse($validated['booking_date'] . ' ' . $validated['start_time']);
         $newEnd = Carbon::parse($validated['booking_date'] . ' ' . $validated['end_time']);
 
-        // Check for schedule conflicts
+        // Check for schedule conflicts on the selected facility
         $conflict = DB::connection('facilities_db')
             ->table('bookings')
-            ->where('facility_id', $booking->facility_id)
+            ->where('facility_id', $validated['facility_id'])
             ->where('id', '!=', $id)
             ->whereNotIn('status', ['cancelled', 'canceled', 'rejected', 'expired', 'admin_rejected'])
             ->where(function ($q) use ($newStart, $newEnd) {
@@ -547,6 +566,7 @@ class ReservationController extends Controller
             ->table('bookings')
             ->where('id', $id)
             ->update([
+                'facility_id' => $validated['facility_id'],
                 'start_time' => $newStart,
                 'end_time' => $newEnd,
                 'status' => 'pending',
