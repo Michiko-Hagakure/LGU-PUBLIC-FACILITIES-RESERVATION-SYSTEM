@@ -162,6 +162,9 @@
             border-radius: 2.5rem;
         }
         .facility-card:hover img { transform: scale(1.1); }
+        /* Constrain Lucide SVG icons to their parent containers */
+        [data-lucide] { width: 1.5rem; height: 1.5rem; }
+        #contact .h-14 svg, #contact [class*="h-14"] svg { width: 1.5rem; height: 1.5rem; }
         .contact-input {
             background: rgba(255, 255, 255, 0.05);
             border: 1px solid rgba(255, 255, 255, 0.1);

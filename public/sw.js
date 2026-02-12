@@ -4,7 +4,7 @@
  * Strategy: Cache-first for static assets, Network-first for API/pages.
  */
 
-const CACHE_VERSION = 'lgu1-pfrs-v3';
+const CACHE_VERSION = 'lgu1-pfrs-v4';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
 const API_CACHE = `${CACHE_VERSION}-api`;
@@ -39,7 +39,10 @@ const CDN_PRECACHE = [
     'https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css',
     'https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js',
     'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css',
+    'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/fonts/bootstrap-icons.woff2',
+    'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/fonts/bootstrap-icons.woff',
     'https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap',
+    'https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Merriweather:wght@700&display=swap',
     'https://fonts.bunny.net/css?family=instrument-sans:400,500,600,700',
 ];
 
