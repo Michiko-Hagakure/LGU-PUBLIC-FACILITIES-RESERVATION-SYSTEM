@@ -133,13 +133,39 @@ Route::prefix('housing-resettlement')->group(function () {
 |--------------------------------------------------------------------------
 | Energy Efficiency and Conservation Management API
 |--------------------------------------------------------------------------
-| API endpoint for Energy Efficiency system to submit fund requests
-| for facility-related expenses (seminars, orientations, etc.)
+| API endpoints for Energy Efficiency system to request facilities
+| for seminars, orientations, trainings, workshops, etc.
 |
-| Base URL: https://local-government-unit-1-ph.com/api/energy-efficiency
+| Base URL: https://facilities.local-government-unit-1-ph.com/api/energy-efficiency
+|
+| Available Endpoints:
+| POST /api/energy-efficiency/facility-request          - Submit a new facility request
+| GET  /api/energy-efficiency/facility-request          - List all requests (filter: ?seminar_id=&status=&user_id=)
+| GET  /api/energy-efficiency/facility-request/{id}     - Get specific request details & status
+| GET  /api/energy-efficiency/facilities                - List available facilities
+|
+| Legacy Endpoints (backward compatible):
+| POST /api/energy-efficiency/receive-funds             - Submit fund request (old format)
+| GET  /api/energy-efficiency/status/{id}               - Check fund request status (old format)
 */
 Route::prefix('energy-efficiency')->group(function () {
-    // POST - Receive fund request from Energy Efficiency system
+    // === New Facility Request Endpoints ===
+    
+    // POST - Submit a new facility request
+    Route::post('/facility-request', [\App\Http\Controllers\Api\EnergyFacilityRequestApiController::class, 'store']);
+    
+    // GET - List all facility requests (filter by seminar_id, status, user_id)
+    Route::get('/facility-request', [\App\Http\Controllers\Api\EnergyFacilityRequestApiController::class, 'index']);
+    
+    // GET - Get specific facility request details & status
+    Route::get('/facility-request/{id}', [\App\Http\Controllers\Api\EnergyFacilityRequestApiController::class, 'show']);
+    
+    // GET - List available facilities
+    Route::get('/facilities', [\App\Http\Controllers\Api\EnergyFacilityRequestApiController::class, 'listFacilities']);
+
+    // === Legacy Fund Request Endpoints (backward compatible) ===
+    
+    // POST - Receive fund request from Energy Efficiency system (old format)
     Route::post('/receive-funds', function (Request $request) {
         $newRequest = \App\Models\FundRequest::create([
             'requester_name' => $request->requester_name,
@@ -163,7 +189,7 @@ Route::prefix('energy-efficiency')->group(function () {
         return response()->json(['status' => 'error', 'message' => 'Failed to create fund request'], 500);
     });
 
-    // GET - Check fund request status
+    // GET - Check fund request status (old format)
     Route::get('/status/{id}', function ($id) {
         $request = \App\Models\FundRequest::find($id);
 
