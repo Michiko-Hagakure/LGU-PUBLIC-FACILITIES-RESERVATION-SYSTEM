@@ -1460,6 +1460,13 @@ document.addEventListener('DOMContentLoaded', function() {
         pricingBreakdown.style.display = 'block';
     }
     
+    // Prevent mouse scroll from changing number input values (common UX bug)
+    document.querySelectorAll('input[type="number"]').forEach(function(input) {
+        input.addEventListener('wheel', function(e) {
+            e.preventDefault();
+        }, { passive: false });
+    });
+
     // Add event listeners for real-time calculation
     if (startTimeInput && endTimeInput && expectedAttendeesInput) {
         startTimeInput.addEventListener('change', calculateRealTimePricing);
