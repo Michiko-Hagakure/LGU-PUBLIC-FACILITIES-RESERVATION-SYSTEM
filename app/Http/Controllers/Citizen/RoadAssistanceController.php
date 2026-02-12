@@ -96,7 +96,7 @@ class RoadAssistanceController extends Controller
 
         if ($result['success']) {
             // Optionally store a local reference
-            DB::connection('auth_db')->table('citizen_road_requests')->insert([
+            DB::connection('facilities_db')->table('citizen_road_requests')->insert([
                 'user_id' => $userId,
                 'external_request_id' => $result['request_id'],
                 'event_type' => $validated['event_type'],

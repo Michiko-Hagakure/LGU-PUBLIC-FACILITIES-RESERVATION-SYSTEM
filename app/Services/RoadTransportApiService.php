@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -9,6 +10,18 @@ class RoadTransportApiService
 {
     protected string $apiUrl;
     protected int $timeout;
+
+    /**
+     * Map internal event_type keys to human-readable labels for the external API
+     */
+    protected array $eventTypeLabels = [
+        'traffic_management' => 'Traffic Management',
+        'road_closure' => 'Temporary Road Closure',
+        'escort' => 'Vehicle Escort Service',
+        'signage' => 'Traffic Signage & Cones',
+        'personnel' => 'Traffic Personnel Deployment',
+        'rerouting' => 'Traffic Rerouting Plan',
+    ];
 
     public function __construct()
     {
@@ -22,12 +35,13 @@ class RoadTransportApiService
     public function createRequest(array $data): array
     {
         try {
+            // Map snake_case event_type to human-readable label for external API
+            $eventType = $this->eventTypeLabels[$data['event_type']] ?? $data['event_type'];
+
             $payload = [
                 'user_id' => $data['user_id'],
-                'external_system' => 'PFRS',
-                'external_user_id' => $data['user_id'],
                 'system_name' => 'Public Facility Reservation System',
-                'event_type' => $data['event_type'],
+                'event_type' => $eventType,
                 'start_date' => $data['start_date'],
                 'end_date' => $data['end_date'],
                 'location' => $data['location'],
@@ -108,6 +122,50 @@ class RoadTransportApiService
                 'data' => []
             ];
         }
+    }
+
+    /**
+     * Retry syncing pending_sync records to the Road & Transportation system
+     */
+    public function retrySyncPending(): array
+    {
+        $pending = DB::connection('facilities_db')
+            ->table('citizen_road_requests')
+            ->where('status', 'pending_sync')
+            ->get();
+
+        $synced = 0;
+        $failed = 0;
+
+        foreach ($pending as $record) {
+            $result = $this->createRequest([
+                'user_id' => $record->user_id,
+                'event_type' => $record->event_type,
+                'start_date' => $record->start_datetime,
+                'end_date' => $record->end_datetime,
+                'location' => $record->location,
+                'landmark' => $record->landmark,
+                'description' => $record->description,
+            ]);
+
+            if ($result['success']) {
+                DB::connection('facilities_db')
+                    ->table('citizen_road_requests')
+                    ->where('id', $record->id)
+                    ->update([
+                        'external_request_id' => $result['request_id'],
+                        'status' => 'pending',
+                        'remarks' => null,
+                        'updated_at' => now(),
+                    ]);
+                $synced++;
+            } else {
+                $failed++;
+            }
+        }
+
+        Log::info('Road assistance retry sync completed', ['synced' => $synced, 'failed' => $failed]);
+        return ['synced' => $synced, 'failed' => $failed, 'total' => $pending->count()];
     }
 
     /**

@@ -150,11 +150,20 @@
     {{-- Outgoing Requests Sent to Road & Transportation --}}
     @if(isset($outgoingRequests) && count($outgoingRequests) > 0)
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div class="bg-gradient-to-r from-green-600 to-green-700 px-gr-md py-gr-sm">
+        <div class="bg-gradient-to-r from-green-600 to-green-700 px-gr-md py-gr-sm flex items-center justify-between">
             <h3 class="text-white font-semibold flex items-center gap-2">
                 <i data-lucide="send" class="w-5 h-5"></i>
                 Outgoing Requests (Sent to Road & Transportation)
             </h3>
+            @if($outgoingRequests->where('status', 'pending_sync')->count() > 0)
+            <form action="{{ route('admin.road-assistance.retry-sync') }}" method="POST" class="inline">
+                @csrf
+                <button type="submit" class="px-3 py-1.5 bg-white text-green-700 text-small font-semibold rounded-lg hover:bg-green-50 transition-colors flex items-center gap-1">
+                    <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                    Retry Sync ({{ $outgoingRequests->where('status', 'pending_sync')->count() }})
+                </button>
+            </form>
+            @endif
         </div>
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200">

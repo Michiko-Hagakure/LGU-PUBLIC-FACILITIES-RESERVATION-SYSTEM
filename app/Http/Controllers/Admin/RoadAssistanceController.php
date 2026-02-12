@@ -140,6 +140,27 @@ class RoadAssistanceController extends Controller
     }
 
     /**
+     * Retry syncing pending_sync records to the Road & Transportation system
+     */
+    public function retrySync()
+    {
+        $result = $this->roadApi->retrySyncPending();
+
+        if ($result['total'] === 0) {
+            return redirect()->route('admin.road-assistance.index')
+                ->with('success', 'No pending sync records to retry.');
+        }
+
+        if ($result['synced'] > 0) {
+            return redirect()->route('admin.road-assistance.index')
+                ->with('success', "Successfully synced {$result['synced']} out of {$result['total']} pending requests.");
+        }
+
+        return redirect()->route('admin.road-assistance.index')
+            ->with('error', "Failed to sync {$result['failed']} pending requests. The Road & Transportation system may still be unavailable.");
+    }
+
+    /**
      * Return road assistance requests as JSON for AJAX polling
      */
     public function getRequestsJson()
