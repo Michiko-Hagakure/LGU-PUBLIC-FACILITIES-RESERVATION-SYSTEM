@@ -256,8 +256,13 @@ class BookingManagementController extends Controller
 
         $booking = Booking::findOrFail($bookingId);
 
-        // Verify booking is in correct status (paid = full payment verified, staff_verified with full payment also OK)
-        if (!in_array($booking->status, ['paid', 'staff_verified'])) {
+        // Enforce payment flow: admin can only confirm bookings with 'paid' status
+        // Cash bookings must go through treasurer first (staff_verified → treasurer verifies → paid)
+        // Cashless bookings go through PayMongo (staff_verified → PayMongo confirms → paid)
+        if ($booking->status !== 'paid') {
+            if ($booking->status === 'staff_verified') {
+                return back()->with('error', 'Payment has not been verified yet. Cash bookings must be paid at the Treasurer\'s Office first. Cashless bookings must complete payment via PayMongo.');
+            }
             return back()->with('error', 'Booking must be paid and verified before final confirmation.');
         }
         

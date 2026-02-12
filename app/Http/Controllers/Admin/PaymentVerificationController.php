@@ -117,7 +117,12 @@ class PaymentVerificationController extends Controller
             return back()->with('error', 'Booking is not awaiting payment verification.');
         }
 
-        // Update booking status
+        // Cash bookings must go through the treasurer — admin cannot bypass
+        if ($booking->payment_method === 'cash') {
+            return back()->with('error', 'Cash bookings must be paid and verified by the Treasurer first. Please direct the citizen to the City Treasurer\'s Office.');
+        }
+
+        // Update booking status (only cashless/PayMongo bookings reach here)
         $booking->status = 'paid';
         
         // Add admin notes if provided
