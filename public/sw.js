@@ -4,7 +4,7 @@
  * Strategy: Cache-first for static assets, Network-first for API/pages.
  */
 
-const CACHE_VERSION = 'lgu1-pfrs-v2';
+const CACHE_VERSION = 'lgu1-pfrs-v3';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
 const API_CACHE = `${CACHE_VERSION}-api`;
@@ -27,6 +27,20 @@ const CDN_DOMAINS = [
     'fonts.googleapis.com',
     'fonts.gstatic.com',
     'fonts.bunny.net',
+];
+
+// Critical CDN URLs to precache during install
+const CDN_PRECACHE = [
+    'https://cdn.tailwindcss.com',
+    'https://unpkg.com/lucide@latest',
+    'https://cdn.jsdelivr.net/npm/sweetalert2@11',
+    'https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js',
+    'https://cdn.jsdelivr.net/npm/apexcharts@3.45.0/dist/apexcharts.min.js',
+    'https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css',
+    'https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js',
+    'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css',
+    'https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap',
+    'https://fonts.bunny.net/css?family=instrument-sans:400,500,600,700',
 ];
 
 // URL patterns that should use network-first strategy
@@ -70,16 +84,40 @@ const CACHEABLE_API_PATTERNS = [
 self.addEventListener('install', (event) => {
     console.log('[SW] Installing Service Worker...');
     event.waitUntil(
-        caches.open(STATIC_CACHE)
-            .then((cache) => {
-                console.log('[SW] Pre-caching static assets');
-                return cache.addAll(PRECACHE_ASSETS).catch((err) => {
-                    console.warn('[SW] Some precache assets failed:', err);
-                    // Don't fail install if some assets aren't available yet
-                    return Promise.resolve();
-                });
-            })
-            .then(() => self.skipWaiting())
+        Promise.all([
+            caches.open(STATIC_CACHE)
+                .then((cache) => {
+                    console.log('[SW] Pre-caching static assets');
+                    return cache.addAll(PRECACHE_ASSETS).catch((err) => {
+                        console.warn('[SW] Some precache assets failed:', err);
+                        return Promise.resolve();
+                    });
+                }),
+            caches.open(CDN_CACHE)
+                .then((cache) => {
+                    console.log('[SW] Pre-caching CDN resources');
+                    // Cache each CDN resource individually so one failure doesn't block others
+                    // Also cache the final redirected URL so both original and redirected URLs are cached
+                    return Promise.all(
+                        CDN_PRECACHE.map((url) =>
+                            fetch(url, { mode: 'cors', redirect: 'follow' })
+                                .then((response) => {
+                                    if (response.ok) {
+                                        var promises = [cache.put(url, response.clone())];
+                                        // Also cache the final URL if it differs from the request (redirect)
+                                        if (response.url && response.url !== url) {
+                                            promises.push(cache.put(response.url, response.clone()));
+                                        }
+                                        return Promise.all(promises);
+                                    }
+                                })
+                                .catch((err) => {
+                                    console.warn('[SW] CDN precache failed for:', url, err.message);
+                                })
+                        )
+                    );
+                }),
+        ]).then(() => self.skipWaiting())
     );
 });
 
@@ -160,10 +198,14 @@ async function cdnCacheFirst(request) {
         if (cached) {
             return cached;
         }
-        const response = await fetch(request, { mode: 'cors' });
+        const response = await fetch(request, { mode: 'cors', redirect: 'follow' });
         if (response.ok) {
             const cache = await caches.open(CDN_CACHE);
             cache.put(request, response.clone());
+            // Also cache the final redirected URL
+            if (response.url && response.url !== request.url) {
+                cache.put(response.url, response.clone());
+            }
         }
         return response;
     } catch (error) {
