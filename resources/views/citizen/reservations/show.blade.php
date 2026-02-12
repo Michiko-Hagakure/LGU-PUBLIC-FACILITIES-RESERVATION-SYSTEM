@@ -870,6 +870,23 @@ function openUploadModal(documentType) {
     });
 }
 
+// Preview image in re-upload modal
+function previewReuploadImage(input) {
+    const container = document.getElementById('reupload_preview_container');
+    const img = document.getElementById('reupload_preview_img');
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            img.src = e.target.result;
+            container.classList.remove('hidden');
+        };
+        reader.readAsDataURL(input.files[0]);
+    } else {
+        container.classList.add('hidden');
+        img.src = '';
+    }
+}
+
 // Re-upload Document for Rejected Bookings
 function openReuploadModal(fieldType) {
     const fieldLabels = {
@@ -888,8 +905,13 @@ function openReuploadModal(fieldType) {
                     <input type="file" 
                            id="reupload_file" 
                            accept="image/*" 
+                           onchange="previewReuploadImage(this)"
                            class="block w-full text-sm text-gray-900 border-2 border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none focus:border-lgu-button">
                     <p class="mt-2 text-xs text-gray-500">Accepted: JPG, PNG (Max 5MB)</p>
+                </div>
+                <div id="reupload_preview_container" class="hidden mt-3">
+                    <p class="text-sm font-medium text-gray-700 mb-2">Preview:</p>
+                    <img id="reupload_preview_img" src="" alt="Preview" class="w-full max-h-64 object-contain rounded-lg border-2 border-gray-200 shadow-sm">
                 </div>
             </div>
         `,
