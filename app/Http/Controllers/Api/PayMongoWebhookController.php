@@ -226,14 +226,26 @@ class PayMongoWebhookController extends Controller
                 'updated_at' => Carbon::now(),
             ]);
 
-        // Update booking status to paid
-        DB::connection('facilities_db')
-            ->table('bookings')
-            ->where('id', $paymentSlip->booking_id)
-            ->update([
-                'status' => 'paid',
+        // Update booking payment tracking and status
+        $booking = Booking::find($paymentSlip->booking_id);
+        if ($booking) {
+            $paymentAmount = $paidAmount > 0 ? $paidAmount : $paymentSlip->amount_due;
+            $newAmountPaid = ($booking->amount_paid ?? 0) + $paymentAmount;
+            $newAmountRemaining = max(0, ($booking->total_amount ?? 0) - $newAmountPaid);
+
+            $updateData = [
+                'amount_paid' => $newAmountPaid,
+                'amount_remaining' => $newAmountRemaining,
                 'updated_at' => Carbon::now(),
-            ]);
+            ];
+
+            // Only set 'paid' if fully paid; otherwise keep current status
+            if ($newAmountRemaining <= 0) {
+                $updateData['status'] = 'paid';
+            }
+
+            $booking->update($updateData);
+        }
 
         Log::info("PayMongo webhook: payment slip #{$paymentSlipId} confirmed via webhook", [
             'booking_id' => $paymentSlip->booking_id,
