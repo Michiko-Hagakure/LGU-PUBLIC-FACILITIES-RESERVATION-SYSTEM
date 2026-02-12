@@ -28,7 +28,7 @@
         <button onclick="toggleProfileExpanded()" class="w-full p-gr-md flex items-center justify-between hover:bg-lgu-stroke/30 transition-all duration-300 group">
             <div class="flex items-center gap-gr-sm">
                 <!-- Small Avatar -->
-                <div class="w-10 h-10 rounded-full shadow-md border-2 border-lgu-button transition-transform duration-300 group-hover:scale-110 flex-shrink-0 overflow-hidden">
+                <div class="sidebar-avatar w-10 h-10 rounded-full shadow-md border-2 border-lgu-button transition-transform duration-300 group-hover:scale-110 flex-shrink-0 overflow-hidden">
                     @if($admin->profile_photo_path)
                         <img src="{{ asset($admin->profile_photo_path) }}" alt="{{ $admin->name }}" class="w-full h-full object-cover">
                     @else
@@ -56,7 +56,7 @@
     <div id="profile-expanded-details" class="hidden transition-all duration-500 ease-in-out">
         <button onclick="toggleProfileExpanded()" class="w-full px-gr-lg pb-gr-lg pt-gr-md text-center hover:bg-lgu-stroke/20 transition-all duration-300 rounded-lg">
             <!-- Large Centered Admin Avatar -->
-            <div class="w-24 h-24 rounded-full mx-auto mb-gr-md shadow-lg border-4 border-lgu-button overflow-hidden">
+            <div class="sidebar-avatar w-24 h-24 rounded-full mx-auto mb-gr-md shadow-lg border-4 border-lgu-button overflow-hidden">
                 @if($admin->profile_photo_path)
                     <img src="{{ asset($admin->profile_photo_path) }}" alt="{{ $admin->name }}" class="w-full h-full object-cover">
                 @else

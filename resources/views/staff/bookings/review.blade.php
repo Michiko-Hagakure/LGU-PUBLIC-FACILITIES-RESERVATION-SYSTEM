@@ -189,6 +189,22 @@
                 Uploaded Documents
             </h2>
             
+            @if($booking->valid_id_type)
+            <div class="mb-gr-md bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-id-card text-blue-600 mr-2 flex-shrink-0">
+                    <path d="M16 10h2"/>
+                    <path d="M16 14h2"/>
+                    <path d="M6.17 15a3 3 0 0 1 5.66 0"/>
+                    <circle cx="9" cy="11" r="2"/>
+                    <rect x="2" y="5" width="20" height="14" rx="2"/>
+                </svg>
+                <div>
+                    <span class="text-caption font-semibold text-blue-700 uppercase">Valid ID Type</span>
+                    <p class="text-body font-semibold text-blue-900">{{ $booking->valid_id_type }}</p>
+                </div>
+            </div>
+            @endif
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-gr-sm">
                 @foreach($documents as $doc)
                 @php
@@ -286,81 +302,54 @@
                         <span class="text-h4 font-bold text-lgu-button">₱{{ number_format($booking->total_amount, 2) }}</span>
                     </div>
                 </div>
+
+                @if($booking->payment_tier)
+                <div class="mt-4 pt-4 border-t border-gray-200">
+                    <h4 class="text-small font-bold text-gray-700 mb-2">Payment Info</h4>
+                    <div class="space-y-2">
+                        <div class="flex justify-between text-small">
+                            <span class="text-gray-600">Payment Tier</span>
+                            <span class="font-semibold text-lgu-button">{{ $booking->payment_tier }}%</span>
+                        </div>
+                        <div class="flex justify-between text-small">
+                            <span class="text-gray-600">Down Payment</span>
+                            <span class="font-semibold text-green-600">₱{{ number_format($booking->down_payment_amount, 2) }}</span>
+                        </div>
+                        <div class="flex justify-between text-small">
+                            <span class="text-gray-600">Amount Paid</span>
+                            <span class="font-semibold text-green-600">₱{{ number_format($booking->amount_paid, 2) }}</span>
+                        </div>
+                        @if($booking->amount_remaining > 0)
+                        <div class="flex justify-between text-small">
+                            <span class="text-gray-600">Remaining Balance</span>
+                            <span class="font-semibold text-yellow-600">₱{{ number_format($booking->amount_remaining, 2) }}</span>
+                        </div>
+                        @endif
+                        <div class="flex justify-between text-small">
+                            <span class="text-gray-600">Method</span>
+                            <span class="font-semibold text-gray-900">{{ ucfirst(str_replace('_', ' ', $booking->payment_method)) }}</span>
+                        </div>
+                        @if($booking->down_payment_paid_at)
+                        <div class="flex justify-between text-small">
+                            <span class="text-gray-600">Paid At</span>
+                            <span class="font-semibold text-gray-900">{{ $booking->down_payment_paid_at->format('M d, g:i A') }}</span>
+                        </div>
+                        @endif
+                    </div>
+                    @if($booking->amount_remaining > 0)
+                    <div class="mt-2 bg-yellow-50 border border-yellow-200 rounded-lg p-2">
+                        <p class="text-xs text-yellow-800"><strong>Partial payment.</strong> Remaining ₱{{ number_format($booking->amount_remaining, 2) }} to be collected by treasurer.</p>
+                    </div>
+                    @else
+                    <div class="mt-2 bg-green-50 border border-green-200 rounded-lg p-2">
+                        <p class="text-xs text-green-800"><strong>Fully paid.</strong> Ready for admin confirmation after verification.</p>
+                    </div>
+                    @endif
+                </div>
+                @endif
                 @endif
             </div>
 
-            <!-- Schedule Conflict Warning -->
-            @if($booking->status === 'pending' && $conflictCheck['hasConflict'])
-            <div class="bg-red-50 border-2 border-red-300 rounded-xl p-gr-md">
-                <div class="flex items-start mb-gr-sm">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-alert-triangle text-red-600 mr-2 flex-shrink-0">
-                        <path d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
-                        <path d="M12 9v4"/>
-                        <path d="M12 17h.01"/>
-                    </svg>
-                    <div>
-                        <h3 class="text-h4 font-bold text-red-800 mb-1">Schedule Conflict Detected</h3>
-                        <p class="text-small text-red-700">{{ $conflictCheck['conflictCount'] }} booking(s) already approved for overlapping times</p>
-                    </div>
-                </div>
-
-                <div class="space-y-2 mb-gr-sm">
-                    @foreach($conflictCheck['conflicts'] as $conflict)
-                    <div class="bg-white border border-red-200 rounded-lg p-3">
-                        <div class="flex items-start justify-between">
-                            <div class="flex-1">
-                                <p class="font-semibold text-gray-900">{{ $conflict->facility->name }}</p>
-                                <div class="flex items-center gap-4 mt-1 text-xs text-gray-600">
-                                    <span class="flex items-center">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-calendar mr-1">
-                                            <path d="M8 2v4"/>
-                                            <path d="M16 2v4"/>
-                                            <rect width="18" height="18" x="3" y="4" rx="2"/>
-                                            <path d="M3 10h18"/>
-                                        </svg>
-                                        {{ \Carbon\Carbon::parse($conflict->event_date ?? $conflict->start_time)->format('M d, Y') }}
-                                    </span>
-                                    <span class="flex items-center">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clock mr-1">
-                                            <circle cx="12" cy="12" r="10"/>
-                                            <polyline points="12 6 12 12 16 14"/>
-                                        </svg>
-                                        {{ \Carbon\Carbon::parse($conflict->start_time)->format('g:i A') }} - {{ \Carbon\Carbon::parse($conflict->end_time)->format('g:i A') }}
-                                    </span>
-                                    <span class="flex items-center">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-hash mr-1">
-                                            <line x1="4" x2="20" y1="9" y2="9"/>
-                                            <line x1="4" x2="20" y1="15" y2="15"/>
-                                            <line x1="10" x2="8" y1="3" y2="21"/>
-                                            <line x1="16" x2="14" y1="3" y2="21"/>
-                                        </svg>
-                                        BK-{{ str_pad($conflict->id, 6, '0', STR_PAD_LEFT) }}
-                                    </span>
-                                </div>
-                                <div class="mt-2">
-                                    @if($conflict->status === 'staff_verified')
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
-                                            Approved (Awaiting Payment)
-                                        </span>
-                                    @elseif($conflict->status === 'paid' || $conflict->status === 'confirmed')
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-                                            Paid & Confirmed
-                                        </span>
-                                    @endif
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    @endforeach
-                </div>
-
-                <div class="bg-red-100 border border-red-200 rounded-lg p-3">
-                    <p class="text-xs text-red-800 font-medium">
-                        <strong>Recommendation:</strong> Reject this booking due to schedule conflict, or verify with the conflicting booking holder first.
-                    </p>
-                </div>
-            </div>
-            @endif
 
             <!-- Verification Actions -->
             @if($booking->status === 'pending')
@@ -390,6 +379,8 @@
                 <form action="{{ URL::signedRoute('staff.bookings.reject', $booking->id) }}" method="POST" id="rejectForm">
                     @csrf
                     <input type="hidden" name="rejection_reason" id="rejection_reason">
+                    <input type="hidden" name="rejection_type" id="rejection_type">
+                    <input type="hidden" name="rejection_fields[]" id="rejection_fields_value">
                     <button type="button" onclick="confirmReject()" 
                             class="w-full px-4 py-3 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-colors shadow-sm flex items-center justify-center">
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x-circle mr-2">
@@ -543,92 +534,61 @@ document.addEventListener('keydown', function(event) {
 });
 
 function confirmVerify() {
-    // Check if there are schedule conflicts (passed from controller)
-    const hasConflict = {{ $conflictCheck['hasConflict'] ? 'true' : 'false' }};
-    const conflictCount = {{ $conflictCheck['conflictCount'] }};
-
-    if (hasConflict) {
-        // Show stronger warning if conflicts exist
-        Swal.fire({
-            title: 'Schedule Conflict Detected!',
-            html: `
-                <div class="text-left">
-                    <p class="mb-3 text-red-600 font-semibold">
-                        ${conflictCount} booking(s) already approved for overlapping times at this facility.
-                    </p>
-                    <p class="mb-3 text-gray-700">
-                        <strong>Warning:</strong> Approving this booking may cause double-booking issues.
-                    </p>
-                    <p class="text-sm text-gray-600">
-                        <strong>Recommended action:</strong> Reject this booking and inform the applicant that the time slot is already reserved.
-                    </p>
-                </div>
-            `,
-            icon: 'warning',
-            showCancelButton: true,
-            showDenyButton: true,
-            confirmButtonColor: '#dc2626',
-            denyButtonColor: '#16a34a',
-            cancelButtonColor: '#6b7280',
-            confirmButtonText: 'Approve Anyway',
-            denyButtonText: 'Reject Booking',
-            cancelButtonText: 'Cancel',
-            customClass: {
-                confirmButton: 'order-3',
-                denyButton: 'order-1',
-                cancelButton: 'order-2'
-            }
-        }).then((result) => {
-            if (result.isConfirmed) {
-                // User chose to approve anyway despite conflict
-                document.getElementById('verifyForm').submit();
-            } else if (result.isDenied) {
-                // User chose to reject - trigger reject flow
-                confirmReject();
-            }
-        });
-    } else {
-        // No conflicts - show normal confirmation
-        Swal.fire({
-            title: 'Verify This Booking?',
-            text: 'This will forward the booking to admin for final approval.',
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: '#16a34a',
-            cancelButtonColor: '#6b7280',
-            confirmButtonText: 'Yes, Verify',
-            cancelButtonText: 'Cancel'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                document.getElementById('verifyForm').submit();
-            }
-        });
-    }
+    Swal.fire({
+        title: 'Verify This Booking?',
+        text: 'This will forward the booking to admin for final approval.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#16a34a',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Yes, Verify',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            document.getElementById('verifyForm').submit();
+        }
+    });
 }
 
 function confirmReject() {
     Swal.fire({
         title: 'Reject This Booking?',
-        text: 'Please provide a reason for rejection:',
-        input: 'textarea',
-        inputPlaceholder: 'Enter rejection reason...',
-        inputAttributes: {
-            'aria-label': 'Enter rejection reason'
-        },
+        html: `
+            <div class="text-left">
+                <label class="block text-sm font-medium text-gray-700 mb-2">What needs to be fixed?</label>
+                <select id="swal_rejection_type" class="w-full px-3 py-2 border border-gray-300 rounded-lg mb-4 text-sm">
+                    <option value="">Full Rejection (entire booking)</option>
+                    <option value="id_issue">ID Issue - Re-upload valid ID</option>
+                    <option value="facility_issue">Facility Issue - Choose another facility</option>
+                </select>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Rejection Reason <span class="text-red-500">*</span></label>
+                <textarea id="swal_rejection_reason" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" rows="4" placeholder="Explain what needs to be corrected..."></textarea>
+            </div>
+        `,
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#dc2626',
         cancelButtonColor: '#6b7280',
         confirmButtonText: 'Reject Booking',
         cancelButtonText: 'Cancel',
-        inputValidator: (value) => {
-            if (!value) {
-                return 'Please provide a rejection reason!';
+        preConfirm: () => {
+            const reason = document.getElementById('swal_rejection_reason').value;
+            if (!reason) {
+                Swal.showValidationMessage('Please provide a rejection reason!');
+                return false;
             }
+            return {
+                reason: reason,
+                type: document.getElementById('swal_rejection_type').value
+            };
         }
     }).then((result) => {
         if (result.isConfirmed) {
-            document.getElementById('rejection_reason').value = result.value;
+            document.getElementById('rejection_reason').value = result.value.reason;
+            document.getElementById('rejection_type').value = result.value.type;
+            if (result.value.type) {
+                document.getElementById('rejection_fields_value').value = result.value.type;
+            }
             document.getElementById('rejectForm').submit();
         }
     });

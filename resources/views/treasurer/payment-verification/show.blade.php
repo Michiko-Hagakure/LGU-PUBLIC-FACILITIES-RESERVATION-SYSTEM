@@ -273,15 +273,13 @@
                     
                     <div>
                         <label for="payment_method" class="block text-sm font-medium text-gray-700 mb-2">
-                            Payment Method <span class="text-red-500">*</span>
+                            Payment Method
                         </label>
-                        <select name="payment_method" id="payment_method" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-lgu-button focus:border-transparent">
-                            <option value="">Select payment method</option>
-                            <option value="cash" {{ ($paymentSlip->payment_method === 'cash') ? 'selected' : '' }}>Cash</option>
-                            <option value="gcash" {{ ($paymentSlip->payment_channel === 'gcash' || $paymentSlip->payment_method === 'gcash') ? 'selected' : '' }}>GCash</option>
-                            <option value="paymaya" {{ ($paymentSlip->payment_channel === 'maya' || $paymentSlip->payment_method === 'paymaya') ? 'selected' : '' }}>Maya (PayMaya)</option>
-                            <option value="bank_transfer" {{ (in_array($paymentSlip->payment_channel, ['bpi', 'bdo', 'metrobank', 'unionbank', 'landbank']) || $paymentSlip->payment_method === 'bank_transfer') ? 'selected' : '' }}>Bank Transfer</option>
-                        </select>
+                        <input type="hidden" name="payment_method" value="cash">
+                        <div class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-700 font-medium">
+                            Cash
+                        </div>
+                        <p class="mt-1 text-xs text-gray-500">Treasurer payments are processed as cash.</p>
                     </div>
                     
                     <div>
@@ -417,16 +415,6 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const formData = new FormData(form);
             const paymentMethod = formData.get('payment_method');
-            
-            if (!paymentMethod) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Missing Information',
-                    text: 'Please select a payment method.',
-                    confirmButtonColor: '#0f5b3a'
-                });
-                return;
-            }
             
             Swal.fire({
                 title: 'Confirm Payment Verification',

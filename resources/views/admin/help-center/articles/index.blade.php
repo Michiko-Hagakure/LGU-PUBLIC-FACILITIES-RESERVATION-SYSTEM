@@ -64,13 +64,13 @@
                 <td class="px-6 py-4 text-sm">
                     <div class="flex gap-2">
                         <a href="{{ URL::signedRoute('admin.help-articles.edit', $article->id) }}" class="text-blue-600 hover:text-blue-800">
-                            <i class="fas fa-edit"></i>
+                            <i data-lucide="pencil" class="w-4 h-4"></i>
                         </a>
                         <form action="{{ URL::signedRoute('admin.help-articles.destroy', $article->id) }}" method="POST" class="inline">
                             @csrf
                             @method('DELETE')
                             <button type="button" onclick="confirmDelete(this)" class="text-red-600 hover:text-red-800">
-                                <i class="fas fa-trash"></i>
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
                             </button>
                         </form>
                     </div>
@@ -85,7 +85,7 @@
     </div>
     @else
     <div class="p-12 text-center text-gray-500">
-        <i class="fas fa-book-open text-6xl mb-4 text-gray-300"></i>
+        <i data-lucide="book-open" class="w-16 h-16 mx-auto mb-4 text-gray-300"></i>
         <p class="text-lg">No help articles yet.</p>
         <a href="{{ URL::signedRoute('admin.help-articles.create') }}" class="text-blue-600 hover:text-blue-800 mt-2 inline-block">
             Create your first article

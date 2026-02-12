@@ -24,6 +24,7 @@ return [
     'paymongo_enabled' => env('PAYMONGO_ENABLED', false),
     'paymongo_secret_key' => env('PAYMONGO_SECRET_KEY', ''),
     'paymongo_public_key' => env('PAYMONGO_PUBLIC_KEY', ''),
+    'paymongo_webhook_secret' => env('PAYMONGO_WEBHOOK_SECRET', ''),
     
     /*
     |--------------------------------------------------------------------------

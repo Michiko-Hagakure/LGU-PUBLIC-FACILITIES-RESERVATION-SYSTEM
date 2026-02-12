@@ -9,6 +9,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Storage;
+use App\Services\PaymongoService;
+use App\Models\PaymentSlip;
 
 class BookingController extends Controller
 {
@@ -290,6 +292,8 @@ class BookingController extends Controller
             'valid_id_back' => 'required|file|mimes:jpg,jpeg,png|max:5120',
             'valid_id_selfie' => 'required|file|mimes:jpg,jpeg,png|max:5120',
             'special_requests' => 'nullable|string|max:1000',
+            'payment_tier' => 'required|in:25,50,75,100',
+            'payment_method' => 'required|in:cash,cashless',
         ]);
 
         try {
@@ -354,9 +358,18 @@ class BookingController extends Controller
             $totalDiscount = $residentDiscountAmount + $specialDiscountAmount;
             $totalAmount = $pricing['subtotal'] - $totalDiscount;
 
+            // Calculate down payment based on selected tier
+            $paymentTier = (int) $validated['payment_tier'];
+            $downPaymentAmount = Booking::calculateDownPayment($totalAmount, $paymentTier);
+            $amountRemaining = $totalAmount - $downPaymentAmount;
+
             // Create booking using Eloquent for automatic audit logging
             $startDateTime = Carbon::parse($step1Data['booking_date'] . ' ' . $step1Data['start_time']);
             $endDateTime = Carbon::parse($step1Data['booking_date'] . ' ' . $step1Data['end_time']);
+
+            // ALL bookings start as 'awaiting_payment' — only promoted to 'pending' after payment is confirmed
+            // Cashless: promoted via PayMongo webhook | Cash: promoted when treasurer confirms receipt
+            $isCashlessPaymongo = $validated['payment_method'] === 'cashless' && config('payment.paymongo_enabled');
 
             $booking = Booking::create([
                 'user_id' => $userId,
@@ -364,7 +377,7 @@ class BookingController extends Controller
                 'start_time' => $startDateTime,
                 'end_time' => $endDateTime,
                 'user_name' => $userName,
-                'status' => 'pending',
+                'status' => 'awaiting_payment',
                 'base_rate' => $pricing['base_rate'],
                 'extension_rate' => $pricing['extension_hours'] > 0 ? $pricing['extension_rate'] : 0,
                 'equipment_total' => $pricing['equipment_total'],
@@ -386,6 +399,13 @@ class BookingController extends Controller
                 'valid_id_front_path' => $validIdFrontPath,
                 'valid_id_back_path' => $validIdBackPath,
                 'valid_id_selfie_path' => $validIdSelfiePath,
+                // Down payment system fields
+                'payment_tier' => $paymentTier,
+                'down_payment_amount' => $downPaymentAmount,
+                'amount_paid' => 0,
+                'amount_remaining' => $totalAmount,
+                'payment_method' => $validated['payment_method'],
+                'down_payment_paid_at' => null,
             ]);
 
             $bookingId = $booking->id;
@@ -414,43 +434,85 @@ class BookingController extends Controller
                 }
             }
 
+            // For cash bookings: create an unpaid down payment slip so the treasurer can track it
+            if (!$isCashlessPaymongo) {
+                PaymentSlip::create([
+                    'slip_number' => PaymentSlip::generateSlipNumber(),
+                    'booking_id' => $booking->id,
+                    'amount_due' => $downPaymentAmount,
+                    'payment_deadline' => now()->addDays(3),
+                    'status' => 'unpaid',
+                    'payment_method' => 'cash',
+                    'notes' => 'Down payment (' . $paymentTier . '%) — pay at City Treasurer\'s Office to submit booking for staff review.',
+                ]);
+            }
+
             DB::connection('facilities_db')->commit();
 
-            // Send notification to citizen
-            try {
-                $user = User::find($userId);
-                $bookingWithFacility = DB::connection('facilities_db')
-                    ->table('bookings')
-                    ->join('facilities', 'bookings.facility_id', '=', 'facilities.facility_id')
-                    ->where('bookings.id', $bookingId)
-                    ->selectRaw('bookings.*, facilities.name as facility_name, CONCAT("BK", LPAD(bookings.id, 6, "0")) as booking_reference')
-                    ->first();
-                
-                if ($user && $bookingWithFacility) {
-                    // Notify the citizen
-                    $user->notify(new \App\Notifications\BookingSubmitted($bookingWithFacility));
-                    
-                    // Notify ALL staff members about the new booking
-                    // Get all users who have "reservations staff" role in session
-                    // Since we can't query by session, we'll query by subsystem_role_id
-                    // Staff role ID is 3 based on the auth system
-                    $staffMembers = User::where('subsystem_role_id', 3)
-                        ->where('subsystem_id', 4) // Facilities subsystem
-                        ->get();
-                    
-                    foreach ($staffMembers as $staff) {
-                        $staff->notify(new \App\Notifications\BookingSubmitted($bookingWithFacility));
+            // For Cashless: Create PayMongo checkout session and redirect
+            if ($isCashlessPaymongo) {
+                try {
+                    $paymongo = new PaymongoService();
+
+                    // Build a mock object for the service (it expects payment slip-like data)
+                    $checkoutData = (object) [
+                        'id' => $bookingId,
+                        'booking_id' => $bookingId,
+                        'amount_due' => $downPaymentAmount,
+                        'slip_number' => 'BK' . str_pad($bookingId, 6, '0', STR_PAD_LEFT),
+                    ];
+
+                    $bookingData = (object) [
+                        'facility_name' => $facility->name ?? 'Facility Reservation',
+                    ];
+
+                    $successUrl = url("/citizen/paymongo/success/{$bookingId}");
+                    $cancelUrl = url("/citizen/paymongo/failed/{$bookingId}");
+
+                    $result = $paymongo->createCheckoutSession($checkoutData, $bookingData, $successUrl, $cancelUrl, [
+                        'gcash', 'grab_pay', 'paymaya', 'card', 'dob', 'dob_ubp', 'brankas_bdo', 'brankas_landbank', 'brankas_metrobank', 'qrph',
+                    ]);
+
+                    if ($result['success']) {
+                        // Save checkout session ID to booking
+                        $booking->update([
+                            'paymongo_checkout_id' => $result['checkout_session_id'],
+                        ]);
+
+                        // Clear session data
+                        session()->forget(['booking_step1', 'booking_equipment']);
+
+                        // Redirect to PayMongo checkout page
+                        return redirect()->away($result['checkout_url']);
+                    } else {
+                        // PayMongo failed — keep as awaiting_payment so citizen can retry
+                        \Log::error('PayMongo checkout creation failed for booking #' . $bookingId . ': ' . ($result['error'] ?? 'Unknown error'));
+
+                        // Clear session data and redirect to confirmation with retry option
+                        session()->forget(['booking_step1', 'booking_equipment']);
+
+                        return redirect()->route('citizen.booking.confirmation', $bookingId)
+                            ->with('warning', 'Could not connect to payment gateway. Please use the "Pay Now" button below to complete your payment.');
                     }
+                } catch (\Exception $e) {
+                    \Log::error('PayMongo error for booking #' . $bookingId . ': ' . $e->getMessage());
+
+                    // Keep as awaiting_payment — citizen can retry from confirmation page
+                    session()->forget(['booking_step1', 'booking_equipment']);
+
+                    return redirect()->route('citizen.booking.confirmation', $bookingId)
+                        ->with('warning', 'Payment service temporarily unavailable. Please use the "Pay Now" button below to complete your payment.');
                 }
-            } catch (\Exception $e) {
-                \Log::error('Failed to send booking notification: ' . $e->getMessage());
             }
+
+            // Notifications are sent AFTER payment is confirmed (by webhook for cashless, by treasurer for cash)
+            // No immediate notifications — booking is in 'awaiting_payment' state
 
             // Clear session data
             session()->forget(['booking_step1', 'booking_equipment']);
 
             return redirect()->route('citizen.booking.confirmation', $bookingId)
-                ->with('success', 'Booking submitted successfully! Please wait for staff verification.');
+                ->with('success', 'Booking created! Please complete your down payment to submit it for staff review.');
 
         } catch (\Exception $e) {
             DB::connection('facilities_db')->rollBack();
@@ -623,6 +685,7 @@ class BookingController extends Controller
             ->table('bookings')
             ->where('facility_id', $facilityId)
             ->whereIn('status', ['pending', 'staff_verified', 'reserved', 'payment_pending', 'confirmed', 'paid'])
+            ->where('amount_paid', '>', 0) // Only paid bookings lock time slots
             ->where(function($query) use ($startDateTime, $endDateTime, $bufferHours) {
                 $query->where(function($q) use ($startDateTime, $endDateTime, $bufferHours) {
                     // Check if new booking overlaps with existing booking + buffer
@@ -647,6 +710,7 @@ class BookingController extends Controller
                 ->table('bookings')
                 ->where('facility_id', $facilityId)
                 ->whereIn('status', ['pending', 'staff_verified', 'reserved', 'payment_pending', 'confirmed', 'paid'])
+                ->where('amount_paid', '>', 0) // Only paid bookings lock time slots
                 ->whereDate('start_time', $bookingDate)
                 ->orderBy('start_time')
                 ->get();

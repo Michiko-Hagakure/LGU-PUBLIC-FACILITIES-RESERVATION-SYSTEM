@@ -205,24 +205,78 @@ class BookingVerificationController extends Controller
             // Get booking details
             $booking = Booking::findOrFail($bookingId);
 
+            // Auto-fix: ensure amount_remaining is properly calculated
+            // PF/API bookings may have NULL amount_remaining even though total_amount is set
+            $amountPaid = $booking->amount_paid ?? 0;
+            $totalAmount = $booking->total_amount ?? 0;
+            if (is_null($booking->amount_remaining) && $totalAmount > 0) {
+                $booking->update([
+                    'amount_remaining' => max(0, $totalAmount - $amountPaid),
+                ]);
+                $booking->refresh();
+            }
+
+            // Determine new status based on payment state
+            // If fully paid (100% tier), go straight to 'paid' for admin confirmation
+            // If partially paid, go to 'staff_verified' and remaining balance tracked by treasurer
+            $newStatus = $booking->isFullyPaid() ? 'paid' : 'staff_verified';
+
             // Update booking status using Eloquent for automatic audit logging
             $booking->update([
-                'status' => 'staff_verified',
+                'status' => $newStatus,
                 'staff_verified_by' => $userId,
                 'staff_verified_at' => now(),
                 'staff_notes' => $validated['staff_notes'] ?? null,
             ]);
 
-            // Auto-generate payment slip
-            $paymentSlip = PaymentSlip::create([
-                'slip_number' => PaymentSlip::generateSlipNumber(),
-                'booking_id' => $bookingId,
-                'amount_due' => $booking->total_amount,
-                'payment_deadline' => now()->addHours(48), // 48-hour deadline
-                'status' => 'unpaid',
-            ]);
+            // Down payment slip already exists (created at booking time for cash, or handled by PayMongo for cashless)
+            // Retrieve it for the notification
+            $paymentSlip = PaymentSlip::where('booking_id', $bookingId)
+                ->where('status', 'paid')
+                ->orderBy('paid_at', 'desc')
+                ->first();
 
-            // Send notification to citizen with payment deadline
+            // Check if an unpaid slip already exists (avoid duplicates)
+            $hasUnpaidSlip = PaymentSlip::where('booking_id', $bookingId)
+                ->where('status', 'unpaid')
+                ->exists();
+
+            // If booking has remaining balance, create a remaining balance slip for the treasurer
+            if (!$hasUnpaidSlip && $booking->hasRemainingBalance()) {
+                PaymentSlip::create([
+                    'slip_number' => PaymentSlip::generateSlipNumber(),
+                    'booking_id' => $bookingId,
+                    'amount_due' => $booking->amount_remaining,
+                    'payment_deadline' => now()->addDays(7),
+                    'status' => 'unpaid',
+                    'payment_method' => $booking->payment_method ?? 'cash',
+                    'paid_at' => null,
+                    'notes' => 'Remaining balance (' . (100 - ($booking->payment_tier ?? 0)) . '%) to collect.' . ($booking->down_payment_amount > 0 ? ' Down payment of ₱' . number_format($booking->down_payment_amount, 2) . ' already received.' : ''),
+                ]);
+            }
+            // PF/API bookings: no payment was made yet, create a payment slip for the full amount
+            elseif (!$hasUnpaidSlip && !$booking->payment_tier && ($booking->amount_paid ?? 0) == 0 && $booking->total_amount > 0) {
+                $booking->update([
+                    'payment_method' => 'cash',
+                    'payment_tier' => 25,
+                    'down_payment_amount' => $booking->total_amount * 0.25,
+                    'amount_paid' => 0,
+                    'amount_remaining' => $booking->total_amount,
+                ]);
+
+                PaymentSlip::create([
+                    'slip_number' => PaymentSlip::generateSlipNumber(),
+                    'booking_id' => $bookingId,
+                    'amount_due' => $booking->total_amount * 0.25,
+                    'payment_deadline' => now()->addDays(3),
+                    'status' => 'unpaid',
+                    'payment_method' => 'cash',
+                    'paid_at' => null,
+                    'notes' => 'Down payment (25%) — pay at City Treasurer\'s Office. Booking submitted via external system.',
+                ]);
+            }
+
+            // Send notification to citizen
             try {
                 $user = User::find($booking->user_id);
                 $bookingWithFacility = DB::connection('facilities_db')
@@ -239,8 +293,12 @@ class BookingVerificationController extends Controller
                 \Log::error('Failed to send staff verification notification: ' . $e->getMessage());
             }
 
+            $successMsg = $booking->isFullyPaid()
+                ? 'Booking verified & fully paid. Ready for admin confirmation.'
+                : 'Booking verified. Remaining balance of ₱' . number_format($booking->amount_remaining, 2) . ' to be collected by treasurer.';
+
             return redirect()->route('staff.verification-queue')
-                ->with('success', 'Booking verified successfully. Payment slip ' . $paymentSlip->slip_number . ' generated with 48-hour deadline.');
+                ->with('success', $successMsg);
 
         } catch (\Exception $e) {
             return redirect()->back()
@@ -250,6 +308,8 @@ class BookingVerificationController extends Controller
 
     /**
      * Reject a booking
+     * Supports partial rejection: staff specifies which part needs fixing
+     * (id_issue, facility_issue, document_issue, info_issue)
      */
     public function reject(Request $request, $bookingId)
     {
@@ -260,7 +320,10 @@ class BookingVerificationController extends Controller
         }
 
         $validated = $request->validate([
-            'rejection_reason' => 'required|string|max:1000'
+            'rejection_reason' => 'required|string|max:1000',
+            'rejection_type' => 'nullable|in:id_issue,facility_issue,document_issue,info_issue',
+            'rejection_fields' => 'nullable|array',
+            'rejection_fields.*' => 'string',
         ]);
 
         try {
@@ -273,6 +336,8 @@ class BookingVerificationController extends Controller
                 'staff_verified_by' => $userId,
                 'staff_verified_at' => now(),
                 'rejected_reason' => $validated['rejection_reason'],
+                'rejection_type' => $validated['rejection_type'] ?? null,
+                'rejection_fields' => $validated['rejection_fields'] ?? null,
             ]);
 
             // Send rejection notification to citizen
@@ -323,9 +388,9 @@ class BookingVerificationController extends Controller
         }
 
         // Build query for bookings with filters
-        // Exclude pending bookings - they belong in Verification Queue only
+        // Exclude pending and awaiting_payment bookings - they belong in Verification Queue only
         $query = Booking::with(['facility.lguCity'])
-            ->where('status', '!=', 'pending')
+            ->whereNotIn('status', ['pending', 'awaiting_payment'])
             ->orderBy('created_at', 'desc');
 
         // Filter by status
@@ -360,5 +425,26 @@ class BookingVerificationController extends Controller
 
         return view('staff.bookings.index', compact('bookings', 'facilities'));
     }
-}
 
+    /**
+     * Auto-generate Official Receipt number.
+     * Format: OR-YYYY-NNNN (e.g., OR-2026-0001)
+     */
+    private function generateOfficialReceiptNumber()
+    {
+        $year = now()->year;
+
+        $lastPayment = PaymentSlip::where('or_number', 'like', "OR-{$year}-%")
+            ->orderBy('or_number', 'desc')
+            ->first();
+
+        if ($lastPayment && $lastPayment->or_number) {
+            $lastNumber = intval(substr($lastPayment->or_number, -4));
+            $newNumber = str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
+        } else {
+            $newNumber = '0001';
+        }
+
+        return "OR-{$year}-{$newNumber}";
+    }
+}

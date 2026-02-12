@@ -22,90 +22,104 @@ class ExpireUnpaidBookings extends Command
      *
      * @var string
      */
-    protected $description = 'Automatically expire bookings that haven\'t been paid within 48 hours of staff verification';
+    protected $description = 'Automatically expire bookings: pending without payment after 24h, staff_verified with remaining balance after 7 days';
 
     /**
      * Execute the console command.
      */
     public function handle()
     {
-        $this->info('Checking for unpaid bookings past 48-hour deadline...');
-
-        // Get all staff_verified bookings
-        $unpaidBookings = Booking::where('status', 'staff_verified')->get();
+        $this->info('Checking for bookings to expire...');
 
         $expiredCount = 0;
+        $now = Carbon::now();
 
-        foreach ($unpaidBookings as $booking) {
-            // Calculate deadline: 48 hours from when booking was verified by staff
-            $verifiedAt = $booking->staff_verified_at;
-            
-            // Skip if no verification timestamp (shouldn't happen, but safety check)
-            if (!$verifiedAt) {
-                continue;
-            }
-            
-            $deadline = $verifiedAt->copy()->addHours(48);
-            $now = Carbon::now();
+        // 1. Expire pending bookings with NO payment (amount_paid = 0) after 24 hours
+        $unpaidPendingBookings = Booking::where('status', 'pending')
+            ->where('amount_paid', '<=', 0)
+            ->get();
 
-            // Check if deadline has passed
+        foreach ($unpaidPendingBookings as $booking) {
+            $createdAt = $booking->created_at;
+            if (!$createdAt) continue;
+            
+            $deadline = $createdAt->copy()->addHours(24);
             if ($now->greaterThan($deadline)) {
-                try {
-                    DB::connection('facilities_db')->beginTransaction();
+                $this->expireBooking($booking, $now, 'No down payment made within 24 hours (auto-expired)');
+                $expiredCount++;
+            }
+        }
 
-                    // Expire the booking
-                    $booking->update([
-                        'status' => 'expired',
-                        'expired_at' => $now,
-                        'canceled_reason' => 'Payment deadline exceeded (auto-expired)',
-                    ]);
+        // 2. Expire staff_verified bookings with remaining balance after 7 days
+        $partialPaymentBookings = Booking::where('status', 'staff_verified')
+            ->where('amount_remaining', '>', 0)
+            ->get();
 
-                    // Also expire the associated payment slip
-                    \App\Models\PaymentSlip::where('booking_id', $booking->id)
-                        ->where('status', 'unpaid')
-                        ->update(['status' => 'expired']);
-
-                    DB::connection('facilities_db')->commit();
-
-                    // Send expiration notification to citizen
-                    try {
-                        $user = User::find($booking->user_id);
-                        $bookingWithFacility = DB::connection('facilities_db')
-                            ->table('bookings')
-                            ->join('facilities', 'bookings.facility_id', '=', 'facilities.facility_id')
-                            ->where('bookings.id', $booking->id)
-                            ->selectRaw('bookings.*, facilities.name as facility_name, CONCAT("BK", LPAD(bookings.id, 6, "0")) as booking_reference')
-                            ->first();
-                        
-                        if ($user && $bookingWithFacility) {
-                            $user->notify(new \App\Notifications\BookingExpired($bookingWithFacility));
-                        }
-                    } catch (\Exception $e) {
-                        \Log::error('Failed to send booking expiration notification: ' . $e->getMessage());
-                    }
-
-                    $expiredCount++;
-                    
-                    $this->warn("EXPIRED: Booking #{$booking->id} - {$booking->facility->name}");
-                    $citizenName = $booking->applicant_name ?? $booking->user_name ?? 'N/A';
-                    $this->line("   Citizen: {$citizenName}");
-                    $this->line("   Verified: {$verifiedAt->format('M d, Y h:i A')}");
-                    $this->line("   Deadline: {$deadline->format('M d, Y h:i A')}");
-                    $this->line("   Overdue by: {$deadline->diffForHumans($now, true)}");
-                    $this->newLine();
-                } catch (\Exception $e) {
-                    DB::connection('facilities_db')->rollBack();
-                    $this->error("Failed to expire booking #{$booking->id}: " . $e->getMessage());
-                }
+        foreach ($partialPaymentBookings as $booking) {
+            $verifiedAt = $booking->staff_verified_at;
+            if (!$verifiedAt) continue;
+            
+            $deadline = $verifiedAt->copy()->addDays(7);
+            if ($now->greaterThan($deadline)) {
+                $this->expireBooking($booking, $now, 'Remaining balance not settled within 7 days of staff verification (auto-expired)');
+                $expiredCount++;
             }
         }
 
         if ($expiredCount > 0) {
-            $this->info("SUCCESS: Expired {$expiredCount} booking(s) due to unpaid status.");
+            $this->info("SUCCESS: Expired {$expiredCount} booking(s).");
         } else {
             $this->info("SUCCESS: No bookings to expire. All good!");
         }
 
         return Command::SUCCESS;
+    }
+
+    /**
+     * Expire a single booking and notify the citizen.
+     */
+    private function expireBooking(Booking $booking, Carbon $now, string $reason): void
+    {
+        try {
+            DB::connection('facilities_db')->beginTransaction();
+
+            $booking->update([
+                'status' => 'expired',
+                'expired_at' => $now,
+                'canceled_reason' => $reason,
+            ]);
+
+            // Also expire associated payment slips
+            \App\Models\PaymentSlip::where('booking_id', $booking->id)
+                ->where('status', 'unpaid')
+                ->update(['status' => 'expired']);
+
+            DB::connection('facilities_db')->commit();
+
+            // Send expiration notification to citizen
+            try {
+                $user = User::find($booking->user_id);
+                $bookingWithFacility = DB::connection('facilities_db')
+                    ->table('bookings')
+                    ->join('facilities', 'bookings.facility_id', '=', 'facilities.facility_id')
+                    ->where('bookings.id', $booking->id)
+                    ->selectRaw('bookings.*, facilities.name as facility_name, CONCAT("BK", LPAD(bookings.id, 6, "0")) as booking_reference')
+                    ->first();
+                
+                if ($user && $bookingWithFacility) {
+                    $user->notify(new \App\Notifications\BookingExpired($bookingWithFacility));
+                }
+            } catch (\Exception $e) {
+                \Log::error('Failed to send booking expiration notification: ' . $e->getMessage());
+            }
+
+            $citizenName = $booking->applicant_name ?? $booking->user_name ?? 'N/A';
+            $this->warn("EXPIRED: Booking #{$booking->id} - Citizen: {$citizenName}");
+            $this->line("   Reason: {$reason}");
+            $this->newLine();
+        } catch (\Exception $e) {
+            DB::connection('facilities_db')->rollBack();
+            $this->error("Failed to expire booking #{$booking->id}: " . $e->getMessage());
+        }
     }
 }

@@ -275,3 +275,18 @@ Route::prefix('road-assistance')->group(function () {
         ]);
     });
 });
+
+/*
+|--------------------------------------------------------------------------
+| PayMongo Webhook
+|--------------------------------------------------------------------------
+| Endpoint for PayMongo to send payment event notifications.
+| Register this URL in your PayMongo dashboard:
+| POST https://your-domain.com/api/paymongo/webhook
+|
+| Events to subscribe to:
+| - checkout_session.payment.paid
+| - payment.paid
+*/
+Route::post('/paymongo/webhook', [\App\Http\Controllers\Api\PayMongoWebhookController::class, 'handle'])
+    ->name('paymongo.webhook');

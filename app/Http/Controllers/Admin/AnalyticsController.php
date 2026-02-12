@@ -674,133 +674,123 @@ class AnalyticsController extends Controller
 
 
 
-        // Total unique citizens who made bookings
-
-        $totalCitizens = DB::connection('facilities_db')
-
+        // Total unique citizens who made bookings (registered + external)
+        $registeredCitizens = DB::connection('facilities_db')
             ->table('bookings')
-
             ->distinct('user_id')
-
+            ->whereNotNull('user_id')
             ->whereBetween(DB::raw('DATE(created_at)'), [$startDate, $endDate])
-
             ->count('user_id');
 
-
-
-        // New citizens (first-time bookers in date range)
-
-        $newCitizens = DB::connection('facilities_db')
-
+        $externalCitizens = DB::connection('facilities_db')
             ->table('bookings')
+            ->whereNull('user_id')
+            ->whereNotNull('applicant_email')
+            ->whereBetween(DB::raw('DATE(created_at)'), [$startDate, $endDate])
+            ->distinct('applicant_email')
+            ->count('applicant_email');
 
+        $totalCitizens = $registeredCitizens + $externalCitizens;
+
+        // New citizens (first-time bookers in date range) - registered users
+        $newRegistered = DB::connection('facilities_db')
+            ->table('bookings')
+            ->whereNotNull('user_id')
             ->selectRaw('user_id, MIN(DATE(created_at)) as first_booking_date')
-
             ->groupBy('user_id')
-
             ->havingBetween('first_booking_date', [$startDate, $endDate])
-
             ->get()
-
             ->count();
 
+        $newExternal = DB::connection('facilities_db')
+            ->table('bookings')
+            ->whereNull('user_id')
+            ->whereNotNull('applicant_email')
+            ->selectRaw('applicant_email, MIN(DATE(created_at)) as first_booking_date')
+            ->groupBy('applicant_email')
+            ->havingBetween('first_booking_date', [$startDate, $endDate])
+            ->get()
+            ->count();
 
+        $newCitizens = $newRegistered + $newExternal;
 
         // Repeat customers (made more than 1 booking)
-
-        $repeatCustomers = DB::connection('facilities_db')
-
+        $repeatRegistered = DB::connection('facilities_db')
             ->table('bookings')
-
             ->selectRaw('user_id, COUNT(*) as booking_count')
-
+            ->whereNotNull('user_id')
             ->whereBetween(DB::raw('DATE(created_at)'), [$startDate, $endDate])
-
             ->groupBy('user_id')
-
             ->having('booking_count', '>', 1)
-
+            ->get()
             ->count();
 
-
-
-        // Top citizens by bookings (fetch separately and merge)
-
-        $topBookers = DB::connection('facilities_db')
-
+        $repeatExternal = DB::connection('facilities_db')
             ->table('bookings')
-
-            ->selectRaw('
-
-                user_id,
-
-                COUNT(*) as total_bookings,
-
-                SUM(total_amount) as total_spent
-
-            ')
-
+            ->selectRaw('applicant_email, COUNT(*) as booking_count')
+            ->whereNull('user_id')
+            ->whereNotNull('applicant_email')
             ->whereBetween(DB::raw('DATE(created_at)'), [$startDate, $endDate])
+            ->groupBy('applicant_email')
+            ->having('booking_count', '>', 1)
+            ->get()
+            ->count();
 
+        $repeatCustomers = $repeatRegistered + $repeatExternal;
+
+        // Top citizens by bookings - registered users
+        $topRegistered = DB::connection('facilities_db')
+            ->table('bookings')
+            ->selectRaw('user_id, NULL as applicant_name, NULL as applicant_email, COUNT(*) as total_bookings, SUM(total_amount) as total_spent')
+            ->whereNotNull('user_id')
+            ->whereBetween(DB::raw('DATE(created_at)'), [$startDate, $endDate])
             ->groupBy('user_id')
-
-            ->orderByDesc('total_bookings')
-
-            ->limit(10)
-
             ->get();
 
+        // Top citizens by bookings - external/API users (PF Folder, etc.)
+        $topExternal = DB::connection('facilities_db')
+            ->table('bookings')
+            ->selectRaw('NULL as user_id, applicant_name, applicant_email, COUNT(*) as total_bookings, SUM(total_amount) as total_spent')
+            ->whereNull('user_id')
+            ->whereNotNull('applicant_email')
+            ->whereBetween(DB::raw('DATE(created_at)'), [$startDate, $endDate])
+            ->groupBy('applicant_email', 'applicant_name')
+            ->get();
 
+        // Get user details from auth_db for registered users
+        $userIds = $topRegistered->pluck('user_id')->filter()->toArray();
+        $users = collect();
+        if (!empty($userIds)) {
+            $users = DB::connection('auth_db')
+                ->table('users')
+                ->whereIn('id', $userIds)
+                ->get()
+                ->keyBy('id');
+        }
 
-        // Get user details from auth_db
-
-        $userIds = $topBookers->pluck('user_id')->toArray();
-
-        $users = DB::connection('auth_db')
-
-            ->table('users')
-
-            ->whereIn('id', $userIds)
-
-            ->get()
-
-            ->keyBy('id');
-
-
-
-        // Merge booking data with user data
-
-        $topCitizens = $topBookers->map(function ($booking) use ($users) {
-
+        // Merge both sets and sort by total bookings
+        $topCitizens = $topRegistered->map(function ($booking) use ($users) {
             $user = $users->get($booking->user_id);
-
             return (object) [
-
                 'full_name' => $user->full_name ?? 'Unknown User',
-
                 'email' => $user->email ?? 'N/A',
-
                 'total_bookings' => $booking->total_bookings,
-
-                'total_spent' => $booking->total_spent
-
+                'total_spent' => $booking->total_spent,
             ];
-
-        });
-
-
+        })->concat($topExternal->map(function ($booking) {
+            return (object) [
+                'full_name' => $booking->applicant_name ?: 'External Booker',
+                'email' => $booking->applicant_email ?? 'N/A',
+                'total_bookings' => $booking->total_bookings,
+                'total_spent' => $booking->total_spent,
+            ];
+        }))->sortByDesc('total_bookings')->take(10)->values();
 
         // Average bookings per citizen
-
-        $avgBookingsPerCitizen = $totalCitizens > 0
-
-            ? DB::connection('facilities_db')->table('bookings')
-
-                ->whereBetween(DB::raw('DATE(created_at)'), [$startDate, $endDate])
-
-                ->count() / $totalCitizens
-
-            : 0;
+        $totalBookingsCount = DB::connection('facilities_db')->table('bookings')
+            ->whereBetween(DB::raw('DATE(created_at)'), [$startDate, $endDate])
+            ->count();
+        $avgBookingsPerCitizen = $totalCitizens > 0 ? $totalBookingsCount / $totalCitizens : 0;
 
 
 
@@ -1005,6 +995,8 @@ class AnalyticsController extends Controller
                 SUM(total_amount) as total_spent
 
             ')
+
+            ->whereNotNull('user_id')
 
             ->whereBetween(DB::raw('DATE(created_at)'), [$startDate, $endDate])
 

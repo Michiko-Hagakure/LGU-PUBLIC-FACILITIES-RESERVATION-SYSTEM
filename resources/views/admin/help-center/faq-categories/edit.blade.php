@@ -44,15 +44,6 @@
         </div>
 
         <div class="mb-4">
-            <label for="icon" class="block text-sm font-medium text-gray-700 mb-2">Icon</label>
-            <input type="text" name="icon" id="icon" value="{{ old('icon', $category->icon) }}" maxlength="10"
-                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-            @error('icon')
-                <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
-            @enderror
-        </div>
-
-        <div class="mb-4">
             <label for="sort_order" class="block text-sm font-medium text-gray-700 mb-2">Sort Order</label>
             <input type="number" name="sort_order" id="sort_order" value="{{ old('sort_order', $category->sort_order ?? 0) }}" min="0"
                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">

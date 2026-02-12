@@ -292,7 +292,7 @@
         }
         
         if (window.lucide) lucide.createIcons();
-        console.log("🏁 Audit Finished.");
+        console.log("Audit Finished.");
     }
 
     document.addEventListener('DOMContentLoaded', () => {

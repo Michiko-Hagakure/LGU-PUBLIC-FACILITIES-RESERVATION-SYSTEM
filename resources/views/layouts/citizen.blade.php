@@ -82,7 +82,7 @@
             <button onclick="toggleProfileExpanded()" class="w-full p-gr-md flex items-center justify-between hover:bg-lgu-stroke/30 transition-all duration-300 group">
                 <div class="flex items-center gap-gr-sm">
                     <!-- Small Avatar -->
-                    <div class="w-10 h-10 rounded-full overflow-hidden shadow-md border-2 border-lgu-button transition-transform duration-300 group-hover:scale-110">
+                    <div class="sidebar-avatar w-10 h-10 rounded-full overflow-hidden shadow-md border-2 border-lgu-button transition-transform duration-300 group-hover:scale-110">
                         @if($citizenAvatar)
                             <img src="{{ url('/files/' . $citizenAvatar) }}" alt="Avatar" class="w-full h-full object-cover">
                         @else
@@ -110,7 +110,7 @@
         <div id="profile-expanded-details" class="hidden transition-all duration-500 ease-in-out">
             <button onclick="toggleProfileExpanded()" class="w-full px-6 pb-6 pt-4 text-center hover:bg-lgu-stroke/20 transition-all duration-300 rounded-lg">
                 <!-- Large Centered Citizen Avatar -->
-                <div class="w-24 h-24 rounded-full overflow-hidden mx-auto mb-4 shadow-lg border-4 border-lgu-button">
+                <div class="sidebar-avatar w-24 h-24 rounded-full overflow-hidden mx-auto mb-4 shadow-lg border-4 border-lgu-button">
                     @if($citizenAvatar)
                         <img src="{{ url('/files/' . $citizenAvatar) }}" alt="Avatar" class="w-full h-full object-cover">
                     @else

@@ -57,7 +57,7 @@ class BudgetAllocationController extends Controller
             'spent_amount' => 0,
             'remaining_amount' => $validated['allocated_amount'],
             'notes' => $validated['notes'],
-            'approved_by' => Auth::user()->name,
+            'approved_by' => session('user_name'),
             'approved_at' => now(),
         ]);
         
@@ -139,7 +139,7 @@ class BudgetAllocationController extends Controller
             'vendor_name' => $validated['vendor_name'],
             'facility_id' => $validated['facility_id'],
             'notes' => $validated['notes'],
-            'recorded_by' => Auth::user()->name,
+            'recorded_by' => session('user_name'),
         ]);
         
         return redirect()->back()->with('success', 'Expenditure recorded successfully');

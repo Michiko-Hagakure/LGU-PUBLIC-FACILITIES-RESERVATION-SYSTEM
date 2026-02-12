@@ -39,7 +39,6 @@
             <tr>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Slug</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Icon</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">FAQs Count</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Order</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
@@ -56,7 +55,6 @@
                     @endif
                 </td>
                 <td class="px-6 py-4 text-sm text-gray-600">{{ $category->slug }}</td>
-                <td class="px-6 py-4 text-2xl">{{ $category->icon ?? '' }}</td>
                 <td class="px-6 py-4 text-sm text-gray-600">{{ $category->faqs_count }}</td>
                 <td class="px-6 py-4 text-sm text-gray-600">{{ $category->sort_order ?? 0 }}</td>
                 <td class="px-6 py-4">

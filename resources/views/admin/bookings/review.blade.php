@@ -5,6 +5,24 @@
 
 @section('page-content')
 <div class="space-y-gr-xl">
+    <!-- Success/Error Messages -->
+    @if(session('success'))
+        <div class="bg-green-50 border-l-4 border-green-500 p-gr-sm rounded-lg shadow-sm">
+            <div class="flex items-center">
+                <i data-lucide="check-circle" class="w-5 h-5 text-green-600 mr-gr-xs flex-shrink-0"></i>
+                <p class="text-body font-semibold text-green-800">{{ session('success') }}</p>
+            </div>
+        </div>
+    @endif
+    @if(session('error'))
+        <div class="bg-red-50 border-l-4 border-red-500 p-gr-sm rounded-lg shadow-sm">
+            <div class="flex items-center">
+                <i data-lucide="x-circle" class="w-5 h-5 text-red-600 mr-gr-xs flex-shrink-0"></i>
+                <p class="text-body font-semibold text-red-800">{{ session('error') }}</p>
+            </div>
+        </div>
+    @endif
+
     <!-- Page Header with Status -->
     <div class="bg-lgu-headline rounded-2xl p-gr-xl text-white shadow-lg">
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-gr-md">
@@ -27,6 +45,7 @@
                         'paid' => ['bg' => 'bg-green-500', 'text' => 'Payment Verified', 'icon' => 'check-circle'],
                         'confirmed' => ['bg' => 'bg-purple-500', 'text' => 'Confirmed', 'icon' => 'badge-check'],
                         'rejected' => ['bg' => 'bg-red-500', 'text' => 'Rejected', 'icon' => 'x-circle'],
+                        'admin_rejected' => ['bg' => 'bg-orange-500', 'text' => 'Admin Rejected', 'icon' => 'alert-triangle'],
                         'cancelled' => ['bg' => 'bg-gray-500', 'text' => 'Cancelled', 'icon' => 'ban'],
                     ];
                     $status = $statusConfig[$booking->status] ?? ['bg' => 'bg-gray-500', 'text' => $booking->status, 'icon' => 'help-circle'];
@@ -62,39 +81,6 @@
         </div>
     @endif
 
-    <!-- Schedule Conflicts Warning -->
-    @if($conflicts->isNotEmpty())
-        <div class="bg-red-50 border-2 border-red-200 rounded-xl p-gr-lg">
-            <div class="flex items-start gap-gr-md">
-                <div class="w-12 h-12 bg-red-500 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <i data-lucide="alert-octagon" class="w-6 h-6 text-white"></i>
-                </div>
-                <div class="flex-1">
-                    <h3 class="text-h4 font-bold text-red-900 mb-gr-sm">Schedule Conflict Detected!</h3>
-                    <div class="space-y-2">
-                        @foreach($conflicts as $conflict)
-                            @if($conflict && is_object($conflict))
-                                @php
-                                    // Fetch user details from auth_db directly to avoid cross-database relationship issues
-                                    $conflictUser = \DB::connection('auth_db')->table('users')->where('id', $conflict->user_id)->first();
-                                    $conflictUserName = $conflictUser->name ?? $conflict->applicant_name ?? 'N/A';
-                                @endphp
-                                <div class="bg-white rounded-lg p-gr-sm border border-red-200">
-                                    <p class="text-small font-semibold text-red-900">
-                                        Booking #{{ $conflict->id }} - {{ $conflictUserName }}
-                                    </p>
-                                    <p class="text-caption text-red-700">
-                                        {{ \Carbon\Carbon::parse($conflict->start_time)->format('M d, Y g:i A') }} - 
-                                        {{ \Carbon\Carbon::parse($conflict->end_time)->format('g:i A') }}
-                                    </p>
-                                </div>
-                            @endif
-                        @endforeach
-                    </div>
-                </div>
-            </div>
-        </div>
-    @endif
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-gr-lg">
         <!-- Left Column: Booking Details -->
@@ -205,6 +191,21 @@
                     <i data-lucide="file-check" class="w-6 h-6"></i>
                     Uploaded Documents
                 </h2>
+                @if($booking->valid_id_type)
+                <div class="mb-gr-md bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-600 mr-2 flex-shrink-0">
+                        <path d="M16 10h2"/>
+                        <path d="M16 14h2"/>
+                        <path d="M6.17 15a3 3 0 0 1 5.66 0"/>
+                        <circle cx="9" cy="11" r="2"/>
+                        <rect x="2" y="5" width="20" height="14" rx="2"/>
+                    </svg>
+                    <div>
+                        <span class="text-caption font-semibold text-blue-700 uppercase">Valid ID Type</span>
+                        <p class="text-body font-semibold text-blue-900">{{ $booking->valid_id_type }}</p>
+                    </div>
+                </div>
+                @endif
                 <div class="grid grid-cols-3 gap-gr-md">
                     @foreach($documents as $key => $doc)
                         @if($doc)
@@ -264,31 +265,102 @@
                         <span class="font-semibold text-lgu-headline">₱{{ number_format($booking->extension_price, 2) }}</span>
                     </div>
                     @endif
+                    @if($booking->subtotal && $booking->subtotal != $booking->total_amount)
+                    <div class="flex justify-between text-small border-t border-lgu-stroke pt-gr-xs mt-gr-xs">
+                        <span class="text-lgu-paragraph">Subtotal</span>
+                        <span class="font-semibold text-lgu-headline">₱{{ number_format($booking->subtotal, 2) }}</span>
+                    </div>
+                    @endif
+                    @if($booking->resident_discount_amount > 0)
+                    <div class="flex justify-between text-small">
+                        <span class="text-lgu-paragraph">Resident Discount ({{ $booking->resident_discount_rate }}%)</span>
+                        <span class="font-semibold text-red-500">-₱{{ number_format($booking->resident_discount_amount, 2) }}</span>
+                    </div>
+                    @endif
+                    @if($booking->special_discount_amount > 0)
+                    <div class="flex justify-between text-small">
+                        <span class="text-lgu-paragraph">{{ ucfirst($booking->special_discount_type ?? 'Special') }} Discount ({{ $booking->special_discount_rate }}%)</span>
+                        <span class="font-semibold text-red-500">-₱{{ number_format($booking->special_discount_amount, 2) }}</span>
+                    </div>
+                    @endif
+                    @if($booking->total_discount > 0)
+                    <div class="flex justify-between text-small">
+                        <span class="text-lgu-paragraph font-medium">Total Discounts</span>
+                        <span class="font-bold text-red-500">-₱{{ number_format($booking->total_discount, 2) }}</span>
+                    </div>
+                    @endif
                     <div class="border-t-2 border-lgu-stroke pt-gr-sm mt-gr-sm">
                         <div class="flex justify-between">
                             <span class="text-body font-bold text-lgu-headline">Total Amount</span>
                             <span class="text-h3 font-bold text-green-600">₱{{ number_format($booking->total_amount, 2) }}</span>
                         </div>
                     </div>
+
+                    @if($booking->payment_tier)
+                    <div class="border-t-2 border-lgu-stroke pt-gr-sm mt-gr-sm space-y-gr-xs">
+                        <p class="text-caption font-bold text-gray-500 uppercase">Payment Breakdown</p>
+                        
+                        <div class="flex justify-between text-small">
+                            <span class="text-lgu-paragraph">Payment Tier</span>
+                            <span class="font-bold text-lgu-button">{{ $booking->payment_tier }}%</span>
+                        </div>
+                        <div class="flex justify-between text-small">
+                            <span class="text-lgu-paragraph">Method</span>
+                            <span class="font-semibold text-lgu-headline">{{ ucfirst(str_replace('_', ' ', $booking->payment_method)) }}</span>
+                        </div>
+
+                        <div class="bg-gray-50 border border-gray-200 rounded-lg p-3 mt-2 space-y-2">
+                            <div class="flex justify-between text-small">
+                                <span class="text-lgu-paragraph">Down Payment ({{ $booking->payment_tier }}%)</span>
+                                <span class="font-semibold text-green-600">₱{{ number_format($booking->down_payment_amount, 2) }}</span>
+                            </div>
+                            @if($booking->payment_tier < 100)
+                            <div class="flex justify-between text-small">
+                                <span class="text-lgu-paragraph">Remaining Balance ({{ 100 - $booking->payment_tier }}%)</span>
+                                @if($booking->amount_remaining <= 0)
+                                    <span class="font-semibold text-green-600">₱{{ number_format($booking->total_amount - $booking->down_payment_amount, 2) }}</span>
+                                @else
+                                    <span class="font-semibold text-yellow-600">₱{{ number_format($booking->amount_remaining, 2) }} unpaid</span>
+                                @endif
+                            </div>
+                            @endif
+                            <div class="border-t border-gray-300 pt-2 flex justify-between text-small">
+                                <span class="font-bold text-lgu-headline">Total Payments</span>
+                                <span class="font-bold text-green-700">₱{{ number_format($booking->amount_paid, 2) }}</span>
+                            </div>
+                        </div>
+
+                        @if($booking->amount_remaining > 0)
+                        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-2 mt-1">
+                            <p class="text-xs text-yellow-800"><strong>Partial payment.</strong> Balance of ₱{{ number_format($booking->amount_remaining, 2) }} must be settled by the Treasurer before confirmation.</p>
+                        </div>
+                        @else
+                        <div class="bg-green-50 border border-green-200 rounded-lg p-2 mt-1">
+                            <p class="text-xs text-green-800"><strong>Fully paid.</strong> Ready for final confirmation.</p>
+                        </div>
+                        @endif
+                    </div>
+                    @endif
                 </div>
                 @endif
 
                 <!-- Action Buttons -->
                 <div class="mt-gr-lg space-y-gr-sm">
                     @if($booking->status === 'staff_verified')
-                        <!-- Payment Verification Actions -->
-                        <form method="POST" action="{{ URL::signedRoute('admin.bookings.confirm-payment', $booking->id) }}" id="confirmPaymentForm">
-                            @csrf
-                            <button type="button" onclick="confirmPayment()" class="w-full px-gr-lg py-gr-md bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg transition-colors flex items-center justify-center gap-2">
-                                <i data-lucide="check-circle" class="w-5 h-5"></i>
-                                Confirm Payment
-                            </button>
-                        </form>
-                        
-                        <button onclick="openRejectModal()" class="w-full px-gr-lg py-gr-md bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-colors flex items-center justify-center gap-2">
-                            <i data-lucide="x-circle" class="w-5 h-5"></i>
-                            Reject Payment
-                        </button>
+                        <!-- Waiting for Treasurer -->
+                        <div class="bg-amber-50 border-2 border-amber-200 rounded-lg p-gr-md text-center">
+                            <i data-lucide="clock" class="w-12 h-12 text-amber-500 mx-auto mb-2"></i>
+                            <p class="text-body font-bold text-amber-900">Awaiting Full Payment</p>
+                            <p class="text-small text-amber-700 mt-1">
+                                Remaining balance of <strong>₱{{ number_format($booking->amount_remaining, 2) }}</strong> 
+                                must be collected by the Treasurer before you can confirm this booking.
+                            </p>
+                            @if($booking->down_payment_amount > 0)
+                            <p class="text-small text-amber-600 mt-2">
+                                Down payment of ₱{{ number_format($booking->down_payment_amount, 2) }} ({{ $booking->payment_tier }}%) already received.
+                            </p>
+                            @endif
+                        </div>
 
                     @elseif($booking->status === 'paid')
                         <!-- Final Confirmation -->
@@ -361,14 +433,14 @@
     </div>
 </div>
 
-<!-- Reject Booking Modal (for paid/confirmed bookings - triggers refund) -->
+<!-- Reject Booking Modal — citizen decides to reschedule or cancel (no refund) -->
 <div id="rejectBookingModal" class="hidden fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl max-w-md w-full p-gr-lg">
         <h3 class="text-h3 font-bold text-red-600 mb-gr-sm">Reject Booking</h3>
-        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-gr-sm mb-gr-md">
-            <p class="text-small text-yellow-800">
-                <i data-lucide="alert-triangle" class="w-4 h-4 inline-block mr-1"></i>
-                <strong>This booking has been paid.</strong> Rejecting it will automatically create a <strong>100% refund (₱{{ number_format($booking->total_amount, 2) }})</strong> for the citizen. The refund will be processed within 1-3 business days.
+        <div class="bg-orange-50 border border-orange-200 rounded-lg p-gr-sm mb-gr-md">
+            <p class="text-small text-orange-800">
+                <i data-lucide="info" class="w-4 h-4 inline-block mr-1"></i>
+                The citizen will be notified with your reason. They can choose to <strong>reschedule</strong> to a new date or <strong>cancel</strong> the booking. <strong>Payments are non-refundable.</strong>
             </p>
         </div>
         <form method="POST" action="{{ URL::signedRoute('admin.bookings.reject-booking', $booking->id) }}">
@@ -382,7 +454,7 @@
                     Cancel
                 </button>
                 <button type="submit" class="flex-1 px-gr-lg py-gr-sm bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-colors">
-                    Reject & Issue Refund
+                    Reject Booking
                 </button>
             </div>
         </form>

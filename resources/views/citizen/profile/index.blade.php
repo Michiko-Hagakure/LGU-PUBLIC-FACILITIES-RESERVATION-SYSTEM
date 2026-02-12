@@ -387,6 +387,20 @@
 
 @push('scripts')
 <script>
+// Helper: Update all sidebar avatar elements with a new image URL
+function updateSidebarAvatars(imageUrl) {
+    const initials = '{{ $initials }}';
+    document.querySelectorAll('.sidebar-avatar').forEach(function(container) {
+        const isSmall = container.classList.contains('w-10');
+        if (imageUrl) {
+            container.innerHTML = '<img src="' + imageUrl + '" alt="Avatar" class="w-full h-full object-cover">';
+        } else {
+            const fontSize = isSmall ? 'text-body' : 'text-3xl';
+            container.innerHTML = '<div class="w-full h-full bg-lgu-highlight flex items-center justify-center"><span class="text-lgu-button-text font-bold ' + fontSize + '">' + initials + '</span></div>';
+        }
+    });
+}
+
 // Profile editing
 function enableEdit() {
     const form = document.getElementById('profileForm');
@@ -487,6 +501,10 @@ function uploadAvatar(input) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
+            // Update sidebar avatars live
+            if (data.avatar_url) {
+                updateSidebarAvatars(data.avatar_url);
+            }
             Swal.fire({
                 icon: 'success',
                 title: 'Avatar Updated!',
@@ -535,13 +553,18 @@ function removeAvatar() {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
+                    // Update sidebar avatars (revert to initials)
+                    updateSidebarAvatars(null);
+                    // Update main preview to initials
+                    const preview = document.getElementById('avatarPreview');
+                    if (preview) {
+                        preview.innerHTML = '<div class="w-full h-full bg-lgu-highlight flex items-center justify-center text-4xl font-bold">{{ $initials }}</div>';
+                    }
                     Swal.fire({
                         icon: 'success',
                         title: 'Photo Removed!',
                         text: data.message,
                         confirmButtonColor: '#0f5b3a'
-                    }).then(() => {
-                        window.location.reload();
                     });
                 } else {
                     Swal.fire({

@@ -117,60 +117,60 @@
 
         <!-- AI-Powered Forecasting Section -->
         <div
-            class="bg-gradient-to-r from-slate-900 to-blue-900 rounded-xl shadow-2xl p-6 mb-8 text-white border border-blue-700/30">
+            class="bg-white rounded-xl shadow-lg p-6 mb-8 border border-gray-200">
             <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
                 <div>
-                    <h3 class="text-xl font-bold flex items-center gap-2">
-                        <i data-lucide="cpu" class="w-6 h-6 text-blue-400"></i>
+                    <h3 class="text-xl font-bold flex items-center gap-2 text-gray-900">
+                        <i data-lucide="cpu" class="w-6 h-6 text-blue-600"></i>
                         Neural Network Facility Forecasting
                     </h3>
-                    <p class="text-blue-200 text-sm">Real-time predictive analysis using TensorFlow.js</p>
+                    <p class="text-gray-500 text-sm">Real-time predictive analysis using TensorFlow.js</p>
                 </div>
                 <div class="flex items-center gap-3">
                     <span id="model-status"
-                        class="px-3 py-1 bg-blue-500/20 border border-blue-400/30 rounded-full text-xs font-mono text-blue-300">
+                        class="px-3 py-1 bg-blue-50 border border-blue-200 rounded-full text-xs font-mono text-blue-700">
                         System: Standby
                     </span>
                     <button onclick="trainAIModel()"
-                        class="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg text-xs font-bold transition-all flex items-center gap-2 shadow-lg">
+                        class="px-4 py-2 bg-lgu-button hover:opacity-90 text-white rounded-lg text-xs font-bold transition-all flex items-center gap-2 shadow-sm">
                         <i data-lucide="refresh-cw" class="w-3 h-3"></i> Re-train AI Model
                     </button>
                 </div>
             </div>
 
-            <div id="training-ui" class="hidden mb-6 bg-black/30 rounded-lg p-4 border border-white/10">
+            <div id="training-ui" class="hidden mb-6 bg-gray-50 rounded-lg p-4 border border-gray-200">
                 <div class="flex justify-between mb-2">
-                    <span class="text-xs font-mono text-blue-300 italic">Processing Epochs (Backpropagation)...</span>
-                    <span id="loss-display" class="text-xs font-mono text-yellow-400 font-bold">Loss: 0.00000</span>
+                    <span class="text-xs font-mono text-gray-600 italic">Processing Epochs (Backpropagation)...</span>
+                    <span id="loss-display" class="text-xs font-mono text-blue-700 font-bold">Loss: 0.00000</span>
                 </div>
-                <div class="w-full bg-gray-700 h-2 rounded-full overflow-hidden">
+                <div class="w-full bg-gray-200 h-2 rounded-full overflow-hidden">
                     <div id="training-progress"
-                        class="bg-gradient-to-r from-blue-500 to-cyan-400 h-full transition-all duration-300"
+                        class="bg-gradient-to-r from-blue-500 to-blue-600 h-full transition-all duration-300"
                         style="width: 0%"></div>
                 </div>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                <div class="bg-white/5 backdrop-blur-sm rounded-xl p-5 border border-white/10">
-                    <p class="text-xs uppercase tracking-widest text-blue-300 mb-1">Predicted Peak Window</p>
-                    <div class="text-2xl font-black text-white" id="pred-peak-time">--:--</div>
-                    <p class="text-[10px] text-gray-400 mt-2 italic">Calculated via Time-Series Regression</p>
+                <div class="bg-gray-50 rounded-xl p-5 border border-gray-200">
+                    <p class="text-xs uppercase tracking-widest text-blue-600 font-semibold mb-1">Predicted Peak Window</p>
+                    <div class="text-2xl font-black text-gray-900" id="pred-peak-time">--:--</div>
+                    <p class="text-[10px] text-gray-500 mt-2 italic">Calculated via Time-Series Regression</p>
                 </div>
 
-                <div class="bg-white/5 backdrop-blur-sm rounded-xl p-5 border border-white/10">
-                    <p class="text-xs uppercase tracking-widest text-blue-300 mb-1">Max Occupancy Load</p>
-                    <div class="text-2xl font-black text-white" id="pred-occupancy">0%</div>
-                    <div class="w-full bg-white/10 h-1 rounded-full mt-3">
-                        <div id="load-bar" class="bg-blue-400 h-1 rounded-full transition-all duration-1000"
+                <div class="bg-gray-50 rounded-xl p-5 border border-gray-200">
+                    <p class="text-xs uppercase tracking-widest text-blue-600 font-semibold mb-1">Max Occupancy Load</p>
+                    <div class="text-2xl font-black text-gray-900" id="pred-occupancy">0%</div>
+                    <div class="w-full bg-gray-200 h-1 rounded-full mt-3">
+                        <div id="load-bar" class="bg-blue-500 h-1 rounded-full transition-all duration-1000"
                             style="width: 0%"></div>
                     </div>
                 </div>
 
-                <div class="bg-blue-600/20 backdrop-blur-sm rounded-xl p-5 border border-blue-500/30">
-                    <p class="text-xs font-bold uppercase text-blue-300 mb-2 flex items-center gap-1">
+                <div class="bg-blue-50 rounded-xl p-5 border border-blue-200">
+                    <p class="text-xs font-bold uppercase text-blue-700 mb-2 flex items-center gap-1">
                         <i data-lucide="lightbulb" class="w-3 h-3"></i> AI Strategy
                     </p>
-                    <p class="text-sm leading-relaxed text-blue-100 italic" id="ai-suggestion">
+                    <p class="text-sm leading-relaxed text-gray-700" id="ai-suggestion">
                         "Awaiting model training to provide resource allocation advice..."
                     </p>
                 </div>

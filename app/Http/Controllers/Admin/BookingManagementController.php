@@ -23,8 +23,43 @@ class BookingManagementController extends Controller
             return redirect()->route('login')->with('error', 'Please login to continue.');
         }
 
-        // Build query
-        $query = Booking::with(['facility.lguCity', 'user']);
+        // Auto-fix: correct bookings wrongly marked as 'paid' when they still have outstanding balance
+        // This was caused by the PayMongo webhook blindly setting status to 'paid' on partial payments
+        try {
+            $miscategorized = Booking::where('status', 'paid')
+                ->where('amount_remaining', '>', 0)
+                ->where('total_amount', '>', 0)
+                ->get();
+
+            foreach ($miscategorized as $fix) {
+                // Revert to staff_verified so remaining balance can be collected
+                $fix->update(['status' => 'staff_verified']);
+
+                // Create a payment slip for the treasurer if none exists
+                $hasUnpaidSlip = \App\Models\PaymentSlip::where('booking_id', $fix->id)
+                    ->where('status', 'unpaid')
+                    ->exists();
+
+                if (!$hasUnpaidSlip && $fix->amount_remaining > 0) {
+                    \App\Models\PaymentSlip::create([
+                        'slip_number' => \App\Models\PaymentSlip::generateSlipNumber(),
+                        'booking_id' => $fix->id,
+                        'amount_due' => $fix->amount_remaining,
+                        'payment_deadline' => now()->addDays(7),
+                        'status' => 'unpaid',
+                        'payment_method' => $fix->payment_method ?? 'cash',
+                        'paid_at' => null,
+                        'notes' => 'Remaining balance (' . (100 - ($fix->payment_tier ?? 0)) . '%) to collect. Down payment of ₱' . number_format($fix->down_payment_amount ?? 0, 2) . ' already received.',
+                    ]);
+                }
+            }
+        } catch (\Exception $e) {
+            \Log::error('Auto-fix paid bookings with balance failed: ' . $e->getMessage());
+        }
+
+        // Build query — exclude awaiting_payment (not yet submitted)
+        $query = Booking::with(['facility.lguCity', 'user'])
+            ->where('status', '!=', 'awaiting_payment');
 
         // Filter by status
         if ($request->filled('status') && $request->input('status') !== 'all') {
@@ -165,6 +200,30 @@ class BookingManagementController extends Controller
             'equipmentItems'
         ])->findOrFail($bookingId);
 
+        // Auto-fix: correct booking wrongly marked as 'paid' when it still has outstanding balance
+        if ($booking->status === 'paid' && $booking->amount_remaining > 0 && $booking->total_amount > 0) {
+            $booking->update(['status' => 'staff_verified']);
+
+            $hasUnpaidSlip = \App\Models\PaymentSlip::where('booking_id', $booking->id)
+                ->where('status', 'unpaid')
+                ->exists();
+
+            if (!$hasUnpaidSlip) {
+                \App\Models\PaymentSlip::create([
+                    'slip_number' => \App\Models\PaymentSlip::generateSlipNumber(),
+                    'booking_id' => $booking->id,
+                    'amount_due' => $booking->amount_remaining,
+                    'payment_deadline' => now()->addDays(7),
+                    'status' => 'unpaid',
+                    'payment_method' => $booking->payment_method ?? 'cash',
+                    'paid_at' => null,
+                    'notes' => 'Remaining balance (' . (100 - ($booking->payment_tier ?? 0)) . '%) to collect. Down payment of ₱' . number_format($booking->down_payment_amount ?? 0, 2) . ' already received.',
+                ]);
+            }
+
+            $booking->refresh();
+        }
+
         // Get user details from auth_db
         $userFromDb = \DB::connection('auth_db')->table('users')
             ->where('id', $booking->user_id)
@@ -222,11 +281,6 @@ class BookingManagementController extends Controller
         // Get equipment with pricing
         $equipment = $booking->equipmentItems;
 
-        // Check for schedule conflicts
-        $conflictData = $booking->checkScheduleConflicts();
-        $conflicts = $conflictData['conflicts'] ?? collect();
-        $hasConflict = $conflictData['hasConflict'] ?? false;
-
         // Calculate payment deadline (48 hours from staff verification)
         $paymentDeadline = null;
         $hoursRemaining = null;
@@ -241,7 +295,6 @@ class BookingManagementController extends Controller
             'equipment',
             'documents',
             'user',
-            'conflicts',
             'paymentDeadline',
             'hoursRemaining'
         ));
@@ -261,9 +314,19 @@ class BookingManagementController extends Controller
 
         $booking = Booking::findOrFail($bookingId);
 
-        // Verify booking is in correct status
+        // Enforce payment flow: admin can only confirm bookings with 'paid' status
+        // Cash bookings must go through treasurer first (staff_verified → treasurer verifies → paid)
+        // Cashless bookings go through PayMongo (staff_verified → PayMongo confirms → paid)
         if ($booking->status !== 'paid') {
-            return back()->with('error', 'Booking must be paid before final confirmation.');
+            if ($booking->status === 'staff_verified') {
+                return back()->with('error', 'Payment has not been verified yet. Cash bookings must be paid at the Treasurer\'s Office first. Cashless bookings must complete payment via PayMongo.');
+            }
+            return back()->with('error', 'Booking must be paid and verified before final confirmation.');
+        }
+        
+        // Ensure booking is fully paid before admin can confirm
+        if ($booking->amount_remaining > 0) {
+            return back()->with('error', 'Booking has an outstanding balance of ₱' . number_format($booking->amount_remaining, 2) . '. Balance must be settled before confirmation.');
         }
 
         // Update booking status to confirmed (final state)

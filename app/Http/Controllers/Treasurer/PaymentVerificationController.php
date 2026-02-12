@@ -17,6 +17,63 @@ class PaymentVerificationController extends Controller
      */
     public function index(Request $request)
     {
+        // Auto-fix: Create payment slips for staff_verified bookings that need them
+        try {
+            $stuckBookings = Booking::where('status', 'staff_verified')
+                ->where('total_amount', '>', 0)
+                ->get();
+
+            foreach ($stuckBookings as $stuck) {
+                $hasUnpaidSlip = PaymentSlip::where('booking_id', $stuck->id)
+                    ->where('status', 'unpaid')
+                    ->exists();
+
+                if ($hasUnpaidSlip) {
+                    continue;
+                }
+
+                // Set payment defaults if not already set
+                if (!$stuck->payment_tier) {
+                    $stuck->update([
+                        'payment_method' => 'cash',
+                        'payment_tier' => 25,
+                        'down_payment_amount' => $stuck->total_amount * 0.25,
+                        'amount_paid' => 0,
+                        'amount_remaining' => $stuck->total_amount,
+                    ]);
+                }
+
+                $amountRemaining = $stuck->amount_remaining ?? $stuck->total_amount;
+                if ($amountRemaining <= 0) {
+                    continue;
+                }
+
+                $hasPaidSlip = PaymentSlip::where('booking_id', $stuck->id)
+                    ->where('status', 'paid')
+                    ->exists();
+
+                $notes = $hasPaidSlip
+                    ? 'Remaining balance — pay at City Treasurer\'s Office. Down payment already received.'
+                    : 'Down payment (25%) — pay at City Treasurer\'s Office.';
+                $amountDue = $hasPaidSlip
+                    ? $amountRemaining
+                    : ($stuck->down_payment_amount ?: $stuck->total_amount * 0.25);
+
+                PaymentSlip::create([
+                    'slip_number' => PaymentSlip::generateSlipNumber(),
+                    'booking_id' => $stuck->id,
+                    'amount_due' => $amountDue,
+                    'payment_deadline' => now()->addDays(3),
+                    'status' => 'unpaid',
+                    'payment_method' => $stuck->payment_method ?? 'cash',
+                    'paid_at' => null,
+                    'notes' => $notes,
+                ]);
+            }
+        } catch (\Exception $e) {
+            \Log::error('Auto-fix payment slips failed: ' . $e->getMessage());
+        }
+
         try {
             $query = DB::connection('facilities_db')
                 ->table('payment_slips')
@@ -29,6 +86,11 @@ class PaymentVerificationController extends Controller
                     'bookings.applicant_phone',
                     'bookings.user_id',
                     'bookings.start_time',
+                    'bookings.total_amount as booking_total',
+                    'bookings.amount_remaining as booking_remaining',
+                    'bookings.payment_tier',
+                    'bookings.amount_paid as booking_amount_paid',
+                    'bookings.down_payment_amount',
                     'facilities.name as facility_name'
                 );
             
@@ -95,6 +157,11 @@ class PaymentVerificationController extends Controller
                 'bookings.applicant_name',
                 'bookings.applicant_email',
                 'bookings.user_id',
+                'bookings.total_amount as booking_total',
+                'bookings.amount_remaining as booking_remaining',
+                'bookings.payment_tier',
+                'bookings.amount_paid as booking_amount_paid',
+                'bookings.down_payment_amount',
                 'facilities.name as facility_name'
             );
 
@@ -188,12 +255,14 @@ class PaymentVerificationController extends Controller
     
     /**
      * Verify cash payment and generate Official Receipt.
+     * Handles both initial full payments and balance payments for partial down payments.
      */
     public function verifyPayment(Request $request, $id)
     {
         $request->validate([
             'payment_method' => 'required|in:cash,gcash,paymaya,bank_transfer,credit_card',
             'notes' => 'nullable|string|max:1000',
+            'payment_amount' => 'nullable|numeric|min:0',
         ]);
         
         $paymentSlip = PaymentSlip::find($id);
@@ -221,21 +290,44 @@ class PaymentVerificationController extends Controller
             // Update payment slip status
             $paymentSlip->status = 'paid';
             $paymentSlip->payment_method = $request->payment_method;
-            $paymentSlip->or_number = $orNumber; // Store OR number in or_number column
-            // Keep transaction_reference for cashless payments (GCash/Maya reference)
+            $paymentSlip->or_number = $orNumber;
             $paymentSlip->notes = $request->notes;
             $paymentSlip->paid_at = now();
             $paymentSlip->verified_by = session('user_id');
             $paymentSlip->save();
             
-            // Update booking status to 'paid' (Admin will confirm later)
+            // Update booking payment tracking and status
             $booking = Booking::find($paymentSlip->booking_id);
+            $wasAwaitingPayment = false;
             if ($booking) {
-                $booking->status = 'paid';
+                $wasAwaitingPayment = $booking->status === 'awaiting_payment';
+                
+                // Calculate the payment amount (balance payment or full remaining)
+                $paymentAmount = $request->payment_amount ?? $paymentSlip->amount_due;
+                
+                // Update booking payment fields
+                $newAmountPaid = $booking->amount_paid + $paymentAmount;
+                $newAmountRemaining = max(0, $booking->total_amount - $newAmountPaid);
+                
+                $booking->amount_paid = $newAmountPaid;
+                $booking->amount_remaining = $newAmountRemaining;
+                $booking->payment_recorded_by = session('user_id');
+                
+                // If booking was awaiting_payment (down payment just confirmed), promote to 'pending' for staff review
+                if ($wasAwaitingPayment) {
+                    $booking->status = 'pending';
+                    $booking->down_payment_paid_at = now();
+                }
+                
+                // If fully paid now, update status to 'paid' for admin confirmation
+                if ($newAmountRemaining <= 0) {
+                    $booking->status = 'paid';
+                }
+                
                 $booking->save();
             }
             
-            // Send notification to citizen about payment verification
+            // Send notifications
             try {
                 $user = User::find($booking->user_id);
                 $bookingWithFacility = DB::connection('facilities_db')
@@ -251,7 +343,22 @@ class PaymentVerificationController extends Controller
                     ->first();
                 
                 if ($user && $bookingWithFacility && $paymentSlipFresh) {
+                    // Notify citizen about payment verification
                     $user->notify(new \App\Notifications\PaymentVerified($bookingWithFacility, $paymentSlipFresh));
+                    
+                    // If booking was just promoted from awaiting_payment, also send booking submission notifications
+                    if ($wasAwaitingPayment) {
+                        $user->notify(new \App\Notifications\BookingSubmitted($bookingWithFacility));
+                        
+                        // Notify staff members about the new booking in their verification queue
+                        $staffMembers = User::where('subsystem_role_id', 3)
+                            ->where('subsystem_id', 4)
+                            ->get();
+                        
+                        foreach ($staffMembers as $staff) {
+                            $staff->notify(new \App\Notifications\BookingSubmitted($bookingWithFacility));
+                        }
+                    }
                 }
             } catch (\Exception $e) {
                 \Log::error('Failed to send payment verification notification: ' . $e->getMessage());

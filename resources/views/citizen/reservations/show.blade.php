@@ -20,6 +20,14 @@
     <!-- Status Alert -->
     @php
         $statusInfo = match($booking->status) {
+            'awaiting_payment' => [
+                'bg' => 'bg-orange-50',
+                'border' => 'border-orange-500',
+                'text' => 'text-orange-800',
+                'icon' => 'text-orange-500',
+                'label' => 'Awaiting Payment',
+                'message' => 'Your booking will be submitted for review once your cashless payment is confirmed. Please complete payment via PayMongo.'
+            ],
             'pending' => [
                 'bg' => 'bg-yellow-50',
                 'border' => 'border-yellow-500', 
@@ -83,6 +91,14 @@
                 'icon' => 'text-red-500',
                 'label' => 'Rejected',
                 'message' => 'Unfortunately, this booking was rejected.'
+            ],
+            'admin_rejected' => [
+                'bg' => 'bg-orange-50',
+                'border' => 'border-orange-500',
+                'text' => 'text-orange-800',
+                'icon' => 'text-orange-500',
+                'label' => 'Admin Rejected',
+                'message' => 'The admin has rejected this booking. Please review the reason below and choose to reschedule or cancel.'
             ],
             default => [
                 'bg' => 'bg-gray-50',
@@ -501,12 +517,136 @@
             </div>
 
             <!-- Rejection/Cancellation Reason -->
-            @if(in_array($booking->status, ['rejected', 'cancelled']) && $booking->rejected_reason)
-                <div class="bg-red-50 border border-red-200 rounded-lg p-6">
-                    <h3 class="text-lg font-bold text-red-800 mb-2">
-                        {{ $booking->status === 'rejected' ? 'Rejection Reason' : 'Cancellation Reason' }}
+            @if(in_array($booking->status, ['rejected', 'cancelled', 'admin_rejected']) && ($booking->rejected_reason || $booking->canceled_reason))
+                <div class="{{ $booking->status === 'admin_rejected' ? 'bg-orange-50 border border-orange-200' : 'bg-red-50 border border-red-200' }} rounded-lg p-6">
+                    <h3 class="text-lg font-bold {{ $booking->status === 'admin_rejected' ? 'text-orange-800' : 'text-red-800' }} mb-2">
+                        @if($booking->status === 'admin_rejected')
+                            Admin Rejection Reason
+                        @elseif($booking->status === 'rejected')
+                            Rejection Reason
+                        @else
+                            Cancellation Reason
+                        @endif
                     </h3>
-                    <p class="text-red-700">{{ $booking->rejected_reason }}</p>
+
+                    @if($booking->status === 'rejected' && $booking->rejection_type)
+                        @php
+                            $rejectionLabels = [
+                                'id_issue' => 'ID Issue - Re-upload Valid ID',
+                                'facility_issue' => 'Facility Issue',
+                                'document_issue' => 'Document Issue - Re-upload Documents',
+                                'info_issue' => 'Information Issue - Incorrect Details',
+                            ];
+                        @endphp
+                        <div class="mb-3 inline-flex items-center px-3 py-1.5 bg-red-100 text-red-800 rounded-full text-sm font-semibold">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                            {{ $rejectionLabels[$booking->rejection_type] ?? ucfirst(str_replace('_', ' ', $booking->rejection_type)) }}
+                        </div>
+                    @endif
+
+                    <p class="{{ $booking->status === 'admin_rejected' ? 'text-orange-700' : 'text-red-700' }}">{{ $booking->rejected_reason ?? $booking->canceled_reason }}</p>
+
+                    @if($booking->status === 'admin_rejected')
+                        <div class="mt-4 p-4 bg-white border border-orange-200 rounded-lg">
+                            <h4 class="text-sm font-bold text-gray-900 mb-2">What would you like to do?</h4>
+                            <p class="text-sm text-gray-600 mb-4">You can reschedule this booking to a new date/time, or cancel it. <strong>Payments are non-refundable.</strong></p>
+                            <div class="space-y-3">
+                                <a href="{{ URL::signedRoute('citizen.booking.reschedule', $booking->id) }}"
+                                   class="w-full px-4 py-3 bg-blue-600 text-white text-center font-bold rounded-lg hover:bg-blue-700 transition shadow-md flex items-center justify-center gap-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                                    Reschedule Booking
+                                </a>
+                                <button type="button" onclick="cancelBooking({{ $booking->id }})"
+                                        class="w-full px-4 py-3 bg-red-100 text-red-700 text-center font-bold rounded-lg hover:bg-red-200 transition flex items-center justify-center gap-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                                    Cancel Booking (No Refund)
+                                </button>
+                                <p class="text-xs text-red-600 text-center"><strong>Note:</strong> Payments are non-refundable per policy.</p>
+                            </div>
+                        </div>
+                    @elseif($booking->status === 'rejected' && $booking->rejection_type)
+                        <div class="mt-4 p-4 bg-white border border-red-200 rounded-lg">
+                            <h4 class="text-sm font-bold text-gray-900 mb-3">Fix & Resubmit</h4>
+
+                            @if(in_array($booking->rejection_type, ['id_issue', 'document_issue']))
+                                <p class="text-sm text-gray-600 mb-3">Please re-upload the required documents below, then click "Resubmit for Review".</p>
+                                <div class="space-y-3 mb-4">
+                                    @if($booking->rejection_type === 'id_issue')
+                                        @php
+                                            $idDocs = [
+                                                ['field' => 'valid_id_front', 'label' => 'ID Front', 'path' => $booking->valid_id_front_path],
+                                                ['field' => 'valid_id_back', 'label' => 'ID Back', 'path' => $booking->valid_id_back_path],
+                                                ['field' => 'valid_id_selfie', 'label' => 'Selfie', 'path' => $booking->valid_id_selfie_path],
+                                            ];
+                                        @endphp
+                                        @foreach($idDocs as $doc)
+                                            <div class="flex items-center gap-3 p-2 border border-gray-200 rounded-lg bg-gray-50">
+                                                @if($doc['path'])
+                                                    <a href="{{ url('/files/' . $doc['path']) }}" target="_blank" class="flex-shrink-0">
+                                                        <img src="{{ url('/files/' . $doc['path']) }}" alt="{{ $doc['label'] }}" class="w-16 h-16 object-cover rounded-md border border-gray-300 hover:opacity-80 transition">
+                                                    </a>
+                                                    <div class="flex-1 min-w-0">
+                                                        <p class="text-sm font-medium text-gray-900">{{ $doc['label'] }}</p>
+                                                        <p class="text-xs text-green-600 font-semibold">Uploaded</p>
+                                                    </div>
+                                                @else
+                                                    <div class="w-16 h-16 flex-shrink-0 bg-gray-200 rounded-md flex items-center justify-center">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+                                                    </div>
+                                                    <div class="flex-1 min-w-0">
+                                                        <p class="text-sm font-medium text-gray-900">{{ $doc['label'] }}</p>
+                                                        <p class="text-xs text-red-500 font-semibold">Not uploaded</p>
+                                                    </div>
+                                                @endif
+                                                <button type="button" onclick="openReuploadModal('{{ $doc['field'] }}')"
+                                                        class="flex-shrink-0 inline-flex items-center px-3 py-2 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-1"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                                    Re-upload
+                                                </button>
+                                            </div>
+                                        @endforeach
+                                    @else
+                                        <div class="flex items-center gap-3 p-2 border border-gray-200 rounded-lg bg-gray-50">
+                                            @if($booking->supporting_doc_path)
+                                                <a href="{{ url('/files/' . $booking->supporting_doc_path) }}" target="_blank" class="flex-shrink-0">
+                                                    <img src="{{ url('/files/' . $booking->supporting_doc_path) }}" alt="Document" class="w-16 h-16 object-cover rounded-md border border-gray-300 hover:opacity-80 transition">
+                                                </a>
+                                                <div class="flex-1 min-w-0">
+                                                    <p class="text-sm font-medium text-gray-900">Supporting Document</p>
+                                                    <p class="text-xs text-green-600 font-semibold">Uploaded</p>
+                                                </div>
+                                            @else
+                                                <div class="w-16 h-16 flex-shrink-0 bg-gray-200 rounded-md flex items-center justify-center">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+                                                </div>
+                                                <div class="flex-1 min-w-0">
+                                                    <p class="text-sm font-medium text-gray-900">Supporting Document</p>
+                                                    <p class="text-xs text-red-500 font-semibold">Not uploaded</p>
+                                                </div>
+                                            @endif
+                                            <button type="button" onclick="openReuploadModal('supporting_doc')"
+                                                    class="flex-shrink-0 inline-flex items-center px-3 py-2 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-1"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                                Re-upload
+                                            </button>
+                                        </div>
+                                    @endif
+                                </div>
+                            @else
+                                <p class="text-sm text-gray-600 mb-3">Please review the issue above. Once corrected, click "Resubmit for Review" to send your booking back for staff verification.</p>
+                            @endif
+
+                            <form action="{{ route('citizen.reservations.resubmit', $booking->id) }}" method="POST"
+                                  onsubmit="return confirm('Are you sure you want to resubmit this booking for review?')">
+                                @csrf
+                                <button type="submit"
+                                        class="w-full px-4 py-3 bg-green-600 text-white text-center font-bold rounded-lg hover:bg-green-700 transition shadow-md flex items-center justify-center gap-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                                    Resubmit for Review
+                                </button>
+                            </form>
+                        </div>
+                    @endif
                 </div>
             @endif
         </div>
@@ -568,6 +708,22 @@
 
                 <!-- Action Buttons -->
                 <div class="mt-6 space-y-3">
+                    @if($booking->payment_method === 'cashless' && ($booking->amount_paid ?? 0) <= 0 && !$booking->down_payment_paid_at && in_array($booking->status, ['awaiting_payment', 'pending', 'staff_verified']))
+                        <div class="{{ $booking->status === 'awaiting_payment' ? 'bg-orange-50 border-orange-200' : 'bg-yellow-50 border-yellow-200' }} border rounded-lg p-3 mb-2">
+                            <p class="text-sm {{ $booking->status === 'awaiting_payment' ? 'text-orange-800' : 'text-yellow-800' }} mb-2">
+                                @if($booking->status === 'awaiting_payment')
+                                    <strong>Payment required to submit booking.</strong> Your booking will be submitted for review once payment is received.
+                                @else
+                                    <strong>Cashless down payment not yet received.</strong> Click below to pay or visit the City Treasurer's Office.
+                                @endif
+                            </p>
+                            <a href="{{ URL::signedRoute('citizen.paymongo.retry', ['bookingId' => $booking->id]) }}" 
+                               class="block w-full px-4 py-3 bg-blue-600 text-white text-center font-semibold rounded-lg hover:bg-blue-700 transition">
+                                Pay Now via PayMongo (₱{{ number_format($booking->down_payment_amount, 2) }})
+                            </a>
+                        </div>
+                    @endif
+
                     @if($booking->status === 'payment_pending')
                         <a href="{{ URL::signedRoute('citizen.payment-slips') }}" 
                            class="block w-full px-4 py-3 bg-lgu-button text-lgu-button-text text-center font-semibold rounded-lg hover:bg-lgu-highlight transition">
@@ -590,11 +746,16 @@
                         </a>
                     @endif
 
-                    @if(in_array($booking->status, ['pending', 'staff_verified', 'payment_pending']))
+                    @if(in_array($booking->status, ['pending', 'staff_verified', 'payment_pending', 'paid', 'admin_rejected']))
                         <button type="button" onclick="cancelBooking({{ $booking->id }})"
                                 class="block w-full px-4 py-3 bg-red-100 text-red-700 text-center font-semibold rounded-lg hover:bg-red-200 transition">
                             Cancel Booking
                         </button>
+                        @if(($booking->amount_paid ?? 0) > 0)
+                        <p class="text-xs text-red-600 text-center mt-1">
+                            <strong>Note:</strong> Payments are non-refundable.
+                        </p>
+                        @endif
                     @endif
 
                     <a href="{{ URL::signedRoute('citizen.reservations') }}" 
@@ -635,6 +796,7 @@
                                     'completed' => 'bg-blue-500',
                                     'cancelled' => 'bg-gray-500',
                                     'rejected' => 'bg-red-500',
+                                    'admin_rejected' => 'bg-orange-500',
                                     default => 'bg-gray-500'
                                 };
                             @endphp
@@ -778,17 +940,149 @@ function openUploadModal(documentType) {
     });
 }
 
+// Preview image in re-upload modal
+function previewReuploadImage(input) {
+    const container = document.getElementById('reupload_preview_container');
+    const img = document.getElementById('reupload_preview_img');
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            img.src = e.target.result;
+            container.classList.remove('hidden');
+        };
+        reader.readAsDataURL(input.files[0]);
+    } else {
+        container.classList.add('hidden');
+        img.src = '';
+    }
+}
+
+// Re-upload Document for Rejected Bookings
+function openReuploadModal(fieldType) {
+    const fieldLabels = {
+        'valid_id_front': 'Valid ID - Front',
+        'valid_id_back': 'Valid ID - Back',
+        'valid_id_selfie': 'Selfie with ID',
+        'supporting_doc': 'Supporting Document'
+    };
+
+    Swal.fire({
+        title: 'Re-upload Document',
+        html: `
+            <div class="text-left">
+                <p class="text-gray-700 mb-4">Document: <span class="font-semibold text-lgu-headline">${fieldLabels[fieldType] || 'Document'}</span></p>
+                <div class="mb-4">
+                    <input type="file" 
+                           id="reupload_file" 
+                           accept="image/*" 
+                           onchange="previewReuploadImage(this)"
+                           class="block w-full text-sm text-gray-900 border-2 border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none focus:border-lgu-button">
+                    <p class="mt-2 text-xs text-gray-500">Accepted: JPG, PNG (Max 5MB)</p>
+                </div>
+                <div id="reupload_preview_container" class="hidden mt-3">
+                    <p class="text-sm font-medium text-gray-700 mb-2">Preview:</p>
+                    <img id="reupload_preview_img" src="" alt="Preview" class="w-full max-h-64 object-contain rounded-lg border-2 border-gray-200 shadow-sm">
+                </div>
+            </div>
+        `,
+        icon: 'info',
+        showCancelButton: true,
+        confirmButtonColor: '#2563eb',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Upload',
+        cancelButtonText: 'Cancel',
+        customClass: {
+            popup: 'rounded-xl',
+            confirmButton: 'px-6 py-2.5 rounded-lg font-semibold cursor-pointer',
+            cancelButton: 'px-6 py-2.5 rounded-lg font-semibold cursor-pointer'
+        },
+        preConfirm: () => {
+            const file = document.getElementById('reupload_file').files[0];
+            if (!file) {
+                Swal.showValidationMessage('Please select a file to upload');
+                return false;
+            }
+            if (file.size > 5 * 1024 * 1024) {
+                Swal.showValidationMessage('File size must not exceed 5MB');
+                return false;
+            }
+            return { file, fieldType };
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire({
+                title: 'Uploading...',
+                text: 'Please wait while we upload your document',
+                allowOutsideClick: false,
+                showConfirmButton: false,
+                willOpen: () => { Swal.showLoading(); }
+            });
+
+            const formData = new FormData();
+            formData.append('document', result.value.file);
+            formData.append('field_type', result.value.fieldType);
+
+            fetch(`/citizen/reservations/{{ $booking->id }}/reupload`, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Uploaded!',
+                        text: data.message || 'Document re-uploaded successfully.',
+                        confirmButtonColor: '#047857',
+                        customClass: { popup: 'rounded-xl', confirmButton: 'px-6 py-2.5 rounded-lg font-semibold cursor-pointer' }
+                    }).then(() => { location.reload(); });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Upload Failed',
+                        text: data.message || 'An error occurred.',
+                        confirmButtonColor: '#dc2626',
+                        customClass: { popup: 'rounded-xl', confirmButton: 'px-6 py-2.5 rounded-lg font-semibold cursor-pointer' }
+                    });
+                }
+            })
+            .catch(error => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'An unexpected error occurred. Please try again.',
+                    confirmButtonColor: '#dc2626',
+                    customClass: { popup: 'rounded-xl', confirmButton: 'px-6 py-2.5 rounded-lg font-semibold cursor-pointer' }
+                });
+                console.error('Reupload error:', error);
+            });
+        }
+    });
+}
+
 // Cancel Booking with SweetAlert2
 function cancelBooking(bookingId) {
+    const amountPaid = {{ $booking->amount_paid ?? 0 }};
+    const noRefundWarning = amountPaid > 0 
+        ? `<div class="bg-red-50 border border-red-300 rounded-lg p-3 mb-4">
+               <p class="text-red-800 text-sm font-semibold">⚠ No Refund Policy</p>
+               <p class="text-red-700 text-sm">Your payment of ₱${amountPaid.toLocaleString('en-PH', {minimumFractionDigits: 2})} is <strong>non-refundable</strong>. You will not receive any refund if you cancel.</p>
+           </div>` 
+        : '';
+
     Swal.fire({
         title: 'Cancel Booking?',
         html: `
             <div class="text-left">
+                ${noRefundWarning}
                 <p class="text-gray-600 mb-4">Please provide a reason for cancelling this booking:</p>
                 <textarea id="cancellation_reason" 
                           class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500" 
                           rows="4" 
-                          placeholder="Enter your reason here..."
+                          placeholder="e.g., I want to change the date/time, I no longer need the facility..."
                           style="resize: none;"></textarea>
             </div>
         `,

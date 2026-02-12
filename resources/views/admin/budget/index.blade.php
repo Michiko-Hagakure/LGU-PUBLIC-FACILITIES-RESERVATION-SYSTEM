@@ -245,8 +245,8 @@
 </div>
 
 <!-- Add Expenditure Modal -->
-<div id="expenditureModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+<div id="expenditureModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6 my-auto max-h-[90vh] overflow-y-auto">
         <h3 class="text-xl font-semibold text-lgu-headline mb-4">Record Expenditure</h3>
         <p class="text-sm text-gray-600 mb-4">Category: <span id="expCategory" class="font-semibold"></span></p>
         <p class="text-sm text-gray-600 mb-4">Available: <span id="expAvailable" class="font-semibold text-green-600"></span></p>

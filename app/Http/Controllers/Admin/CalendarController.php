@@ -163,7 +163,7 @@ class CalendarController extends Controller
                 'border' => '#8b5cf6',
                 'text' => '#4c1d95'
             ],
-            'rejected', 'cancelled' => [
+            'rejected', 'cancelled', 'admin_rejected' => [
                 'bg' => '#f87171',      // Red - Rejected or cancelled
                 'border' => '#ef4444',
                 'text' => '#7f1d1d'
@@ -195,6 +195,7 @@ class CalendarController extends Controller
             'paid' => 'Paid (Awaiting Confirmation)',
             'confirmed' => 'Confirmed',
             'rejected' => 'Rejected',
+            'admin_rejected' => 'Admin Rejected',
             'cancelled' => 'Cancelled',
             'expired' => 'Expired (Unpaid)',
             default => ucfirst($status)

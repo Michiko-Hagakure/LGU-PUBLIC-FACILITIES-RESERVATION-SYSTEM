@@ -1775,11 +1775,11 @@ Route::middleware(['auth', 'role:Treasurer'])->prefix('treasurer')->name('treasu
     Route::get('/official-receipts/{id}', [\App\Http\Controllers\Treasurer\OfficialReceiptController::class, 'show'])->name('official-receipts.show');
     Route::get('/official-receipts/{id}/print', [\App\Http\Controllers\Treasurer\OfficialReceiptController::class, 'print'])->name('official-receipts.print');
 
-    // Refund Queue
-    Route::get('/refunds', [\App\Http\Controllers\Treasurer\RefundController::class, 'index'])->name('refunds.index');
-    Route::get('/refunds/json', [\App\Http\Controllers\Treasurer\RefundController::class, 'getRefundsJson'])->name('refunds.json');
-    Route::get('/refunds/{id}', [\App\Http\Controllers\Treasurer\RefundController::class, 'show'])->name('refunds.show');
-    Route::post('/refunds/{id}/process', [\App\Http\Controllers\Treasurer\RefundController::class, 'process'])->name('refunds.process');
+    // Refund Queue - REMOVED (no refund policy)
+    // Route::get('/refunds', [\App\Http\Controllers\Treasurer\RefundController::class, 'index'])->name('refunds.index');
+    // Route::get('/refunds/json', [\App\Http\Controllers\Treasurer\RefundController::class, 'getRefundsJson'])->name('refunds.json');
+    // Route::get('/refunds/{id}', [\App\Http\Controllers\Treasurer\RefundController::class, 'show'])->name('refunds.show');
+    // Route::post('/refunds/{id}/process', [\App\Http\Controllers\Treasurer\RefundController::class, 'process'])->name('refunds.process');
 
     // Reports
     Route::get('/reports/daily-collections', [\App\Http\Controllers\Treasurer\ReportController::class, 'dailyCollections'])->name('reports.daily-collections');
@@ -1823,6 +1823,10 @@ Route::post('/ping-session', function () {
     ]);
 })->name('ping-session');
 
+// PayMongo Cashless Payment Callbacks - Outside auth middleware so they work when session expires during checkout
+Route::get('/citizen/paymongo/success/{bookingId}', [\App\Http\Controllers\Citizen\PayMongoController::class, 'success'])->name('citizen.paymongo.success');
+Route::get('/citizen/paymongo/failed/{bookingId}', [\App\Http\Controllers\Citizen\PayMongoController::class, 'failed'])->name('citizen.paymongo.failed');
+
 // Citizen Portal Routes - Protected with session timeout
 Route::middleware(['auth', 'role:citizen', \App\Http\Middleware\CheckSessionTimeout::class])->group(function () {
     // Dashboard
@@ -1851,18 +1855,27 @@ Route::middleware(['auth', 'role:citizen', \App\Http\Middleware\CheckSessionTime
     Route::get('/citizen/booking/confirmation/{bookingId}', [\App\Http\Controllers\Citizen\BookingController::class, 'confirmation'])->name('citizen.booking.confirmation');
     Route::post('/citizen/booking/check-availability', [\App\Http\Controllers\Citizen\BookingController::class, 'checkAvailability'])->name('citizen.booking.check-availability');
 
+    // PayMongo Cashless - Retry (requires auth)
+    Route::get('/citizen/paymongo/retry/{bookingId}', [\App\Http\Controllers\Citizen\PayMongoController::class, 'retry'])->name('citizen.paymongo.retry');
+
     // Reservations
     Route::get('/citizen/reservations', [\App\Http\Controllers\Citizen\ReservationController::class, 'index'])->name('citizen.reservations');
     Route::get('/citizen/reservations/json', [\App\Http\Controllers\Citizen\ReservationController::class, 'getReservationsJson'])->name('citizen.reservations.json');
     Route::get('/citizen/reservations/history', [\App\Http\Controllers\Citizen\ReservationController::class, 'history'])->name('citizen.reservation.history');
     Route::get('/citizen/reservations/{id}', [\App\Http\Controllers\Citizen\ReservationController::class, 'show'])->name('citizen.reservations.show');
+    // Cancellation allowed but NO refund
     Route::post('/citizen/reservations/{id}/cancel', [\App\Http\Controllers\Citizen\ReservationController::class, 'cancel'])->name('citizen.reservations.cancel');
     Route::post('/citizen/reservations/{id}/upload', [\App\Http\Controllers\Citizen\ReservationController::class, 'uploadDocument'])->name('citizen.reservations.upload');
+    Route::post('/citizen/reservations/{id}/reupload', [\App\Http\Controllers\Citizen\ReservationController::class, 'reuploadDocument'])->name('citizen.reservations.reupload');
+    Route::post('/citizen/reservations/{id}/resubmit', [\App\Http\Controllers\Citizen\ReservationController::class, 'resubmit'])->name('citizen.reservations.resubmit');
+    // Reschedule (admin-rejected bookings — citizen picks new date/time)
+    Route::get('/citizen/reservations/{id}/reschedule', [\App\Http\Controllers\Citizen\ReservationController::class, 'rescheduleForm'])->name('citizen.booking.reschedule');
+    Route::post('/citizen/reservations/{id}/reschedule', [\App\Http\Controllers\Citizen\ReservationController::class, 'reschedule'])->name('citizen.booking.reschedule.submit');
 
-    // Refunds
-    Route::get('/citizen/refunds', [\App\Http\Controllers\Citizen\RefundController::class, 'index'])->name('citizen.refunds.index');
-    Route::get('/citizen/refunds/{id}', [\App\Http\Controllers\Citizen\RefundController::class, 'show'])->name('citizen.refunds.show');
-    Route::post('/citizen/refunds/{id}/select-method', [\App\Http\Controllers\Citizen\RefundController::class, 'selectMethod'])->name('citizen.refunds.select-method');
+    // Refunds - REMOVED (no refund policy)
+    // Route::get('/citizen/refunds', [\App\Http\Controllers\Citizen\RefundController::class, 'index'])->name('citizen.refunds.index');
+    // Route::get('/citizen/refunds/{id}', [\App\Http\Controllers\Citizen\RefundController::class, 'show'])->name('citizen.refunds.show');
+    // Route::post('/citizen/refunds/{id}/select-method', [\App\Http\Controllers\Citizen\RefundController::class, 'selectMethod'])->name('citizen.refunds.select-method');
 
     // Booking Conflicts (City Events)
     Route::get('/citizen/booking-conflicts', [\App\Http\Controllers\Citizen\BookingConflictController::class, 'index'])->name('citizen.conflicts.index');
@@ -2045,6 +2058,16 @@ Route::middleware(['auth', 'role:admin', 'auto.expire'])->prefix('admin')->name(
     Route::get('/facility-site-selection', [\App\Http\Controllers\Admin\FacilitySiteSelectionController::class, 'index'])->name('facility-site-selection.index');
     Route::post('/facility-site-selection/search', [\App\Http\Controllers\Admin\FacilitySiteSelectionController::class, 'search'])->name('facility-site-selection.search');
     Route::post('/facility-site-selection/check-suitability', [\App\Http\Controllers\Admin\FacilitySiteSelectionController::class, 'checkSuitability'])->name('facility-site-selection.check-suitability');
+
+    // Inquiry Management
+    Route::get('/inquiries', [\App\Http\Controllers\Admin\InquiryManagementController::class, 'index'])->name('inquiries.index');
+    Route::get('/inquiries/{id}', [\App\Http\Controllers\Admin\InquiryManagementController::class, 'show'])->name('inquiries.show');
+    Route::post('/inquiries/{id}/assign', [\App\Http\Controllers\Admin\InquiryManagementController::class, 'assign'])->name('inquiries.assign');
+    Route::post('/inquiries/{id}/status', [\App\Http\Controllers\Admin\InquiryManagementController::class, 'updateStatus'])->name('inquiries.status');
+    Route::post('/inquiries/{id}/priority', [\App\Http\Controllers\Admin\InquiryManagementController::class, 'updatePriority'])->name('inquiries.priority');
+    Route::post('/inquiries/{id}/note', [\App\Http\Controllers\Admin\InquiryManagementController::class, 'addNote'])->name('inquiries.note');
+    Route::post('/inquiries/{id}/resolve', [\App\Http\Controllers\Admin\InquiryManagementController::class, 'resolve'])->name('inquiries.resolve');
+    Route::post('/inquiries/{id}/close', [\App\Http\Controllers\Admin\InquiryManagementController::class, 'close'])->name('inquiries.close');
 
 });
 

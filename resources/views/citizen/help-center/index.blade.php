@@ -93,10 +93,10 @@
                             <div class="flex items-center mt-4 pt-4 border-t border-gray-200">
                                 <span class="text-sm text-gray-500 mr-4">Was this helpful?</span>
                                 <button onclick="markHelpful('faq', {{ $faq->id }}, 'yes')" class="text-green-600 hover:text-green-700 text-sm font-medium mr-3">
-                                    👍 Yes ({{ $faq->helpful_count }})
+                                    <i data-lucide="thumbs-up" class="w-4 h-4 inline-block mr-1"></i> Yes ({{ $faq->helpful_count }})
                                 </button>
                                 <button onclick="markHelpful('faq', {{ $faq->id }}, 'no')" class="text-red-600 hover:text-red-700 text-sm font-medium">
-                                    👎 No ({{ $faq->not_helpful_count }})
+                                    <i data-lucide="thumbs-down" class="w-4 h-4 inline-block mr-1"></i> No ({{ $faq->not_helpful_count }})
                                 </button>
                             </div>
                         </div>
