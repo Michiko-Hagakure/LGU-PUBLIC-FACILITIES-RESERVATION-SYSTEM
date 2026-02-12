@@ -4,10 +4,11 @@
  * Strategy: Cache-first for static assets, Network-first for API/pages.
  */
 
-const CACHE_VERSION = 'lgu1-pfrs-v1';
+const CACHE_VERSION = 'lgu1-pfrs-v2';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
 const API_CACHE = `${CACHE_VERSION}-api`;
+const CDN_CACHE = `${CACHE_VERSION}-cdn`;
 
 // Static assets to pre-cache on install
 const PRECACHE_ASSETS = [
@@ -16,6 +17,16 @@ const PRECACHE_ASSETS = [
     '/assets/images/logo.png',
     '/assets/images/logo-tiny.png',
     '/manifest.json',
+];
+
+// Critical CDN resources to cache on first fetch
+const CDN_DOMAINS = [
+    'cdn.tailwindcss.com',
+    'cdn.jsdelivr.net',
+    'unpkg.com',
+    'fonts.googleapis.com',
+    'fonts.gstatic.com',
+    'fonts.bunny.net',
 ];
 
 // URL patterns that should use network-first strategy
@@ -82,7 +93,7 @@ self.addEventListener('activate', (event) => {
             .then((cacheNames) => {
                 return Promise.all(
                     cacheNames
-                        .filter((name) => name.startsWith('lgu1-pfrs-') && name !== STATIC_CACHE && name !== DYNAMIC_CACHE && name !== API_CACHE)
+                        .filter((name) => name.startsWith('lgu1-pfrs-') && name !== STATIC_CACHE && name !== DYNAMIC_CACHE && name !== API_CACHE && name !== CDN_CACHE)
                         .map((name) => {
                             console.log('[SW] Deleting old cache:', name);
                             return caches.delete(name);
@@ -100,13 +111,16 @@ self.addEventListener('fetch', (event) => {
     const { request } = event;
     const url = new URL(request.url);
 
-    // Only handle same-origin requests
-    if (url.origin !== self.location.origin) {
+    // Skip non-GET requests (POST, PUT, DELETE go through the offline queue)
+    if (request.method !== 'GET') {
         return;
     }
 
-    // Skip non-GET requests (POST, PUT, DELETE go through the offline queue)
-    if (request.method !== 'GET') {
+    // Handle CDN/cross-origin requests (fonts, Tailwind, JS libraries)
+    if (url.origin !== self.location.origin) {
+        if (CDN_DOMAINS.some((domain) => url.hostname === domain || url.hostname.endsWith('.' + domain))) {
+            event.respondWith(cdnCacheFirst(request));
+        }
         return;
     }
 
@@ -136,6 +150,30 @@ self.addEventListener('fetch', (event) => {
     // Default: Network-first for everything else
     event.respondWith(networkFirst(request, DYNAMIC_CACHE));
 });
+
+/**
+ * CDN cache-first strategy for cross-origin resources (fonts, CSS, JS libraries)
+ */
+async function cdnCacheFirst(request) {
+    try {
+        const cached = await caches.match(request);
+        if (cached) {
+            return cached;
+        }
+        const response = await fetch(request, { mode: 'cors' });
+        if (response.ok) {
+            const cache = await caches.open(CDN_CACHE);
+            cache.put(request, response.clone());
+        }
+        return response;
+    } catch (error) {
+        const cached = await caches.match(request);
+        if (cached) {
+            return cached;
+        }
+        return new Response('', { status: 503, statusText: 'CDN Unavailable' });
+    }
+}
 
 /**
  * Cache-first strategy: Try cache, fallback to network
