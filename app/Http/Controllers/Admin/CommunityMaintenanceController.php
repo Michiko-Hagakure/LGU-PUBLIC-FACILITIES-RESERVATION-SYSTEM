@@ -61,12 +61,13 @@ class CommunityMaintenanceController extends Controller
             $facilityName = $facility ? $facility->name : 'Unknown Facility';
 
             // Prepare form-data payload for General Request API
+            // Note: Remote API database expects lowercase priority values
             $payload = [
                 'category' => $validated['category'],
                 'issue_type' => $validated['issue_type'],
                 'description' => $validated['description'],
                 'location' => $validated['location'],
-                'priority' => $validated['priority'],
+                'priority' => strtolower($validated['priority']),
                 'reporter_name' => $validated['reporter_name'],
                 'reporter_contact' => $validated['reporter_contact'],
             ];
