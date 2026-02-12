@@ -236,7 +236,7 @@ class Booking extends Model
      */
     public function isRejected(): bool
     {
-        return $this->status === 'rejected';
+        return in_array($this->status, ['rejected', 'admin_rejected']);
     }
 
     /**
