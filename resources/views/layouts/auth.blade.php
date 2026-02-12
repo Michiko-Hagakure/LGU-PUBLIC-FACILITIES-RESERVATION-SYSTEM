@@ -9,6 +9,14 @@
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="{{ asset('assets/images/logo.png') }}">
     
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="{{ asset('manifest.json') }}">
+    <meta name="theme-color" content="#00473e">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="LGU1 PFRS">
+    <link rel="apple-touch-icon" href="{{ asset('assets/images/logo.png') }}">
+    
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     
@@ -200,6 +208,8 @@
     @stack('styles')
 </head>
 <body class="antialiased">
+    @include('components.offline-indicator')
+
     <section class="background-radial-gradient overflow-hidden">
         <div class="container px-4 py-5 px-md-5 text-center text-lg-start my-5">
             <div class="row gx-lg-5 align-items-center mb-5">
@@ -231,6 +241,25 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     
     @stack('scripts')
+
+    <!-- Offline Support: IndexedDB Cache + Write Queue -->
+    <script src="{{ asset('js/offline-db.js') }}"></script>
+    <script src="{{ asset('js/offline-queue.js') }}"></script>
+
+    <!-- Service Worker Registration -->
+    <script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+            navigator.serviceWorker.register('/sw.js', { scope: '/' })
+                .then(function(registration) {
+                    console.log('[PWA] Service Worker registered, scope:', registration.scope);
+                })
+                .catch(function(error) {
+                    console.warn('[PWA] Service Worker registration failed:', error);
+                });
+        });
+    }
+    </script>
 </body>
 </html>
 

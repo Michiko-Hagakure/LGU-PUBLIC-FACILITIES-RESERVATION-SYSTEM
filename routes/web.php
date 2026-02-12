@@ -42,6 +42,11 @@ Route::get('/files/{path}', function ($path) {
     return response()->file($fullPath);
 })->where('path', '.*')->name('storage.serve');
 
+// Offline Fallback Page (PWA)
+Route::get('/offline', function () {
+    return view('offline');
+})->name('offline');
+
 // CSRF Token Refresh Endpoint - For preventing stale token issues
 Route::get('/csrf-token', function () {
     return response()->json([

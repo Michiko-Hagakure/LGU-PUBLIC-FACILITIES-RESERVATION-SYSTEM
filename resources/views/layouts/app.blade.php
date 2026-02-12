@@ -17,8 +17,16 @@
         @vite('resources/css/app.css')
     @endif
 
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="{{ asset('manifest.json') }}">
+    <meta name="theme-color" content="#00473e">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="LGU1 PFRS">
+    <link rel="apple-touch-icon" href="{{ asset('assets/images/logo.png') }}">
+
 </head>
 <body>
+    @include('components.offline-indicator')
     
     @include('partials.sidebar')
 
@@ -45,10 +53,10 @@
                     </div>
                     <!-- Quick Stats -->
                     <div class="hidden lg:flex items-center space-x-4">
-                        <div class="bg-gray-100 rounded-lg px-3 py-2">
+                        <div id="system-status-pill" class="bg-gray-100 rounded-lg px-3 py-2">
                             <div class="flex items-center space-x-2">
-                                <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                                <span class="text-xs text-gray-700 font-medium">System Online</span>
+                                <div id="system-status-dot" class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                                <span id="system-status-text" class="text-xs text-gray-700 font-medium">System Online</span>
                             </div>
                         </div>
                     </div>
@@ -152,6 +160,24 @@
         @endif
     </script>
 
+    <!-- Offline Support: IndexedDB Cache + Write Queue -->
+    <script src="{{ asset('js/offline-db.js') }}"></script>
+    <script src="{{ asset('js/offline-queue.js') }}"></script>
+
+    <!-- Service Worker Registration -->
+    <script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+            navigator.serviceWorker.register('/sw.js', { scope: '/' })
+                .then(function(registration) {
+                    console.log('[PWA] Service Worker registered, scope:', registration.scope);
+                })
+                .catch(function(error) {
+                    console.warn('[PWA] Service Worker registration failed:', error);
+                });
+        });
+    }
+    </script>
 </body>
 </html>
 
