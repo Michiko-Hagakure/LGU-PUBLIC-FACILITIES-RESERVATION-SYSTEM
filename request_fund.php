@@ -91,7 +91,7 @@ if (isset($_GET['fetch_history'])) {
                     <div class='font-black uppercase text-slate-700 text-[11px]'>{$row['purpose']}</div>
                     <div class='text-[10px] text-slate-400 mt-1'>{$row['seminar_info']}</div>
                 </td>
-                <td class='p-5 font-black text-slate-900'>₱" . number_format($row['amount'], 2) . "</td>
+                <td class='p-5 font-black text-slate-900'>" . ($row['approved_amount'] ? '₱' . number_format($row['approved_amount'], 2) : '<span class="text-slate-400 text-[10px]">Awaiting LGU</span>') . "</td>
                 <td class='p-5'><span class='px-3 py-1 rounded-md border text-[9px] font-black $status_css'>{$row['status']}</span></td>
                 <td class='p-5'><button onclick='viewDetails($view_data)' class='px-3 py-1.5 bg-blue-600 text-white rounded-lg text-[10px] font-bold'><i class='fas fa-eye mr-1'></i>View</button></td>
               </tr>";
@@ -140,12 +140,11 @@ if(isset($_POST['send_fund'])){
 
     if (isset($response['data']['id'])) {
         $gov_id = $response['data']['id'];
-        $amt = $_POST['amount'];
         $purp = mysqli_real_escape_string($conn, $_POST['purpose_text']);
         $s_info = mysqli_real_escape_string($conn, $s['seminar_title']);
 
-        $conn->query("INSERT INTO my_fund_requests (government_id, user_id, amount, purpose, status, seminar_info, seminar_id) 
-                      VALUES ('$gov_id', '$user_id', '$amt', '$purp', 'pending', '$s_info', '$sem_id')");
+        $conn->query("INSERT INTO my_fund_requests (government_id, user_id, purpose, status, seminar_info, seminar_id) 
+                      VALUES ('$gov_id', '$user_id', '$purp', 'pending', '$s_info', '$sem_id')");
         echo "success";
     } else {
         echo "LGU_API_ERROR: " . ($response['message'] ?? "Connection Failed");
@@ -203,11 +202,6 @@ if(isset($_POST['send_fund'])){
                         </div>
 
                         <div>
-                            <label class="text-[10px] font-bold text-slate-400 block ml-2">Estimated Budget Needed (₱)</label>
-                            <input type="number" name="amount" class="w-full bg-slate-50 border-2 p-4 rounded-2xl font-bold text-lg outline-none focus:border-emerald-500" required>
-                        </div>
-
-                        <div>
                             <label class="text-[10px] font-bold text-slate-400 block ml-2">Proposal/Purpose Details</label>
                             <textarea name="purpose_text" placeholder="Explain why this facility and funding is needed..." class="w-full bg-slate-50 border-2 p-4 rounded-2xl h-24 text-xs outline-none focus:border-emerald-500" required></textarea>
                         </div>
@@ -233,7 +227,7 @@ if(isset($_POST['send_fund'])){
                                 <tr class="text-[11px] font-bold text-slate-400 border-b">
                                     <th class="p-5">ID</th>
                                     <th class="p-5">Seminar</th>
-                                    <th class="p-5">Budget</th>
+                                    <th class="p-5">Approved Budget</th>
                                     <th class="p-5">Status</th>
                                     <th class="p-5">Action</th>
                                 </tr>
