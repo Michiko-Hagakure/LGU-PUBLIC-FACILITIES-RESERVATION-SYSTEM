@@ -23,13 +23,21 @@ class PaymentVerificationController extends Controller
             return redirect()->route('login')->with('error', 'Please login to continue.');
         }
 
-        // Auto-fix: Create payment slips for staff_verified bookings that have none
+        // Auto-fix: Create payment slips for staff_verified bookings that need them
         $stuckBookings = Booking::where('status', 'staff_verified')
-            ->whereDoesntHave('paymentSlips')
             ->where('total_amount', '>', 0)
             ->get();
 
         foreach ($stuckBookings as $stuck) {
+            $hasUnpaidSlip = \App\Models\PaymentSlip::where('booking_id', $stuck->id)
+                ->where('status', 'unpaid')
+                ->exists();
+
+            // Skip if there's already an unpaid slip waiting
+            if ($hasUnpaidSlip) {
+                continue;
+            }
+
             // Set payment defaults if not already set
             if (!$stuck->payment_tier) {
                 $stuck->update([
@@ -41,17 +49,32 @@ class PaymentVerificationController extends Controller
                 ]);
             }
 
-            $downPayment = $stuck->down_payment_amount ?: $stuck->total_amount * 0.25;
+            // Determine what amount is due
+            $amountRemaining = $stuck->amount_remaining ?? $stuck->total_amount;
+            if ($amountRemaining <= 0) {
+                continue; // Fully paid, nothing to collect
+            }
+
+            $hasPaidSlip = \App\Models\PaymentSlip::where('booking_id', $stuck->id)
+                ->where('status', 'paid')
+                ->exists();
+
+            $notes = $hasPaidSlip
+                ? 'Remaining balance — pay at City Treasurer\'s Office. Down payment already received.'
+                : 'Down payment (25%) — pay at City Treasurer\'s Office.';
+            $amountDue = $hasPaidSlip
+                ? $amountRemaining
+                : ($stuck->down_payment_amount ?: $stuck->total_amount * 0.25);
 
             \App\Models\PaymentSlip::create([
                 'slip_number' => \App\Models\PaymentSlip::generateSlipNumber(),
                 'booking_id' => $stuck->id,
-                'amount_due' => $downPayment,
+                'amount_due' => $amountDue,
                 'payment_deadline' => now()->addDays(3),
                 'status' => 'unpaid',
                 'payment_method' => $stuck->payment_method ?? 'cash',
                 'paid_at' => null,
-                'notes' => 'Down payment (25%) — pay at City Treasurer\'s Office.',
+                'notes' => $notes,
             ]);
         }
 
