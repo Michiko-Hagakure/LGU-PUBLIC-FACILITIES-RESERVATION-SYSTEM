@@ -43,6 +43,7 @@ class FacilityReservationApiController extends Controller
                 // Source system identification
                 'source_system' => 'required|string|max:100',
                 'external_reference_id' => 'nullable|string|max:100',
+                'user_id' => 'nullable|integer',
                 
                 // Applicant information
                 'applicant_name' => 'required|string|max:255',
@@ -172,7 +173,7 @@ class FacilityReservationApiController extends Controller
                 // Create booking
                 $booking = Booking::create([
                     'facility_id' => $validated['facility_id'],
-                    'user_id' => null, // External API booking - no user account
+                    'user_id' => $validated['user_id'] ?? null,
                     'user_name' => $validated['applicant_name'],
                     'applicant_name' => $validated['applicant_name'],
                     'applicant_email' => $validated['applicant_email'],
