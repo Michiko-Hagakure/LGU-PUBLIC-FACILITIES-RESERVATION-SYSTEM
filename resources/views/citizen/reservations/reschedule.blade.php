@@ -746,17 +746,52 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Form submission confirmation
+    // Form submission confirmation with SweetAlert2
     document.getElementById('rescheduleForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const form = this;
+
         if (!dateInput.value) {
-            e.preventDefault();
-            alert('Please select a new date.');
+            Swal.fire({
+                icon: 'warning',
+                title: 'Date Required',
+                text: 'Please select a new date before submitting.',
+                confirmButtonColor: '#2C5F2D'
+            });
             return false;
         }
-        if (!confirm('Are you sure you want to reschedule this booking to the selected date and time?')) {
-            e.preventDefault();
-            return false;
-        }
+
+        const facilitySelect = document.getElementById('facility_id');
+        const facilityName = facilitySelect.options[facilitySelect.selectedIndex].text;
+        const dateDisplay = dateDisplayInput.value;
+        const startDisplay = document.getElementById('start_time_display').value;
+        const endDisplay = document.getElementById('end_time_display').value;
+
+        Swal.fire({
+            title: 'Confirm Reschedule',
+            html: `
+                <div style="text-align: left; font-size: 14px; line-height: 1.8;">
+                    <p style="margin-bottom: 12px;">Are you sure you want to reschedule this booking?</p>
+                    <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px 16px;">
+                        <p><strong>Facility:</strong> ${facilityName}</p>
+                        <p><strong>Date:</strong> ${dateDisplay}</p>
+                        <p><strong>Time:</strong> ${startDisplay} – ${endDisplay}</p>
+                    </div>
+                    <p style="margin-top: 12px; color: #92400e; font-size: 13px;">Your booking will be resubmitted for staff verification.</p>
+                </div>
+            `,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#2563eb',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Yes, Reschedule',
+            cancelButtonText: 'Go Back',
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                form.submit();
+            }
+        });
     });
 });
 </script>
