@@ -23,30 +23,104 @@
     <!-- Offline fallback styles when CDN Tailwind is unavailable -->
     <noscript><style>.offline-hide{display:none}</style></noscript>
     <style id="offline-fallback-css">
-        /* These styles only matter when Tailwind CDN fails to load */
-        .ofl-body { font-family: 'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; color: #fff; background: #0f172a; overflow-x: hidden; }
-        .ofl-body nav { position: fixed; top: 0; width: 100%; z-index: 100; background: rgba(0,0,0,0.3); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255,255,255,0.1); }
-        .ofl-body nav > div { max-width: 80rem; margin: 0 auto; padding: 0 1.5rem; height: 5rem; display: flex; justify-content: space-between; align-items: center; }
-        .ofl-body .ofl-nav-links { display: flex; gap: 2.5rem; font-size: 10px; font-weight: 900; letter-spacing: 0.25em; }
-        .ofl-body .ofl-nav-links a { color: #fff; text-decoration: none; }
-        .ofl-body .ofl-nav-links a:hover { color: #f97316; }
-        .ofl-body .ofl-nav-auth { display: flex; gap: 1.5rem; align-items: center; }
-        .ofl-body .ofl-nav-auth a { color: #fff; text-decoration: none; font-weight: 700; font-size: 0.875rem; }
-        .ofl-body .ofl-btn-register { background: #ea580c; padding: 0.75rem 2rem; border-radius: 9999px; font-weight: 700; box-shadow: 0 10px 25px rgba(234,88,12,0.4); }
-        .ofl-body .ofl-hero { min-height: 100vh; display: flex; align-items: center; padding-top: 8rem; padding-bottom: 5rem; }
-        .ofl-body .ofl-hero-inner { max-width: 80rem; margin: 0 auto; padding: 0 1.5rem; width: 100%; }
-        .ofl-body .ofl-hero h1 { font-size: clamp(2.5rem, 6vw, 6rem); font-weight: 900; line-height: 1; margin-bottom: 2rem; }
-        .ofl-body .ofl-hero h1 span { color: #f97316; font-style: italic; }
-        .ofl-body .ofl-hero p { font-size: 1.125rem; color: rgba(255,255,255,0.7); margin-bottom: 3rem; max-width: 32rem; }
-        .ofl-body .ofl-browse-btn { display: inline-block; background: #fff; color: #0f172a; padding: 1.25rem 3rem; border-radius: 1rem; font-weight: 900; font-size: 1.125rem; text-decoration: none; box-shadow: 0 25px 50px rgba(0,0,0,0.25); }
-        .ofl-body .ofl-browse-btn:hover { background: #ea580c; color: #fff; }
-        .ofl-body section { padding: 5rem 0; }
-        .ofl-body .ofl-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem; max-width: 80rem; margin: 0 auto; padding: 0 1.5rem; }
-        .ofl-body .ofl-card { position: relative; border-radius: 2.5rem; overflow: hidden; aspect-ratio: 4/5; background: #1e293b; }
-        .ofl-body .ofl-card img { width: 100%; height: 100%; object-fit: cover; }
-        .ofl-body .ofl-card-overlay { position: absolute; bottom: 0; left: 0; padding: 2rem; }
-        .ofl-body .ofl-card h3 { font-size: 1.5rem; font-weight: 700; margin: 0 0 0.25rem; }
-        .ofl-body .ofl-card p { color: rgba(255,255,255,0.6); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.2em; }
+        /* Offline fallback: replicate Tailwind utility classes used in this page */
+        .ofl-body { font-family: 'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; padding: 0; color: #fff; background: #0f172a; overflow-x: hidden; box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+        .ofl-body *, .ofl-body *::before, .ofl-body *::after { box-sizing: border-box; }
+        .ofl-body a { color: inherit; text-decoration: none; }
+        .ofl-body img { max-width: 100%; display: block; }
+        .ofl-body button { cursor: pointer; border: none; background: none; color: inherit; }
+
+        /* Nav */
+        .ofl-body nav > div:first-child { max-width: 80rem; margin: 0 auto; padding: 0 1.5rem; height: 5rem; display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 110; }
+        .ofl-body nav > div:first-child > a:first-child { display: flex; align-items: center; gap: 0.75rem; }
+        .ofl-body nav > div:first-child > a:first-child img { height: 2.5rem; width: 2.5rem; object-fit: contain; }
+        .ofl-body nav > div:first-child > a:first-child span { font-weight: 700; font-size: 1.5rem; letter-spacing: -0.025em; text-transform: uppercase; }
+        .ofl-body nav > div:first-child > a:first-child span span { color: #f97316; }
+        /* Nav links */
+        .ofl-body nav > div:first-child > div:nth-child(2) { display: flex; gap: 2.5rem; font-size: 10px; font-weight: 900; letter-spacing: 0.25em; }
+        .ofl-body nav > div:first-child > div:nth-child(2) a:hover { color: #f97316; }
+        /* Nav auth buttons */
+        .ofl-body nav > div:first-child > div:nth-child(3) { display: flex; gap: 1.5rem; align-items: center; }
+        .ofl-body nav > div:first-child > div:nth-child(3) a:first-child { font-size: 0.875rem; font-weight: 700; text-transform: uppercase; letter-spacing: -0.025em; }
+        .ofl-body nav > div:first-child > div:nth-child(3) a:first-child:hover { color: #fb923c; }
+        .ofl-body nav > div:first-child > div:nth-child(3) a:last-child { background: #ea580c; color: #fff; padding: 0.75rem 2rem; border-radius: 9999px; font-size: 0.875rem; font-weight: 700; text-transform: uppercase; box-shadow: 0 10px 25px rgba(234,88,12,0.4); }
+        .ofl-body nav > div:first-child > div:nth-child(3) a:last-child:hover { background: #c2410c; }
+        /* Mobile menu button */
+        .ofl-body #menu-btn { display: none; padding: 0.5rem; }
+        .ofl-body #menu-btn svg { width: 2rem; height: 2rem; }
+        /* Mobile menu */
+        .ofl-body #mobile-menu { display: none; }
+
+        /* Hero section */
+        .ofl-body #hero { min-height: 100vh; display: flex; align-items: center; padding-top: 8rem; padding-bottom: 5rem; }
+        .ofl-body #hero > div { max-width: 80rem; margin: 0 auto; padding: 0 1.5rem; width: 100%; }
+        .ofl-body #hero > div > div { max-width: 48rem; }
+        .ofl-body #hero > div > div > span:first-child { background: rgba(234,88,12,0.2); color: #fb923c; border: 1px solid rgba(249,115,22,0.3); padding: 0.5rem 1.25rem; border-radius: 9999px; font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.2em; margin-bottom: 2rem; display: inline-block; }
+        .ofl-body #hero h1 { font-size: clamp(3rem, 7vw, 6rem); font-weight: 900; line-height: 0.95; margin: 0 0 2rem; }
+        .ofl-body #hero h1 span { color: #f97316; font-style: italic; }
+        .ofl-body #hero h1 br { display: block; }
+        .ofl-body #hero p { font-size: 1.125rem; color: rgba(255,255,255,0.7); margin: 0 0 3rem; max-width: 32rem; font-weight: 500; line-height: 1.6; }
+        .ofl-body #hero > div > div > div:last-child { display: flex; flex-wrap: wrap; gap: 1.5rem; align-items: center; }
+        .ofl-body #hero > div > div > div:last-child > a { background: #fff; color: #0f172a; padding: 1.25rem 3rem; border-radius: 1rem; font-weight: 900; font-size: 1.125rem; box-shadow: 0 25px 50px rgba(0,0,0,0.25); display: inline-block; transition: all 0.3s; }
+        .ofl-body #hero > div > div > div:last-child > a:hover { background: #ea580c; color: #fff; transform: translateY(-4px); }
+        .ofl-body #hero > div > div > div:last-child > div { display: flex; align-items: center; gap: 1.5rem; padding-left: 2rem; border-left: 2px solid rgba(255,255,255,0.2); }
+        .ofl-body #hero > div > div > div:last-child > div > span:first-child { font-size: 3rem; font-weight: 900; color: #f97316; }
+        .ofl-body #hero > div > div > div:last-child > div > span:last-child { font-size: 11px; color: rgba(255,255,255,0.5); text-transform: uppercase; font-weight: 900; line-height: 1.3; }
+
+        /* Facilities section */
+        .ofl-body #facilities { padding: 8rem 0; background: rgba(15,23,42,0.5); backdrop-filter: blur(24px); border-top: 1px solid rgba(255,255,255,0.05); }
+        .ofl-body #facilities > div { max-width: 80rem; margin: 0 auto; padding: 0 1.5rem; }
+        .ofl-body #facilities > div > div:first-child { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 4rem; gap: 1.5rem; flex-wrap: wrap; }
+        .ofl-body #facilities > div > div:first-child span { color: #f97316; font-weight: 900; letter-spacing: 0.2em; font-size: 0.75rem; text-transform: uppercase; }
+        .ofl-body #facilities > div > div:first-child h2 { font-size: clamp(2rem, 4vw, 3rem); font-weight: 900; margin: 0.5rem 0 0; }
+        .ofl-body #facilities > div > div:first-child > p { color: rgba(255,255,255,0.5); font-size: 0.875rem; margin: 0; }
+        /* Facility cards grid */
+        .ofl-body #facilities > div > div:last-child { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; }
+        .ofl-body .facility-card { position: relative; border-radius: 2.5rem; overflow: hidden; aspect-ratio: 4/5; background: #1e293b; box-shadow: 0 25px 50px rgba(0,0,0,0.25); }
+        .ofl-body .facility-card img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.7s; }
+        .ofl-body .facility-card > div:nth-child(2) { position: absolute; inset: 0; background: linear-gradient(to top, #000, rgba(0,0,0,0.2) 50%, transparent); opacity: 0.9; }
+        .ofl-body .facility-card > div:last-child { position: absolute; bottom: 0; left: 0; padding: 2rem; }
+        .ofl-body .facility-card h3 { font-size: 1.5rem; font-weight: 700; margin: 0 0 0.25rem; }
+        .ofl-body .facility-card p { color: rgba(255,255,255,0.6); font-size: 0.75rem; margin: 0 0 1rem; text-transform: uppercase; letter-spacing: 0.2em; }
+        .ofl-body .facility-card span { font-size: 10px; font-weight: 700; background: #ea580c; padding: 0.25rem 0.75rem; border-radius: 9999px; text-transform: uppercase; letter-spacing: -0.025em; }
+
+        /* Contact section */
+        .ofl-body #contact { padding: 8rem 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(48px); border-top: 1px solid rgba(255,255,255,0.05); }
+        .ofl-body #contact > div { max-width: 80rem; margin: 0 auto; padding: 0 1.5rem; }
+        .ofl-body #contact > div > div { display: grid; grid-template-columns: 1fr 1fr; gap: 5rem; align-items: center; }
+        .ofl-body #contact span.text-orange-500 { color: #f97316; }
+        .ofl-body #contact h2 { font-size: clamp(2.5rem, 5vw, 3.75rem); font-weight: 900; margin: 1rem 0 2rem; }
+        .ofl-body #contact h2 span { color: #f97316; font-style: italic; }
+        .ofl-body #contact > div > div > div:first-child > p { color: rgba(255,255,255,0.5); font-size: 1.125rem; margin-bottom: 3rem; max-width: 28rem; line-height: 1.6; }
+        .ofl-body #contact > div > div > div:first-child > div { display: flex; flex-direction: column; gap: 1.5rem; }
+        .ofl-body #contact > div > div > div:first-child > div > a { display: flex; align-items: center; gap: 1.5rem; }
+        .ofl-body #contact > div > div > div:first-child > div > a > div { height: 3.5rem; width: 3.5rem; border-radius: 1rem; display: flex; align-items: center; justify-content: center; }
+        .ofl-body #contact > div > div > div:first-child > div > a:first-child > div { background: rgba(37,99,235,0.1); color: #3b82f6; }
+        .ofl-body #contact > div > div > div:first-child > div > a:last-child > div { background: rgba(147,51,234,0.1); color: #a855f7; }
+        .ofl-body #contact > div > div > div:first-child > div > a > span { font-weight: 700; color: rgba(255,255,255,0.8); }
+        /* Contact form */
+        .ofl-body #contact > div > div > div:last-child { background: rgba(255,255,255,0.05); padding: 2rem 3rem; border-radius: 3rem; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 25px 50px rgba(0,0,0,0.25); }
+        .ofl-body #contactForm { display: flex; flex-direction: column; gap: 1.5rem; }
+        .ofl-body #contactForm > div:first-of-type { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+        .ofl-body #contactForm label { font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.2em; color: rgba(255,255,255,0.3); margin-left: 0.25rem; display: block; margin-bottom: 0.5rem; }
+        .ofl-body #contactForm input, .ofl-body #contactForm textarea { width: 100%; padding: 1rem 1.5rem; border-radius: 1rem; color: #fff; font-family: inherit; font-size: 1rem; }
+        .ofl-body #contactForm textarea { resize: none; }
+        .ofl-body #submitBtn { width: 100%; background: #ea580c; color: #fff; padding: 1.25rem; border-radius: 1rem; font-weight: 900; font-size: 1.125rem; text-transform: uppercase; letter-spacing: 0.2em; transition: background 0.3s; box-shadow: 0 10px 25px rgba(234,88,12,0.2); border: none; cursor: pointer; }
+        .ofl-body #submitBtn:hover { background: #c2410c; }
+
+        /* Mobile responsive */
+        @media (max-width: 1024px) {
+            .ofl-body nav > div:first-child > div:nth-child(2) { display: none; }
+            .ofl-body #menu-btn { display: block !important; }
+            .ofl-body #facilities > div > div:last-child { grid-template-columns: 1fr; max-width: 400px; margin: 0 auto; }
+            .ofl-body #contact > div > div { grid-template-columns: 1fr; gap: 3rem; }
+        }
+        @media (max-width: 768px) {
+            .ofl-body nav > div:first-child > div:nth-child(3) { display: none; }
+            .ofl-body #hero h1 { font-size: 2.5rem; }
+            .ofl-body #hero > div > div > div:last-child > div { border-left: none; padding-left: 0; }
+            .ofl-body #contactForm > div:first-of-type { grid-template-columns: 1fr; }
+        }
     </style>
     <script>
         // Remove fallback CSS once Tailwind loads successfully
