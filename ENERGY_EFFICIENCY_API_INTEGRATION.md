@@ -253,9 +253,129 @@ When a request is approved, the `response_data` field will contain:
 - scheduled_end_time
 - assigned_equipment
 - approved_budget
+- budget_breakdown (itemized — see below)
 - admin_notes
 - approved_at
 - approved_by
+
+### Budget Breakdown Structure
+
+The `budget_breakdown` field contains an itemized breakdown of the approved budget, organized by category:
+
+```json
+{
+    "food": [
+        {
+            "name": "AM Snack - Sandwich & Juice",
+            "qty": 50,
+            "unit_cost": 75.00,
+            "subtotal": 3750.00
+        },
+        {
+            "name": "Lunch - Rice Meal with Drink",
+            "qty": 50,
+            "unit_cost": 120.00,
+            "subtotal": 6000.00
+        },
+        {
+            "name": "PM Snack - Pastry & Coffee",
+            "qty": 50,
+            "unit_cost": 65.00,
+            "subtotal": 3250.00
+        }
+    ],
+    "materials": [
+        {
+            "name": "Energy Conservation Minibook",
+            "qty": 50,
+            "unit_cost": 45.00,
+            "subtotal": 2250.00
+        },
+        {
+            "name": "Printed Handouts / Learning Materials",
+            "qty": 50,
+            "unit_cost": 15.00,
+            "subtotal": 750.00
+        },
+        {
+            "name": "Certificate of Attendance",
+            "qty": 50,
+            "unit_cost": 10.00,
+            "subtotal": 500.00
+        }
+    ],
+    "other": [
+        {
+            "name": "Venue Decoration / Tarpaulin",
+            "qty": 1,
+            "unit_cost": 1500.00,
+            "subtotal": 1500.00
+        }
+    ]
+}
+```
+
+Categories:
+- **food** — Food & Refreshments (AM Snack, Lunch, PM Snack, etc.)
+- **materials** — Materials & Handouts (Minibooks, Learning Materials, Certificates, etc.)
+- **other** — Other Expenses (Transportation, Venue Decor, Printing, etc.)
+
+Each item has: name, qty (quantity), unit_cost, subtotal (qty × unit_cost)
+
+## Callback (We Send Data Back to You)
+
+When our admin approves or rejects your facility request, we automatically send the result back to your system via POST.
+
+*Callback URL:*
+POST https://energy.local-government-unit-1-ph.com/facility_request_response.php
+
+*Callback Payload (Approved):*
+```
+receive_facility_approval=1
+facility_request_id=1
+event_title=Energy Conservation Orientation Seminar
+status=approved
+admin_feedback=Approved. Conference Room A assigned.
+seminar_id=42
+user_id=5
+facility_id=3
+facility_name=Conference Room A
+facility_capacity=80
+scheduled_date=2026-03-15
+scheduled_start_time=09:00
+scheduled_end_time=12:00
+assigned_equipment=LCD Projector, Sound System
+approved_budget=18000.00
+budget_breakdown={"food":[...],"materials":[...],"other":[...]}
+admin_notes=Room confirmed. Equipment and food budget ready.
+approved_at=2026-02-13 10:00:00
+approved_by=Admin Name
+```
+
+*Callback Payload (Rejected):*
+```
+receive_facility_approval=1
+facility_request_id=1
+event_title=Energy Conservation Orientation Seminar
+status=rejected
+admin_feedback=No available facility on the requested date. Please try an alternative date.
+seminar_id=42
+user_id=5
+```
+
+*Note:* The `budget_breakdown` field is sent as a JSON string. Parse it with `json_decode()` on your end.
+
+### On Your Side (Energy Efficiency System)
+
+You need to create a file to receive our callback:
+
+*File:* `facility_request_response.php`
+
+This file should:
+1. Check for `$_POST['receive_facility_approval'] == '1'`
+2. Read the `facility_request_id`, `status`, and other fields
+3. Update your local record with the approval details
+4. Parse `budget_breakdown` with `json_decode($_POST['budget_breakdown'], true)` for the itemized budget
 
 ## Files in This Integration
 
