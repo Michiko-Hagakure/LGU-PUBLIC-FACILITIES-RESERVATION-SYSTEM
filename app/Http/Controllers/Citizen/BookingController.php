@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Storage;
 use App\Services\PaymongoService;
+use App\Models\PaymentSlip;
 
 class BookingController extends Controller
 {
