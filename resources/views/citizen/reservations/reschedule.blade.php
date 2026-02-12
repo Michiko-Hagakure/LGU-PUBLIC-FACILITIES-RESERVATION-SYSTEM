@@ -373,7 +373,6 @@ document.addEventListener('DOMContentLoaded', function() {
     let selectedDate = null;
     const minDate = new Date();
     minDate.setDate(minDate.getDate() + 7); // Minimum 7 days advance
-    minDate.setHours(0, 0, 0, 0);
 
     // Open Calendar Modal
     dateDisplayInput.addEventListener('click', function() {
