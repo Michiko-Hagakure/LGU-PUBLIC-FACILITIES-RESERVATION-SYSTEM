@@ -514,7 +514,70 @@
                     <h3 class="text-lg font-bold text-red-800 mb-2">
                         {{ $booking->status === 'rejected' ? 'Rejection Reason' : 'Cancellation Reason' }}
                     </h3>
+
+                    @if($booking->status === 'rejected' && $booking->rejection_type)
+                        @php
+                            $rejectionLabels = [
+                                'id_issue' => 'ID Issue - Re-upload Valid ID',
+                                'facility_issue' => 'Facility Issue',
+                                'document_issue' => 'Document Issue - Re-upload Documents',
+                                'info_issue' => 'Information Issue - Incorrect Details',
+                            ];
+                        @endphp
+                        <div class="mb-3 inline-flex items-center px-3 py-1.5 bg-red-100 text-red-800 rounded-full text-sm font-semibold">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                            {{ $rejectionLabels[$booking->rejection_type] ?? ucfirst(str_replace('_', ' ', $booking->rejection_type)) }}
+                        </div>
+                    @endif
+
                     <p class="text-red-700">{{ $booking->rejected_reason }}</p>
+
+                    @if($booking->status === 'rejected' && $booking->rejection_type)
+                        <div class="mt-4 p-4 bg-white border border-red-200 rounded-lg">
+                            <h4 class="text-sm font-bold text-gray-900 mb-3">Fix & Resubmit</h4>
+
+                            @if(in_array($booking->rejection_type, ['id_issue', 'document_issue']))
+                                <p class="text-sm text-gray-600 mb-3">Please re-upload the required documents below, then click "Resubmit for Review".</p>
+                                <div class="flex flex-wrap gap-2 mb-4">
+                                    @if($booking->rejection_type === 'id_issue')
+                                        <button type="button" onclick="openReuploadModal('valid_id_front')"
+                                                class="inline-flex items-center px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                            Re-upload ID Front
+                                        </button>
+                                        <button type="button" onclick="openReuploadModal('valid_id_back')"
+                                                class="inline-flex items-center px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                            Re-upload ID Back
+                                        </button>
+                                        <button type="button" onclick="openReuploadModal('valid_id_selfie')"
+                                                class="inline-flex items-center px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                            Re-upload Selfie
+                                        </button>
+                                    @else
+                                        <button type="button" onclick="openReuploadModal('supporting_doc')"
+                                                class="inline-flex items-center px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                            Re-upload Document
+                                        </button>
+                                    @endif
+                                </div>
+                            @else
+                                <p class="text-sm text-gray-600 mb-3">Please review the issue above. Once corrected, click "Resubmit for Review" to send your booking back for staff verification.</p>
+                            @endif
+
+                            <form action="{{ route('citizen.reservations.resubmit', $booking->id) }}" method="POST"
+                                  onsubmit="return confirm('Are you sure you want to resubmit this booking for review?')">
+                                @csrf
+                                <button type="submit"
+                                        class="w-full px-4 py-3 bg-green-600 text-white text-center font-bold rounded-lg hover:bg-green-700 transition shadow-md flex items-center justify-center gap-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                                    Resubmit for Review
+                                </button>
+                            </form>
+                        </div>
+                    @endif
                 </div>
             @endif
         </div>
@@ -802,6 +865,107 @@ function openUploadModal(documentType) {
                     }
                 });
                 console.error('Upload error:', error);
+            });
+        }
+    });
+}
+
+// Re-upload Document for Rejected Bookings
+function openReuploadModal(fieldType) {
+    const fieldLabels = {
+        'valid_id_front': 'Valid ID - Front',
+        'valid_id_back': 'Valid ID - Back',
+        'valid_id_selfie': 'Selfie with ID',
+        'supporting_doc': 'Supporting Document'
+    };
+
+    Swal.fire({
+        title: 'Re-upload Document',
+        html: `
+            <div class="text-left">
+                <p class="text-gray-700 mb-4">Document: <span class="font-semibold text-lgu-headline">${fieldLabels[fieldType] || 'Document'}</span></p>
+                <div class="mb-4">
+                    <input type="file" 
+                           id="reupload_file" 
+                           accept="image/*" 
+                           class="block w-full text-sm text-gray-900 border-2 border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none focus:border-lgu-button">
+                    <p class="mt-2 text-xs text-gray-500">Accepted: JPG, PNG (Max 5MB)</p>
+                </div>
+            </div>
+        `,
+        icon: 'info',
+        showCancelButton: true,
+        confirmButtonColor: '#2563eb',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Upload',
+        cancelButtonText: 'Cancel',
+        customClass: {
+            popup: 'rounded-xl',
+            confirmButton: 'px-6 py-2.5 rounded-lg font-semibold cursor-pointer',
+            cancelButton: 'px-6 py-2.5 rounded-lg font-semibold cursor-pointer'
+        },
+        preConfirm: () => {
+            const file = document.getElementById('reupload_file').files[0];
+            if (!file) {
+                Swal.showValidationMessage('Please select a file to upload');
+                return false;
+            }
+            if (file.size > 5 * 1024 * 1024) {
+                Swal.showValidationMessage('File size must not exceed 5MB');
+                return false;
+            }
+            return { file, fieldType };
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire({
+                title: 'Uploading...',
+                text: 'Please wait while we upload your document',
+                allowOutsideClick: false,
+                showConfirmButton: false,
+                willOpen: () => { Swal.showLoading(); }
+            });
+
+            const formData = new FormData();
+            formData.append('document', result.value.file);
+            formData.append('field_type', result.value.fieldType);
+
+            fetch(`/citizen/reservations/{{ $booking->id }}/reupload`, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Uploaded!',
+                        text: data.message || 'Document re-uploaded successfully.',
+                        confirmButtonColor: '#047857',
+                        customClass: { popup: 'rounded-xl', confirmButton: 'px-6 py-2.5 rounded-lg font-semibold cursor-pointer' }
+                    }).then(() => { location.reload(); });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Upload Failed',
+                        text: data.message || 'An error occurred.',
+                        confirmButtonColor: '#dc2626',
+                        customClass: { popup: 'rounded-xl', confirmButton: 'px-6 py-2.5 rounded-lg font-semibold cursor-pointer' }
+                    });
+                }
+            })
+            .catch(error => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'An unexpected error occurred. Please try again.',
+                    confirmButtonColor: '#dc2626',
+                    customClass: { popup: 'rounded-xl', confirmButton: 'px-6 py-2.5 rounded-lg font-semibold cursor-pointer' }
+                });
+                console.error('Reupload error:', error);
             });
         }
     });

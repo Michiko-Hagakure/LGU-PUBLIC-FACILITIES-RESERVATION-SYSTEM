@@ -1866,6 +1866,8 @@ Route::middleware(['auth', 'role:citizen', \App\Http\Middleware\CheckSessionTime
     // Cancellation allowed but NO refund
     Route::post('/citizen/reservations/{id}/cancel', [\App\Http\Controllers\Citizen\ReservationController::class, 'cancel'])->name('citizen.reservations.cancel');
     Route::post('/citizen/reservations/{id}/upload', [\App\Http\Controllers\Citizen\ReservationController::class, 'uploadDocument'])->name('citizen.reservations.upload');
+    Route::post('/citizen/reservations/{id}/reupload', [\App\Http\Controllers\Citizen\ReservationController::class, 'reuploadDocument'])->name('citizen.reservations.reupload');
+    Route::post('/citizen/reservations/{id}/resubmit', [\App\Http\Controllers\Citizen\ReservationController::class, 'resubmit'])->name('citizen.reservations.resubmit');
 
     // Refunds - REMOVED (no refund policy)
     // Route::get('/citizen/refunds', [\App\Http\Controllers\Citizen\RefundController::class, 'index'])->name('citizen.refunds.index');

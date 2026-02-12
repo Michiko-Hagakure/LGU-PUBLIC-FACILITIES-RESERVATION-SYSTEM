@@ -319,6 +319,97 @@ class ReservationController extends Controller
     }
 
     /**
+     * Re-upload a specific document field for a rejected booking.
+     */
+    public function reuploadDocument(Request $request, $id)
+    {
+        $userId = session('user_id');
+        if (!$userId) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
+        }
+
+        $booking = DB::connection('facilities_db')
+            ->table('bookings')
+            ->where('id', $id)
+            ->where('user_id', $userId)
+            ->where('status', 'rejected')
+            ->first();
+
+        if (!$booking) {
+            return response()->json(['success' => false, 'message' => 'Booking not found or not in rejected status.'], 404);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'document' => 'required|file|mimes:jpg,jpeg,png|max:5120',
+            'field_type' => 'required|in:valid_id_front,valid_id_back,valid_id_selfie,supporting_doc',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['success' => false, 'message' => $validator->errors()->first()], 400);
+        }
+
+        $fieldMap = [
+            'valid_id_front' => 'valid_id_front_path',
+            'valid_id_back' => 'valid_id_back_path',
+            'valid_id_selfie' => 'valid_id_selfie_path',
+            'supporting_doc' => 'supporting_doc_path',
+        ];
+
+        $field = $fieldMap[$request->field_type];
+        $folder = str_replace('_path', '', str_replace('valid_id_', '', $request->field_type));
+
+        $path = $request->file('document')->store('bookings/valid_ids/' . $folder, 'public');
+
+        DB::connection('facilities_db')
+            ->table('bookings')
+            ->where('id', $id)
+            ->update([
+                $field => $path,
+                'updated_at' => Carbon::now(),
+            ]);
+
+        return response()->json(['success' => true, 'message' => 'Document re-uploaded successfully.']);
+    }
+
+    /**
+     * Resubmit a rejected booking for review.
+     */
+    public function resubmit(Request $request, $id)
+    {
+        $userId = session('user_id');
+        if (!$userId) {
+            return redirect()->route('login')->with('error', 'Please login to continue.');
+        }
+
+        $booking = DB::connection('facilities_db')
+            ->table('bookings')
+            ->where('id', $id)
+            ->where('user_id', $userId)
+            ->where('status', 'rejected')
+            ->first();
+
+        if (!$booking) {
+            return redirect()->back()->with('error', 'Booking not found or cannot be resubmitted.');
+        }
+
+        DB::connection('facilities_db')
+            ->table('bookings')
+            ->where('id', $id)
+            ->update([
+                'status' => 'pending',
+                'rejected_reason' => null,
+                'rejection_type' => null,
+                'rejection_fields' => null,
+                'staff_verified_by' => null,
+                'staff_verified_at' => null,
+                'updated_at' => Carbon::now(),
+            ]);
+
+        return redirect()->route('citizen.reservations.show', $id)
+            ->with('success', 'Booking resubmitted for review! Staff will re-verify your booking.');
+    }
+
+    /**
      * Display reservation history (completed and cancelled).
      */
     public function history(Request $request)
