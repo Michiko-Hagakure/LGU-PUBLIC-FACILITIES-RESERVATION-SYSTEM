@@ -309,7 +309,6 @@ class CommunityMaintenanceController extends Controller
             'url' => $url,
             'category' => $payload['category'],
             'issue_type' => $payload['issue_type'],
-            'priority' => $payload['priority'],
         ]);
 
         // Build form-data fields
@@ -355,7 +354,6 @@ class CommunityMaintenanceController extends Controller
             'payload' => [
                 'category' => $payload['category'] ?? null,
                 'issue_type' => $payload['issue_type'] ?? null,
-                'priority' => $payload['priority'] ?? null,
                 'location' => $payload['location'] ?? null,
                 'reporter_name' => $payload['reporter_name'] ?? null,
                 'reporter_contact' => empty($payload['reporter_contact']) ? null : '[redacted]',
