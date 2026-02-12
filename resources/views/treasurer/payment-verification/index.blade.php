@@ -131,8 +131,8 @@
                             </td>
                             <td class="px-gr-sm py-gr-sm whitespace-nowrap">
                                 <span class="text-body font-bold text-gray-900">₱{{ number_format($slip->amount_due, 2) }}</span>
-                                @if(isset($slip->booking_total) && $slip->amount_due < $slip->booking_total)
-                                    <div class="text-xs text-orange-600 font-semibold mt-0.5">Bal. of ₱{{ number_format($slip->booking_total, 2) }}</div>
+                                @if(isset($slip->booking_remaining) && $slip->booking_remaining > 0)
+                                    <div class="text-xs text-orange-600 font-semibold mt-0.5">Bal. of ₱{{ number_format($slip->booking_remaining, 2) }}</div>
                                 @endif
                             </td>
                             <td class="px-gr-sm py-gr-sm whitespace-nowrap">
@@ -240,7 +240,7 @@ function buildRow(slip) {
         <td class="px-gr-sm py-gr-sm"><span class="text-body text-gray-700 block truncate">${slip.facility_name || 'N/A'}</span></td>
         <td class="px-gr-sm py-gr-sm whitespace-nowrap">
             <span class="text-body font-bold text-gray-900">\u20B1${formatAmount(slip.amount_due)}</span>
-            ${slip.booking_total && parseFloat(slip.amount_due) < parseFloat(slip.booking_total) ? '<div class="text-xs text-orange-600 font-semibold mt-0.5">Bal. of \u20B1' + formatAmount(slip.booking_total) + '</div>' : ''}
+            ${slip.booking_remaining && parseFloat(slip.booking_remaining) > 0 ? '<div class="text-xs text-orange-600 font-semibold mt-0.5">Bal. of \u20B1' + formatAmount(slip.booking_remaining) + '</div>' : ''}
         </td>
         <td class="px-gr-sm py-gr-sm whitespace-nowrap">
             <div class="text-body font-medium text-gray-900">${deadlineDate}</div>
