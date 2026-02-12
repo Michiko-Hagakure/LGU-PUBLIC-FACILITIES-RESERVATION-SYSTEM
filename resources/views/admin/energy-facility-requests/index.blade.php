@@ -310,6 +310,40 @@
                                     <p class="detail-value">{{ $response['admin_notes'] }}</p>
                                 </div>
                                 @endif
+
+                                @if(!empty($response['budget_breakdown']))
+                                <div class="md:col-span-3 mt-2">
+                                    <p class="detail-label mb-2">Budget Breakdown</p>
+                                    <div class="overflow-x-auto">
+                                        <table class="w-full text-sm border border-gray-200 rounded-lg overflow-hidden">
+                                            <thead class="bg-gray-100">
+                                                <tr>
+                                                    <th class="text-left px-3 py-1.5 text-xs font-semibold text-gray-600">Category</th>
+                                                    <th class="text-left px-3 py-1.5 text-xs font-semibold text-gray-600">Item</th>
+                                                    <th class="text-center px-3 py-1.5 text-xs font-semibold text-gray-600">Qty</th>
+                                                    <th class="text-right px-3 py-1.5 text-xs font-semibold text-gray-600">Unit Cost</th>
+                                                    <th class="text-right px-3 py-1.5 text-xs font-semibold text-gray-600">Subtotal</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="divide-y divide-gray-100">
+                                                @foreach(['food' => 'Food & Refreshments', 'materials' => 'Materials & Handouts', 'other' => 'Other Expenses'] as $catKey => $catLabel)
+                                                    @if(!empty($response['budget_breakdown'][$catKey]))
+                                                        @foreach($response['budget_breakdown'][$catKey] as $item)
+                                                        <tr>
+                                                            <td class="px-3 py-1.5 text-xs text-gray-500">{{ $catLabel }}</td>
+                                                            <td class="px-3 py-1.5 font-medium">{{ $item['name'] ?? 'N/A' }}</td>
+                                                            <td class="px-3 py-1.5 text-center">{{ $item['qty'] ?? 1 }}</td>
+                                                            <td class="px-3 py-1.5 text-right">&#8369;{{ number_format($item['unit_cost'] ?? 0, 2) }}</td>
+                                                            <td class="px-3 py-1.5 text-right font-semibold">&#8369;{{ number_format(($item['qty'] ?? 1) * ($item['unit_cost'] ?? 0), 2) }}</td>
+                                                        </tr>
+                                                        @endforeach
+                                                    @endif
+                                                @endforeach
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                @endif
                             </div>
                             @if($req->admin_feedback)
                             <div class="mt-2 p-2 bg-gray-50 rounded border border-gray-200">
@@ -345,6 +379,7 @@
     <input type="hidden" name="scheduled_end_time" id="formScheduledEndTime">
     <input type="hidden" name="assigned_equipment" id="formAssignedEquipment">
     <input type="hidden" name="approved_budget" id="formApprovedBudget">
+    <input type="hidden" name="budget_breakdown" id="formBudgetBreakdown">
     <input type="hidden" name="admin_notes" id="formAdminNotes">
 </form>
 
@@ -407,10 +442,38 @@
                         </div>
                     </div>
                     
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-1">Approved Budget (optional)</label>
-                        <input type="number" id="swal_budget" step="0.01" min="0" placeholder="0.00"
-                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
+                    <div class="border border-green-200 rounded-lg p-3 bg-green-50">
+                        <label class="block text-sm font-bold text-green-800 mb-2">Budget Breakdown</label>
+
+                        <div class="mb-3">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-xs font-semibold text-gray-600 uppercase">Food & Refreshments</span>
+                                <button type="button" onclick="addBudgetRow('food')" class="text-xs text-green-600 hover:text-green-800 font-semibold">+ Add Item</button>
+                            </div>
+                            <div id="food_items" class="space-y-1"></div>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-xs font-semibold text-gray-600 uppercase">Materials & Handouts</span>
+                                <button type="button" onclick="addBudgetRow('materials')" class="text-xs text-blue-600 hover:text-blue-800 font-semibold">+ Add Item</button>
+                            </div>
+                            <div id="materials_items" class="space-y-1"></div>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-xs font-semibold text-gray-600 uppercase">Other Expenses</span>
+                                <button type="button" onclick="addBudgetRow('other')" class="text-xs text-purple-600 hover:text-purple-800 font-semibold">+ Add Item</button>
+                            </div>
+                            <div id="other_items" class="space-y-1"></div>
+                        </div>
+
+                        <div class="border-t border-green-300 pt-2 mt-2 flex items-center justify-between">
+                            <span class="text-sm font-bold text-green-800">Total Budget</span>
+                            <span id="swal_budget_total" class="text-lg font-bold text-green-700">&#8369;0.00</span>
+                        </div>
+                        <input type="hidden" id="swal_budget" value="0">
                     </div>
                     
                     <div>
@@ -435,6 +498,8 @@
                 const checkedEq = document.querySelectorAll('.swal_eq_cb:checked');
                 const equipment = Array.from(checkedEq).map(cb => cb.value).join(', ');
 
+                const breakdown = collectBudgetBreakdown();
+
                 return {
                     facility: facility,
                     date: document.getElementById('swal_date').value,
@@ -442,6 +507,7 @@
                     end: document.getElementById('swal_end').value,
                     equipment: equipment,
                     budget: document.getElementById('swal_budget').value,
+                    budget_breakdown: JSON.stringify(breakdown),
                     notes: document.getElementById('swal_notes').value,
                 };
             }
@@ -457,10 +523,89 @@
                 document.getElementById('formScheduledEndTime').value = result.value.end;
                 document.getElementById('formAssignedEquipment').value = result.value.equipment;
                 document.getElementById('formApprovedBudget').value = result.value.budget;
+                document.getElementById('formBudgetBreakdown').value = result.value.budget_breakdown;
                 document.getElementById('formAdminNotes').value = result.value.notes;
                 form.submit();
             }
         });
+    }
+
+    let budgetRowCounter = 0;
+
+    function addBudgetRow(category) {
+        budgetRowCounter++;
+        const container = document.getElementById(`${category}_items`);
+        if (!container) return;
+
+        const placeholders = {
+            food: { name: 'e.g., AM Snack - Sandwich & Juice', qty: '50', cost: '75.00' },
+            materials: { name: 'e.g., Minibook / Learning Material / Handout', qty: '50', cost: '25.00' },
+            other: { name: 'e.g., Transportation / Venue Decor', qty: '1', cost: '500.00' },
+        };
+        const ph = placeholders[category] || placeholders.other;
+
+        const row = document.createElement('div');
+        row.id = `budget_row_${budgetRowCounter}`;
+        row.className = 'flex items-center gap-1';
+        row.innerHTML = `
+            <input type="text" class="budget_name flex-1 min-w-0 px-2 py-1 text-xs border border-gray-300 rounded" placeholder="${ph.name}" data-cat="${category}">
+            <input type="number" class="budget_qty w-14 px-2 py-1 text-xs border border-gray-300 rounded text-center" placeholder="${ph.qty}" min="1" value="1" data-cat="${category}" oninput="recalcBudgetTotal()">
+            <input type="number" class="budget_cost w-20 px-2 py-1 text-xs border border-gray-300 rounded text-right" placeholder="${ph.cost}" min="0" step="0.01" value="" data-cat="${category}" oninput="recalcBudgetTotal()">
+            <button type="button" onclick="removeBudgetRow(${budgetRowCounter})" class="text-red-400 hover:text-red-600 flex-shrink-0 p-1">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        `;
+        container.appendChild(row);
+    }
+
+    function removeBudgetRow(rowId) {
+        const row = document.getElementById(`budget_row_${rowId}`);
+        if (row) {
+            row.remove();
+            recalcBudgetTotal();
+        }
+    }
+
+    function recalcBudgetTotal() {
+        let total = 0;
+        document.querySelectorAll('.budget_qty').forEach((qtyInput, index) => {
+            const qty = parseFloat(qtyInput.value) || 0;
+            const costInputs = document.querySelectorAll('.budget_cost');
+            const cost = parseFloat(costInputs[index]?.value) || 0;
+            total += qty * cost;
+        });
+
+        const totalEl = document.getElementById('swal_budget_total');
+        const budgetInput = document.getElementById('swal_budget');
+        if (totalEl) totalEl.textContent = '₱' + total.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        if (budgetInput) budgetInput.value = total.toFixed(2);
+    }
+
+    function collectBudgetBreakdown() {
+        const breakdown = { food: [], materials: [], other: [] };
+
+        ['food', 'materials', 'other'].forEach(cat => {
+            const container = document.getElementById(`${cat}_items`);
+            if (!container) return;
+
+            const rows = container.querySelectorAll('div[id^="budget_row_"]');
+            rows.forEach(row => {
+                const name = row.querySelector('.budget_name')?.value?.trim();
+                const qty = parseFloat(row.querySelector('.budget_qty')?.value) || 0;
+                const unitCost = parseFloat(row.querySelector('.budget_cost')?.value) || 0;
+
+                if (name && (qty > 0 || unitCost > 0)) {
+                    breakdown[cat].push({
+                        name: name,
+                        qty: qty,
+                        unit_cost: unitCost,
+                        subtotal: qty * unitCost,
+                    });
+                }
+            });
+        });
+
+        return breakdown;
     }
 
     function rejectRequest(id) {
