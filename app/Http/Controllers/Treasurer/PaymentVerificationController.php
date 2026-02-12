@@ -17,6 +17,63 @@ class PaymentVerificationController extends Controller
      */
     public function index(Request $request)
     {
+        // Auto-fix: Create payment slips for staff_verified bookings that need them
+        try {
+            $stuckBookings = Booking::where('status', 'staff_verified')
+                ->where('total_amount', '>', 0)
+                ->get();
+
+            foreach ($stuckBookings as $stuck) {
+                $hasUnpaidSlip = PaymentSlip::where('booking_id', $stuck->id)
+                    ->where('status', 'unpaid')
+                    ->exists();
+
+                if ($hasUnpaidSlip) {
+                    continue;
+                }
+
+                // Set payment defaults if not already set
+                if (!$stuck->payment_tier) {
+                    $stuck->update([
+                        'payment_method' => 'cash',
+                        'payment_tier' => 25,
+                        'down_payment_amount' => $stuck->total_amount * 0.25,
+                        'amount_paid' => 0,
+                        'amount_remaining' => $stuck->total_amount,
+                    ]);
+                }
+
+                $amountRemaining = $stuck->amount_remaining ?? $stuck->total_amount;
+                if ($amountRemaining <= 0) {
+                    continue;
+                }
+
+                $hasPaidSlip = PaymentSlip::where('booking_id', $stuck->id)
+                    ->where('status', 'paid')
+                    ->exists();
+
+                $notes = $hasPaidSlip
+                    ? 'Remaining balance — pay at City Treasurer\'s Office. Down payment already received.'
+                    : 'Down payment (25%) — pay at City Treasurer\'s Office.';
+                $amountDue = $hasPaidSlip
+                    ? $amountRemaining
+                    : ($stuck->down_payment_amount ?: $stuck->total_amount * 0.25);
+
+                PaymentSlip::create([
+                    'slip_number' => PaymentSlip::generateSlipNumber(),
+                    'booking_id' => $stuck->id,
+                    'amount_due' => $amountDue,
+                    'payment_deadline' => now()->addDays(3),
+                    'status' => 'unpaid',
+                    'payment_method' => $stuck->payment_method ?? 'cash',
+                    'paid_at' => null,
+                    'notes' => $notes,
+                ]);
+            }
+        } catch (\Exception $e) {
+            \Log::error('Auto-fix payment slips failed: ' . $e->getMessage());
+        }
+
         try {
             $query = DB::connection('facilities_db')
                 ->table('payment_slips')
