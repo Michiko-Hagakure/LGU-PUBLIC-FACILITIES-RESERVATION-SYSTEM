@@ -30,7 +30,129 @@
     
     <!-- Vite Assets (CSS + Alpine.js) -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    
+
+    <!-- Inline fallback: replicate Bootstrap + Bootstrap Icons when CDN unavailable (offline-first) -->
+    <style id="bootstrap-fallback-css">
+        /* === Bootstrap Reset & Base === */
+        *, *::before, *::after { box-sizing: border-box; }
+        body { margin: 0; font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 1rem; line-height: 1.5; color: #212529; background-color: #fff; -webkit-font-smoothing: antialiased; }
+        a { color: #0d6efd; text-decoration: underline; }
+        img { vertical-align: middle; max-width: 100%; }
+        h1, h2, h3, h4, h5, h6 { margin-top: 0; margin-bottom: 0.5rem; font-weight: 500; line-height: 1.2; }
+        p { margin-top: 0; margin-bottom: 1rem; }
+        label { display: inline-block; margin-bottom: 0.5rem; }
+        button, input, textarea { margin: 0; font-family: inherit; font-size: inherit; line-height: inherit; }
+        button { cursor: pointer; }
+
+        /* === Bootstrap Grid === */
+        .container { width: 100%; padding-right: 0.75rem; padding-left: 0.75rem; margin-right: auto; margin-left: auto; }
+        @media (min-width: 576px) { .container { max-width: 540px; } }
+        @media (min-width: 768px) { .container { max-width: 720px; } }
+        @media (min-width: 992px) { .container { max-width: 960px; } }
+        @media (min-width: 1200px) { .container { max-width: 1140px; } }
+        .row { display: flex; flex-wrap: wrap; margin-right: -0.75rem; margin-left: -0.75rem; }
+        .row > * { flex-shrink: 0; width: 100%; max-width: 100%; padding-right: 0.75rem; padding-left: 0.75rem; }
+        @media (min-width: 992px) {
+            .col-lg-6 { flex: 0 0 auto; width: 50%; }
+            .col-lg-5 { flex: 0 0 auto; width: 41.666667%; }
+            .gx-lg-5 > * { padding-right: 1.5rem; padding-left: 1.5rem; }
+            .text-lg-start { text-align: left !important; }
+            .mb-lg-0 { margin-bottom: 0 !important; }
+        }
+
+        /* === Bootstrap Utilities === */
+        .text-center { text-align: center; }
+        .text-muted { color: #6c757d !important; }
+        .fw-bold { font-weight: 700 !important; }
+        .mb-0 { margin-bottom: 0 !important; }
+        .mb-1 { margin-bottom: 0.25rem !important; }
+        .mb-2 { margin-bottom: 0.5rem !important; }
+        .mb-3 { margin-bottom: 1rem !important; }
+        .mb-4 { margin-bottom: 1.5rem !important; }
+        .mb-5 { margin-bottom: 3rem !important; }
+        .mt-2 { margin-top: 0.5rem !important; }
+        .mt-3 { margin-top: 1rem !important; }
+        .my-5 { margin-top: 3rem !important; margin-bottom: 3rem !important; }
+        .px-4 { padding-left: 1.5rem !important; padding-right: 1.5rem !important; }
+        .py-5 { padding-top: 3rem !important; padding-bottom: 3rem !important; }
+        .p-8 { padding: 2rem !important; }
+        @media (min-width: 768px) { .px-md-5 { padding-left: 3rem !important; padding-right: 3rem !important; } }
+        .w-100 { width: 100% !important; }
+        .d-block { display: block !important; }
+        .position-absolute { position: absolute !important; }
+        .position-relative { position: relative !important; }
+        .rounded-circle { border-radius: 50% !important; }
+        .overflow-hidden { overflow: hidden !important; }
+        .align-items-center { align-items: center !important; }
+        .display-5 { font-size: calc(1.425rem + 2.1vw); font-weight: 300; line-height: 1.2; }
+        .ls-tight { letter-spacing: -0.02em; }
+
+        /* === Bootstrap Card === */
+        .card { position: relative; display: flex; flex-direction: column; min-width: 0; word-wrap: break-word; background-color: #fff; background-clip: border-box; border: 1px solid rgba(0,0,0,.125); border-radius: 0.75rem; box-shadow: 0 0.5rem 1rem rgba(0,0,0,.15); }
+        .card-body { flex: 1 1 auto; padding: 1.5rem; }
+        @media (min-width: 768px) { .card-body.px-md-5 { padding-left: 3rem !important; padding-right: 3rem !important; } }
+
+        /* === Bootstrap Forms === */
+        .form-label { margin-bottom: 0.5rem; font-size: 0.875rem; font-weight: 600; color: #00473e; }
+        .form-control { display: block; width: 100%; padding: 0.625rem 0.75rem; font-size: 1rem; font-weight: 400; line-height: 1.5; color: #212529; background-color: #fff; border: 2px solid #e9ecef; border-radius: 0.375rem; transition: border-color .15s ease-in-out, box-shadow .15s ease-in-out; appearance: none; outline: none; }
+        .form-control:focus { border-color: #faae2b; box-shadow: 0 0 0 0.2rem rgba(250,174,43,0.2); }
+        .form-control::placeholder { color: #6c757d; opacity: 1; }
+        .input-group { position: relative; display: flex; flex-wrap: wrap; align-items: stretch; width: 100%; }
+        .input-group > .form-control { position: relative; flex: 1 1 auto; width: 1%; min-width: 0; }
+        .input-group > .form-control:not(:first-child) { border-top-left-radius: 0; border-bottom-left-radius: 0; }
+        .input-group-text { display: flex; align-items: center; padding: 0.375rem 0.75rem; font-size: 1rem; font-weight: 400; line-height: 1.5; color: #00473e; text-align: center; white-space: nowrap; background-color: #f2f7f5; border: 2px solid #e9ecef; border-right: none; border-radius: 0.375rem 0 0 0.375rem; }
+
+        /* === Bootstrap Buttons === */
+        .btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; font-weight: 400; line-height: 1.5; text-align: center; text-decoration: none; vertical-align: middle; cursor: pointer; user-select: none; border: 1px solid transparent; padding: 0.625rem 1.25rem; font-size: 1rem; border-radius: 0.375rem; transition: all 0.15s ease-in-out; }
+        .btn-outline-secondary { color: #6c757d; border-color: #6c757d; background-color: transparent; }
+        .btn-outline-secondary:hover { color: #fff; background-color: #6c757d; }
+        .btn-outline-warning { color: #faae2b; border-color: #faae2b; background-color: transparent; }
+        .btn-outline-warning:hover { color: #000; background-color: #faae2b; }
+
+        /* === Bootstrap Alert === */
+        .alert { position: relative; padding: 1rem; margin-bottom: 1rem; border: 1px solid transparent; border-radius: 0.375rem; }
+        .alert-danger { color: #842029; background-color: #f8d7da; border-color: #f5c2c7; }
+        .alert-warning { color: #664d03; background-color: #fff3cd; border-color: #ffecb5; }
+        .btn-close { box-sizing: content-box; width: 1em; height: 1em; padding: 0.25em; color: #000; background: transparent url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23000'%3e%3cpath d='M.293.293a1 1 0 0 1 1.414 0L8 6.586 14.293.293a1 1 0 1 1 1.414 1.414L9.414 8l6.293 6.293a1 1 0 0 1-1.414 1.414L8 9.414l-6.293 6.293a1 1 0 0 1-1.414-1.414L6.586 8 .293 1.707a1 1 0 0 1 0-1.414z'/%3e%3c/svg%3e") center/1em auto no-repeat; border: 0; border-radius: 0.375rem; opacity: .5; cursor: pointer; position: absolute; top: 0.75rem; right: 0.75rem; }
+
+        /* === Bootstrap Icons Fallback (inline SVG via CSS) === */
+        .bi { display: inline-block; width: 1em; height: 1em; vertical-align: -0.125em; }
+        .bi-envelope::before { content: "✉"; font-style: normal; }
+        .bi-lock::before { content: "🔒"; font-style: normal; font-size: 0.85em; }
+        .bi-eye::before { content: "👁"; font-style: normal; font-size: 0.85em; }
+        .bi-eye-slash::before { content: "🚫"; font-style: normal; font-size: 0.85em; }
+        .bi-box-arrow-in-right::before { content: "→"; font-style: normal; }
+        .bi-shield-check::before, .bi-shield-check-fill::before { content: "🛡"; font-style: normal; }
+        .bi-shield-lock::before, .bi-shield-lock-fill::before { content: "🔐"; font-style: normal; }
+        .bi-check-circle::before { content: "✓"; font-style: normal; }
+        .bi-exclamation-triangle::before { content: "⚠"; font-style: normal; }
+        .bi-exclamation-circle::before { content: "⚠"; font-style: normal; }
+        .bi-arrow-clockwise::before { content: "↻"; font-style: normal; }
+        .bi-arrow-left::before { content: "←"; font-style: normal; }
+        .bi-key::before, .bi-key-fill::before { content: "🔑"; font-style: normal; font-size: 0.85em; }
+        .bi-person-plus::before { content: "👤"; font-style: normal; }
+        .bi-clock-history::before { content: "⏱"; font-style: normal; }
+        .bi-hourglass-split::before { content: "⏳"; font-style: normal; }
+    </style>
+    <script>
+        // Remove fallback CSS once Bootstrap loads successfully
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if Bootstrap CSS actually loaded by testing a Bootstrap-specific computed style
+            var testEl = document.createElement('div');
+            testEl.className = 'visually-hidden'; // Bootstrap-only class
+            testEl.style.position = 'absolute';
+            document.body.appendChild(testEl);
+            var cs = window.getComputedStyle(testEl);
+            // Bootstrap's .visually-hidden sets clip, width:1px, height:1px, etc.
+            var loaded = (cs.width === '1px' && cs.height === '1px') || (cs.overflow === 'hidden' && cs.clip !== 'auto');
+            document.body.removeChild(testEl);
+            if (loaded) {
+                var fb = document.getElementById('bootstrap-fallback-css');
+                if (fb) fb.remove();
+            }
+        });
+    </script>
+
     <style>
         :root {
             --bg-color: #f2f7f5;
