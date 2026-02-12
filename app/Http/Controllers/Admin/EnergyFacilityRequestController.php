@@ -27,7 +27,7 @@ class EnergyFacilityRequestController extends Controller
             'rejected' => $requests->where('status', 'rejected')->count(),
         ];
 
-        // Fetch available facilities
+        // Fetch available facilities from database
         $facilities = DB::connection('facilities_db')
             ->table('facilities')
             ->where('is_available', true)
@@ -36,7 +36,16 @@ class EnergyFacilityRequestController extends Controller
             ->select('facility_id', 'name', 'capacity')
             ->get();
 
-        return view('admin.energy-facility-requests.index', compact('requests', 'stats', 'facilities'));
+        // Fetch available equipment from database
+        $equipment = DB::connection('facilities_db')
+            ->table('equipment_items')
+            ->where('is_available', true)
+            ->whereNull('deleted_at')
+            ->orderBy('name')
+            ->select('id', 'name', 'category', 'quantity_available')
+            ->get();
+
+        return view('admin.energy-facility-requests.index', compact('requests', 'stats', 'facilities', 'equipment'));
     }
 
     /**

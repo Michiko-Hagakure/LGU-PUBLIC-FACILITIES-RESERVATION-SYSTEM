@@ -353,19 +353,7 @@
 <script>
     const requestsData = @json($requests->keyBy('id'));
     const facilitiesData = @json($facilities);
-
-    const equipmentOptions = [
-        { id: 'projector', name: 'LCD Projector' },
-        { id: 'screen', name: 'Projector Screen' },
-        { id: 'microphone', name: 'Wireless Microphone' },
-        { id: 'speaker', name: 'Sound System / Speakers' },
-        { id: 'laptop', name: 'Laptop / Computer' },
-        { id: 'whiteboard', name: 'Whiteboard with Markers' },
-        { id: 'extension', name: 'Extension Cords' },
-        { id: 'chairs', name: 'Additional Chairs' },
-        { id: 'tables', name: 'Additional Tables' },
-        { id: 'podium', name: 'Podium / Lectern' },
-    ];
+    const equipmentOptions = @json($equipment);
 
     function approveRequest(id) {
         const req = requestsData[id];
@@ -413,7 +401,7 @@
                             ${equipmentOptions.map(e => `
                                 <label class="flex items-center gap-2 py-1 cursor-pointer hover:bg-gray-50 px-1 rounded">
                                     <input type="checkbox" class="swal_eq_cb rounded border-gray-300 text-green-600 focus:ring-green-500" value="${e.name}">
-                                    <span class="text-sm text-gray-700">${e.name}</span>
+                                    <span class="text-sm text-gray-700">${e.name}${e.category ? ' <span class=&quot;text-xs text-gray-400&quot;>(' + e.category + ')</span>' : ''}${e.quantity_available ? ' <span class=&quot;text-xs text-blue-500&quot;>[' + e.quantity_available + ' avail.]</span>' : ''}</span>
                                 </label>
                             `).join('')}
                         </div>
