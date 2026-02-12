@@ -2115,6 +2115,23 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
 
 /*
 |--------------------------------------------------------------------------
+| Energy Efficiency - Facility Requests Management
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth', 'signed'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/energy-facility-requests', [\App\Http\Controllers\Admin\EnergyFacilityRequestController::class, 'index'])
+        ->name('energy-facility-requests.index');
+});
+
+Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/energy-facility-requests/json', [\App\Http\Controllers\Admin\EnergyFacilityRequestController::class, 'getRequestsJson'])
+        ->name('energy-facility-requests.json');
+    Route::post('/energy-facility-requests/{id}/status', [\App\Http\Controllers\Admin\EnergyFacilityRequestController::class, 'updateStatus'])
+        ->name('energy-facility-requests.update-status');
+});
+
+/*
+|--------------------------------------------------------------------------
 | Housing and Resettlement Management - Facility Requests
 |--------------------------------------------------------------------------
 */
