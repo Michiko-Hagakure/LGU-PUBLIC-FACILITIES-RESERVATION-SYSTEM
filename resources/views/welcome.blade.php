@@ -5,11 +5,61 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>LGU Facility Reservation</title>
     <link rel="icon" type="image/x-icon" href="{{ asset('Images/logo.png') }}">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="{{ asset('manifest.json') }}">
+    <meta name="theme-color" content="#00473e">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="LGU1 PFRS">
+    <link rel="apple-touch-icon" href="{{ asset('assets/images/logo.png') }}">
+    
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600,700" rel="stylesheet" />
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <!-- Offline fallback styles when CDN Tailwind is unavailable -->
+    <noscript><style>.offline-hide{display:none}</style></noscript>
+    <style id="offline-fallback-css">
+        /* These styles only matter when Tailwind CDN fails to load */
+        .ofl-body { font-family: 'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; color: #fff; background: #0f172a; overflow-x: hidden; }
+        .ofl-body nav { position: fixed; top: 0; width: 100%; z-index: 100; background: rgba(0,0,0,0.3); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .ofl-body nav > div { max-width: 80rem; margin: 0 auto; padding: 0 1.5rem; height: 5rem; display: flex; justify-content: space-between; align-items: center; }
+        .ofl-body .ofl-nav-links { display: flex; gap: 2.5rem; font-size: 10px; font-weight: 900; letter-spacing: 0.25em; }
+        .ofl-body .ofl-nav-links a { color: #fff; text-decoration: none; }
+        .ofl-body .ofl-nav-links a:hover { color: #f97316; }
+        .ofl-body .ofl-nav-auth { display: flex; gap: 1.5rem; align-items: center; }
+        .ofl-body .ofl-nav-auth a { color: #fff; text-decoration: none; font-weight: 700; font-size: 0.875rem; }
+        .ofl-body .ofl-btn-register { background: #ea580c; padding: 0.75rem 2rem; border-radius: 9999px; font-weight: 700; box-shadow: 0 10px 25px rgba(234,88,12,0.4); }
+        .ofl-body .ofl-hero { min-height: 100vh; display: flex; align-items: center; padding-top: 8rem; padding-bottom: 5rem; }
+        .ofl-body .ofl-hero-inner { max-width: 80rem; margin: 0 auto; padding: 0 1.5rem; width: 100%; }
+        .ofl-body .ofl-hero h1 { font-size: clamp(2.5rem, 6vw, 6rem); font-weight: 900; line-height: 1; margin-bottom: 2rem; }
+        .ofl-body .ofl-hero h1 span { color: #f97316; font-style: italic; }
+        .ofl-body .ofl-hero p { font-size: 1.125rem; color: rgba(255,255,255,0.7); margin-bottom: 3rem; max-width: 32rem; }
+        .ofl-body .ofl-browse-btn { display: inline-block; background: #fff; color: #0f172a; padding: 1.25rem 3rem; border-radius: 1rem; font-weight: 900; font-size: 1.125rem; text-decoration: none; box-shadow: 0 25px 50px rgba(0,0,0,0.25); }
+        .ofl-body .ofl-browse-btn:hover { background: #ea580c; color: #fff; }
+        .ofl-body section { padding: 5rem 0; }
+        .ofl-body .ofl-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem; max-width: 80rem; margin: 0 auto; padding: 0 1.5rem; }
+        .ofl-body .ofl-card { position: relative; border-radius: 2.5rem; overflow: hidden; aspect-ratio: 4/5; background: #1e293b; }
+        .ofl-body .ofl-card img { width: 100%; height: 100%; object-fit: cover; }
+        .ofl-body .ofl-card-overlay { position: absolute; bottom: 0; left: 0; padding: 2rem; }
+        .ofl-body .ofl-card h3 { font-size: 1.5rem; font-weight: 700; margin: 0 0 0.25rem; }
+        .ofl-body .ofl-card p { color: rgba(255,255,255,0.6); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.2em; }
+    </style>
+    <script>
+        // Remove fallback CSS once Tailwind loads successfully
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof tailwind !== 'undefined' || document.querySelector('style[data-tailwind]')) {
+                var fb = document.getElementById('offline-fallback-css');
+                if (fb) fb.remove();
+                document.body.classList.remove('ofl-body');
+            } else {
+                document.body.classList.add('ofl-body');
+            }
+        });
+    </script>
     
     <style>
         html { scroll-behavior: smooth; }
@@ -56,7 +106,7 @@
         #mobile-menu.active { opacity: 1; pointer-events: auto; transform: translateY(0); }
     </style>
 </head>
-<body class="antialiased font-['Instrument_Sans'] text-white bg-slate-950 overflow-x-hidden">
+<body class="antialiased font-['Instrument_Sans'] text-white bg-slate-950 overflow-x-hidden ofl-body">
 
     <div id="mainBg" class="page-bg"></div>
 
@@ -201,7 +251,7 @@
     </main>
 
     <script>
-        lucide.createIcons();
+        if (typeof lucide !== 'undefined') { lucide.createIcons(); }
         const bg = document.getElementById('mainBg');
         const menuBtn = document.getElementById('menu-btn');
         const mobileMenu = document.getElementById('mobile-menu');
@@ -288,6 +338,34 @@
                 submitBtn.innerText = "Send Message";
             });
         });
+    </script>
+
+    <!-- Offline Support -->
+    @include('components.offline-indicator')
+    <script src="{{ asset('js/offline-db.js') }}"></script>
+    <script src="{{ asset('js/offline-queue.js') }}"></script>
+    
+    <!-- Service Worker Registration -->
+    <script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+            navigator.serviceWorker.register('/sw.js', { scope: '/' })
+                .then(function(registration) {
+                    console.log('[PWA] Service Worker registered, scope:', registration.scope);
+                    registration.addEventListener('updatefound', function() {
+                        var newWorker = registration.installing;
+                        newWorker.addEventListener('statechange', function() {
+                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                newWorker.postMessage({ type: 'SKIP_WAITING' });
+                            }
+                        });
+                    });
+                })
+                .catch(function(error) {
+                    console.warn('[PWA] SW registration failed:', error);
+                });
+        });
+    }
     </script>
 </body>
 </html>
