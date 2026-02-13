@@ -22,6 +22,9 @@ class HousingResettlementController extends Controller
             ->select(
                 'bookings.id',
                 'bookings.user_name',
+                'bookings.applicant_name',
+                'bookings.applicant_email',
+                'bookings.applicant_phone',
                 'bookings.purpose',
                 'bookings.start_time',
                 'bookings.end_time',
@@ -36,15 +39,22 @@ class HousingResettlementController extends Controller
             ->get()
             ->map(function ($request) {
                 $request->booking_reference = 'BK' . str_pad($request->id, 6, '0', STR_PAD_LEFT);
-                // Parse contact info from user_name (format: "Name | Email | Phone")
-                $parts = explode(' | ', $request->user_name ?? '');
-                $request->applicant_name = $parts[0] ?? 'N/A';
-                $request->applicant_email = $parts[1] ?? 'N/A';
-                $request->applicant_phone = $parts[2] ?? 'N/A';
+                // Use dedicated columns, fallback to parsing user_name
+                if (empty($request->applicant_name)) {
+                    $parts = explode(' | ', $request->user_name ?? '');
+                    $request->applicant_name = $parts[0] ?? 'N/A';
+                    $request->applicant_email = $request->applicant_email ?: ($parts[1] ?? 'N/A');
+                    $request->applicant_phone = $request->applicant_phone ?: ($parts[2] ?? 'N/A');
+                }
+                $request->applicant_email = $request->applicant_email ?: 'N/A';
+                $request->applicant_phone = $request->applicant_phone ?: 'N/A';
                 // Extract event name from purpose
                 $purposeParts = explode(' - ', $request->purpose ?? '');
                 $request->event_name = $purposeParts[0] ?? 'N/A';
                 $request->event_description = $purposeParts[1] ?? null;
+                // Add formatted schedule fields
+                $request->start_formatted = \Carbon\Carbon::parse($request->start_time)->format('M d');
+                $request->time_range = \Carbon\Carbon::parse($request->start_time)->format('h:iA') . '-' . \Carbon\Carbon::parse($request->end_time)->format('h:iA');
                 return $request;
             });
 
@@ -103,6 +113,9 @@ class HousingResettlementController extends Controller
             ->select(
                 'bookings.id',
                 'bookings.user_name',
+                'bookings.applicant_name',
+                'bookings.applicant_email',
+                'bookings.applicant_phone',
                 'bookings.purpose',
                 'bookings.start_time',
                 'bookings.end_time',
@@ -117,10 +130,15 @@ class HousingResettlementController extends Controller
             ->get()
             ->map(function ($request) {
                 $request->booking_reference = 'BK' . str_pad($request->id, 6, '0', STR_PAD_LEFT);
-                $parts = explode(' | ', $request->user_name ?? '');
-                $request->applicant_name = $parts[0] ?? 'N/A';
-                $request->applicant_email = $parts[1] ?? 'N/A';
-                $request->applicant_phone = $parts[2] ?? 'N/A';
+                // Use dedicated columns, fallback to parsing user_name
+                if (empty($request->applicant_name)) {
+                    $parts = explode(' | ', $request->user_name ?? '');
+                    $request->applicant_name = $parts[0] ?? 'N/A';
+                    $request->applicant_email = $request->applicant_email ?: ($parts[1] ?? 'N/A');
+                    $request->applicant_phone = $request->applicant_phone ?: ($parts[2] ?? 'N/A');
+                }
+                $request->applicant_email = $request->applicant_email ?: 'N/A';
+                $request->applicant_phone = $request->applicant_phone ?: 'N/A';
                 $purposeParts = explode(' - ', $request->purpose ?? '');
                 $request->event_name = $purposeParts[0] ?? 'N/A';
                 $request->event_description = $purposeParts[1] ?? null;
