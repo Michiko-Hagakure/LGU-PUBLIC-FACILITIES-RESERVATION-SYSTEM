@@ -63,7 +63,20 @@ class RoadAssistanceController extends Controller
             )
             ->orderBy('bookings.start_time')
             ->limit(20)
-            ->get();
+            ->get()
+            ->map(function ($booking) {
+                // Resolve display name: applicant_name → user_name → auth_db lookup
+                if (empty($booking->applicant_name)) {
+                    if (!empty($booking->user_name)) {
+                        $booking->applicant_name = $booking->user_name;
+                    } elseif (!empty($booking->user_id)) {
+                        $user = DB::connection('auth_db')->table('users')
+                            ->where('id', $booking->user_id)->first();
+                        $booking->applicant_name = $user->full_name ?? null;
+                    }
+                }
+                return $booking;
+            });
 
         // Get outgoing requests sent to Road & Transportation
         $outgoingRequests = DB::connection('facilities_db')
