@@ -219,25 +219,28 @@ class RoadAssistanceController extends Controller
         
         $roadRequest->save();
 
-        // Send approval/rejection data to Road and Transportation system
-        $this->notifyRoadTransportSystem($roadRequest, $validated);
-
         return redirect()->route('admin.road-assistance.index')
             ->with('success', 'Road assistance request has been ' . strtolower($validated['status']) . '.');
     }
 
     /**
-     * Send approval/rejection notification to Road and Transportation system
-     * via their webhook_receiver.php endpoint (JSON payload)
+     * Sync statuses of pending outgoing requests from the Road & Transportation system
      */
-    private function notifyRoadTransportSystem(RoadAssistanceRequest $roadRequest, array $validated)
+    public function syncStatuses()
     {
-        $this->roadApi->sendWebhookNotification([
-            'request_id' => $roadRequest->id,
-            'status'     => strtolower($validated['status']),
-            'event_type' => $roadRequest->event_name ?? null,
-            'location'   => $roadRequest->event_location ?? null,
-            'remarks'    => $validated['feedback'] ?? null,
-        ]);
+        $result = $this->roadApi->syncStatuses();
+
+        if ($result['total'] === 0) {
+            return redirect()->route('admin.road-assistance.index')
+                ->with('success', 'No pending requests to check.');
+        }
+
+        if ($result['updated'] > 0) {
+            return redirect()->route('admin.road-assistance.index')
+                ->with('success', "Updated {$result['updated']} out of {$result['total']} pending requests.");
+        }
+
+        return redirect()->route('admin.road-assistance.index')
+            ->with('info', "Checked {$result['total']} pending requests. No status changes yet.");
     }
 }

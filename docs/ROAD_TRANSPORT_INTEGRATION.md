@@ -6,7 +6,9 @@ This document describes the integration between the **Public Facility Reservatio
 
 **Base URL:** `https://lucia-road-trans.local-government-unit-1-ph.com/`
 
-The integration allows PFRS to request road assistance (traffic management, road closures, escorts, etc.) for events that may cause traffic disruptions, and receive approval/rejection notifications back.
+The integration allows PFRS admins to request road assistance (traffic management, road closures, escorts, etc.) for events that may cause traffic disruptions, and poll for approval/rejection status updates.
+
+**Only admins** can request road assistance (e.g., when an event organized by a citizen may cause traffic).
 
 ---
 
@@ -17,106 +19,83 @@ The integration allows PFRS to request road assistance (traffic management, road
 │  PFRS (Our System)  │                    │  Road & Transportation System │
 │                     │                    │  (lucia-road-trans)           │
 │                     │  1. Submit Event   │                              │
-│  Admin / Citizen    │ ──────────────────>│  /api/submit_traffic_event.php│
-│  requests road      │  POST (form data)  │                              │
-│  assistance         │                    │  Returns: request_id          │
+│  Admin requests     │ ──────────────────>│  POST /api/integrations/     │
+│  road assistance    │  JSON body         │       EventRequest.php       │
+│                     │                    │  Returns: { id: 8 }          │
 │                     │                    │                              │
-│                     │  2. Status Update  │                              │
-│  /api/road-transport│ <─────────────────│  Their admin approves/rejects │
-│  /webhook           │  POST (JSON)       │  → calls our webhook_url      │
-│                     │                    │                              │
-│                     │  3. We notify them │                              │
-│  Admin approves     │ ──────────────────>│  /api/webhook_receiver.php    │
-│  incoming requests  │  POST (JSON)       │                              │
+│                     │  2. Poll Status    │                              │
+│  Admin clicks       │ ──────────────────>│  GET /api/integrations/      │
+│  "Sync Statuses"    │  ?id=8             │      EventRequest.php?id=8   │
+│                     │                    │  Returns: { status, remarks } │
 └─────────────────────┘                    └──────────────────────────────┘
 ```
 
 ---
 
-## Their Endpoints (External System)
+## Their API Endpoint
 
-### 1. Submit Traffic Event
-- **URL:** `POST /api/submit_traffic_event.php`
-- **Content-Type:** `application/x-www-form-urlencoded` (form data)
+**Single endpoint:** `POST/GET /api/integrations/EventRequest.php`
+
+### POST - Create Event Request
+- **URL:** `POST /api/integrations/EventRequest.php`
+- **Content-Type:** `application/json`
 - **Required Fields:**
   | Field | Type | Description |
   |-------|------|-------------|
+  | `user_id` | integer | ID of the requesting user |
+  | `system_name` | string | Always `"Public Facility Reservation System"` |
   | `event_type` | string | e.g., Traffic Management, Road Closure |
-  | `location` | string | Event location |
   | `start_date` | datetime | Start date & time (`Y-m-d H:i:s`) |
   | `end_date` | datetime | End date & time (`Y-m-d H:i:s`) |
-  | `description` | string | Event description and expected traffic impact |
-  | `system_name` | string | Always `"Public Facility Reservation System"` |
+  | `location` | string | Event location |
+  | `description` | string | Event description |
 
 - **Optional Fields:**
   | Field | Type | Description |
   |-------|------|-------------|
   | `landmark` | string | Nearby landmark |
-  | `contact_person` | string | Contact person name |
-  | `contact_number` | string | Contact phone number |
-  | `webhook_url` | url | Our callback URL for status notifications |
 
-- **Response (JSON):**
+- **Success Response (201):**
   ```json
   {
     "success": true,
-    "message": "Request submitted successfully",
-    "request_id": 42
+    "message": "Event request created successfully",
+    "id": 8
   }
   ```
 
-### 2. Check Status (Browser Only)
-- **URL:** `GET /api/check_status.php?id={request_id}`
-- **Note:** This returns an HTML page, not JSON. Use for manual status checks only.
-- **Shows:** Request ID, event type, system name, location, dates, description, status (pending/approved/rejected), remarks.
+### GET - Retrieve Event Requests
+- **URL:** `GET /api/integrations/EventRequest.php`
+- **Query Parameters:**
+  | Param | Description |
+  |-------|-------------|
+  | `id` | Get specific event request |
+  | `user_id` | Filter by user |
+  | `status` | Filter by status (pending, approved, rejected) |
 
-### 3. Webhook Receiver (Their Incoming)
-- **URL:** `POST /api/webhook_receiver.php`
-- **Content-Type:** `application/json`
-- **Payload:**
-  ```json
-  {
-    "request_id": 42,
-    "status": "approved",
-    "event_type": "Traffic Management",
-    "location": "Main Street",
-    "remarks": "Approved with conditions",
-    "timestamp": "2026-02-13 14:30:00"
-  }
-  ```
-- **Response (JSON):**
+- **Success Response (200):**
   ```json
   {
     "success": true,
-    "message": "Notification received"
+    "data": [
+      {
+        "id": 8,
+        "user_id": 35,
+        "system_name": "Public Facility Reservation System",
+        "event_type": "Road Closure",
+        "start_date": "2026-02-15 08:00:00",
+        "end_date": "2026-02-15 18:00:00",
+        "location": "Chico Street, Quezon City",
+        "landmark": "Near City Hall",
+        "description": "Road closure for maintenance work",
+        "status": "pending",
+        "remarks": null,
+        "created_at": "2026-02-13 22:33:59",
+        "updated_at": "2026-02-13 22:33:59"
+      }
+    ]
   }
   ```
-
----
-
-## Our Endpoints (PFRS)
-
-### Webhook Receiver
-- **URL:** `POST /api/road-transport/webhook`
-- **Route Name:** `road-transport.webhook`
-- **Content-Type:** `application/json`
-- **Purpose:** Receives status update notifications from the Road & Transportation system when they approve/reject our submitted traffic event requests.
-- **Expected Payload:**
-  ```json
-  {
-    "request_id": 42,
-    "status": "approved",
-    "remarks": "Approved - personnel will be deployed",
-    "event_type": "Traffic Management",
-    "location": "Main Street",
-    "timestamp": "2026-02-13 14:30:00"
-  }
-  ```
-- **Required Fields:** `request_id`, `status`
-- **Behavior:**
-  - Updates the matching `citizen_road_requests` record (matched by `external_request_id`)
-  - Logs the notification
-  - Returns 200 even if no matching local record is found (to avoid retries from their system)
 
 ---
 
@@ -125,20 +104,16 @@ The integration allows PFRS to request road assistance (traffic management, road
 ### config/services.php
 ```php
 'road_transport' => [
-    'base_url'             => env('ROAD_TRANSPORT_BASE_URL', 'https://lucia-road-trans.local-government-unit-1-ph.com'),
-    'submit_url'           => env('ROAD_TRANSPORT_SUBMIT_URL', 'https://lucia-road-trans.local-government-unit-1-ph.com/api/submit_traffic_event.php'),
-    'check_status_url'     => env('ROAD_TRANSPORT_CHECK_STATUS_URL', 'https://lucia-road-trans.local-government-unit-1-ph.com/api/check_status.php'),
-    'webhook_receiver_url' => env('ROAD_TRANSPORT_WEBHOOK_URL', 'https://lucia-road-trans.local-government-unit-1-ph.com/api/webhook_receiver.php'),
-    'timeout'              => env('ROAD_TRANSPORT_TIMEOUT', 30),
+    'base_url' => env('ROAD_TRANSPORT_BASE_URL', 'https://lucia-road-trans.local-government-unit-1-ph.com'),
+    'api_url'  => env('ROAD_TRANSPORT_API_URL', 'https://lucia-road-trans.local-government-unit-1-ph.com/api/integrations/EventRequest.php'),
+    'timeout'  => env('ROAD_TRANSPORT_TIMEOUT', 30),
 ],
 ```
 
 ### .env (Optional Overrides)
 ```
 ROAD_TRANSPORT_BASE_URL=https://lucia-road-trans.local-government-unit-1-ph.com
-ROAD_TRANSPORT_SUBMIT_URL=https://lucia-road-trans.local-government-unit-1-ph.com/api/submit_traffic_event.php
-ROAD_TRANSPORT_CHECK_STATUS_URL=https://lucia-road-trans.local-government-unit-1-ph.com/api/check_status.php
-ROAD_TRANSPORT_WEBHOOK_URL=https://lucia-road-trans.local-government-unit-1-ph.com/api/webhook_receiver.php
+ROAD_TRANSPORT_API_URL=https://lucia-road-trans.local-government-unit-1-ph.com/api/integrations/EventRequest.php
 ROAD_TRANSPORT_TIMEOUT=30
 ```
 
@@ -149,13 +124,10 @@ ROAD_TRANSPORT_TIMEOUT=30
 | File | Purpose |
 |------|---------|
 | `app/Services/RoadTransportApiService.php` | Service class for all Road & Transportation API calls |
-| `app/Http/Controllers/Api/RoadTransportWebhookController.php` | Receives webhook notifications from their system |
 | `app/Http/Controllers/Admin/RoadAssistanceController.php` | Admin management of road assistance requests |
-| `app/Http/Controllers/Citizen/RoadAssistanceController.php` | Citizen-facing road assistance request form |
 | `app/Models/RoadAssistanceRequest.php` | Model for incoming road assistance requests |
 | `config/services.php` | API endpoint configuration |
-| `routes/api.php` | Webhook route definition |
-| `routes/web.php` | Admin & citizen web routes |
+| `routes/web.php` | Admin web routes |
 | `database/migrations/2026_02_03_*_create_citizen_road_requests_table.php` | Local request tracking table |
 
 ---
@@ -173,13 +145,18 @@ ROAD_TRANSPORT_TIMEOUT=30
 
 ---
 
-## Offline / Retry Handling
+## Status Sync
 
-When the Road & Transportation system is unreachable:
-1. The request is saved locally with `status = 'pending_sync'`
-2. Admin can trigger a retry sync via the **Retry Sync** button on the admin dashboard
-3. The `RoadTransportApiService::retrySyncPending()` method re-attempts submission for all `pending_sync` records
-4. On success, the record is updated with the `external_request_id` and status changes to `pending`
+Since their API uses polling (no webhooks), we check for status updates by:
+
+1. **Sync Statuses** button on admin dashboard — polls `GET EventRequest.php?id={id}` for each pending outgoing request
+2. **Retry Sync** button — re-submits any `pending_sync` requests that failed to reach their system
+
+### Flow:
+1. Admin submits a road assistance request → saved locally + POSTed to their API
+2. If POST fails → saved with `status = 'pending_sync'`, admin can **Retry Sync** later
+3. If POST succeeds → saved with `status = 'pending'` and `external_request_id` from their response
+4. Admin clicks **Sync Statuses** → polls their API for each pending request, updates local status to `approved`/`rejected`
 
 ---
 
@@ -190,7 +167,7 @@ Stored on the `facilities_db` connection.
 | Column | Type | Description |
 |--------|------|-------------|
 | `id` | bigint | Primary key |
-| `user_id` | bigint | User who submitted the request |
+| `user_id` | bigint | Admin who submitted the request |
 | `external_request_id` | bigint (nullable) | Request ID from Road & Transportation system |
 | `event_type` | varchar(100) | Type of road assistance needed |
 | `start_datetime` | datetime | Event start |

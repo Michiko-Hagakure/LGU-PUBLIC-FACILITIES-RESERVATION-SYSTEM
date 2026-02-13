@@ -2158,4 +2158,6 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
         ->name('road-assistance.send');
     Route::post('/road-assistance/retry-sync', [\App\Http\Controllers\Admin\RoadAssistanceController::class, 'retrySync'])
         ->name('road-assistance.retry-sync');
+    Route::post('/road-assistance/sync-statuses', [\App\Http\Controllers\Admin\RoadAssistanceController::class, 'syncStatuses'])
+        ->name('road-assistance.sync-statuses');
 });
