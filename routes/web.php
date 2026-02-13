@@ -2059,12 +2059,8 @@ Route::middleware(['auth', 'role:admin', 'auto.expire'])->prefix('admin')->name(
     Route::get('/community-maintenance/reports', [\App\Http\Controllers\Admin\CommunityMaintenanceController::class, 'index'])->name('community-maintenance.index');
     Route::get('/community-maintenance/json', [\App\Http\Controllers\Admin\CommunityMaintenanceController::class, 'getRequestsJson'])->name('community-maintenance.json');
 
-    // Facility Site Selection Integration (Urban Planning)
+    // Facility Site Selection / Zoning Maps Integration (Urban Planning)
     Route::get('/facility-site-selection', [\App\Http\Controllers\Admin\FacilitySiteSelectionController::class, 'index'])->name('facility-site-selection.index');
-    Route::post('/facility-site-selection/search', [\App\Http\Controllers\Admin\FacilitySiteSelectionController::class, 'search'])->name('facility-site-selection.search');
-    Route::post('/facility-site-selection/check-suitability', [\App\Http\Controllers\Admin\FacilitySiteSelectionController::class, 'checkSuitability'])->name('facility-site-selection.check-suitability');
-
-    // Zoning Maps Integration (Urban Planning - Site Selection)
     Route::get('/facility-site-selection/zoning/barangays', [\App\Http\Controllers\Admin\FacilitySiteSelectionController::class, 'getZoningBarangays'])->name('facility-site-selection.zoning-barangays');
     Route::get('/facility-site-selection/zoning/legend', [\App\Http\Controllers\Admin\FacilitySiteSelectionController::class, 'getZoningLegend'])->name('facility-site-selection.zoning-legend');
     Route::get('/facility-site-selection/zoning/data', [\App\Http\Controllers\Admin\FacilitySiteSelectionController::class, 'getZoningData'])->name('facility-site-selection.zoning-data');
