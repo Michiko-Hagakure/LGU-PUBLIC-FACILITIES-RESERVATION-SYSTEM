@@ -135,7 +135,7 @@ class RoadAssistanceController extends Controller
         }
 
         return redirect()->route('admin.road-assistance.index')
-            ->with('warning', 'Request saved locally but could not sync with Road & Transportation system. It will be synced when their system is available.');
+            ->with('warning', 'Request saved locally but could not sync with Road and Transportation system. It will be synced when their system is available.');
     }
 
     /**

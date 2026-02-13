@@ -63,7 +63,8 @@ class RoadTransportApiService
                 'webhook_url'    => $ourWebhookUrl,
             ];
 
-            $response = Http::timeout($this->timeout)
+            $response = Http::withoutVerifying()
+                ->timeout($this->timeout)
                 ->asForm()
                 ->post($this->submitUrl, $payload);
 
@@ -127,7 +128,8 @@ class RoadTransportApiService
                 'timestamp'  => $data['timestamp'] ?? now()->toDateTimeString(),
             ];
 
-            $response = Http::timeout($this->timeout)
+            $response = Http::withoutVerifying()
+                ->timeout($this->timeout)
                 ->asJson()
                 ->post($this->webhookReceiverUrl, $payload);
 
