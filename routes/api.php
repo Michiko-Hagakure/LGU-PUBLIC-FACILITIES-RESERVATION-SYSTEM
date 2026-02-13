@@ -307,6 +307,60 @@ Route::prefix('road-assistance')->group(function () {
 
 /*
 |--------------------------------------------------------------------------
+| Super Admin Analytics API
+|--------------------------------------------------------------------------
+| API endpoints for Super Admin analytics data.
+| All database code data is exposed via these endpoints.
+|
+| Base URL: https://facilities.local-government-unit-1-ph.com/api/super-admin/analytics
+|
+| Available GET Endpoints:
+| GET  /api/super-admin/analytics/overview              - Analytics hub overview (revenue, bookings, citizens, utilization)
+| GET  /api/super-admin/analytics/booking-statistics    - Booking statistics (status, trends, popular facilities, peak hours)
+| GET  /api/super-admin/analytics/facility-utilization  - Facility utilization report (AI training data, underutilized/high-performing)
+| GET  /api/super-admin/analytics/revenue               - Revenue report (by facility, payment method, monthly trend)
+| GET  /api/super-admin/analytics/citizen               - Citizen analytics (new, repeat, top citizens, growth trend)
+| GET  /api/super-admin/analytics/operational-metrics   - Operational metrics (processing times, staff performance, bottlenecks)
+| GET  /api/super-admin/analytics/payments              - Payment analytics (method breakdown, daily revenue, success rate)
+| GET  /api/super-admin/analytics/all                   - All analytics data in a single response
+|
+| Available POST Endpoints:
+| POST /api/super-admin/analytics/filter                - Filter any analytics type with date range via POST body
+|
+| Query Parameters (GET): ?start_date=YYYY-MM-DD&end_date=YYYY-MM-DD
+| POST Body: { "type": "overview|booking-statistics|...", "start_date": "...", "end_date": "..." }
+*/
+Route::prefix('super-admin/analytics')->group(function () {
+    // GET - Analytics hub overview
+    Route::get('/overview', [\App\Http\Controllers\Api\AnalyticsApiController::class, 'overview']);
+
+    // GET - Booking statistics
+    Route::get('/booking-statistics', [\App\Http\Controllers\Api\AnalyticsApiController::class, 'bookingStatistics']);
+
+    // GET - Facility utilization report
+    Route::get('/facility-utilization', [\App\Http\Controllers\Api\AnalyticsApiController::class, 'facilityUtilization']);
+
+    // GET - Revenue report
+    Route::get('/revenue', [\App\Http\Controllers\Api\AnalyticsApiController::class, 'revenueReport']);
+
+    // GET - Citizen analytics
+    Route::get('/citizen', [\App\Http\Controllers\Api\AnalyticsApiController::class, 'citizenAnalytics']);
+
+    // GET - Operational metrics
+    Route::get('/operational-metrics', [\App\Http\Controllers\Api\AnalyticsApiController::class, 'operationalMetrics']);
+
+    // GET - Payment analytics
+    Route::get('/payments', [\App\Http\Controllers\Api\AnalyticsApiController::class, 'paymentAnalytics']);
+
+    // GET - All analytics data in a single response
+    Route::get('/all', [\App\Http\Controllers\Api\AnalyticsApiController::class, 'all']);
+
+    // POST - Filter analytics by type and date range
+    Route::post('/filter', [\App\Http\Controllers\Api\AnalyticsApiController::class, 'filter']);
+});
+
+/*
+|--------------------------------------------------------------------------
 | PayMongo Webhook
 |--------------------------------------------------------------------------
 | Endpoint for PayMongo to send payment event notifications.
