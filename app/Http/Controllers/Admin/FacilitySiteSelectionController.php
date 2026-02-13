@@ -318,7 +318,8 @@ class FacilitySiteSelectionController extends Controller
         }
 
         try {
-            $response = Http::timeout($this->timeout)
+            $response = Http::withoutVerifying()
+                ->timeout($this->timeout)
                 ->withHeaders(['Accept' => 'application/json'])
                 ->get($url, $queryParams);
 
@@ -357,13 +358,15 @@ class FacilitySiteSelectionController extends Controller
 
         try {
             if ($method === 'GET') {
-                $response = Http::timeout($this->timeout)
+                $response = Http::withoutVerifying()
+                    ->timeout($this->timeout)
                     ->withHeaders([
                         'Accept' => 'application/json',
                     ])
                     ->get($url, $data);
             } else {
-                $response = Http::timeout($this->timeout)
+                $response = Http::withoutVerifying()
+                    ->timeout($this->timeout)
                     ->withHeaders([
                         'Content-Type' => 'application/json',
                         'Accept' => 'application/json',
