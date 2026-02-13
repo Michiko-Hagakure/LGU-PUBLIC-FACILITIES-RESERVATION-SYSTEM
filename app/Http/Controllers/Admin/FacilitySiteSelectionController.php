@@ -323,7 +323,7 @@ class FacilitySiteSelectionController extends Controller
                 ->get($url, $queryParams);
 
             if ($response->successful()) {
-                return $response->json();
+                return $response->json() ?? ['success' => false, 'message' => 'Empty response from Zoning API'];
             }
 
             Log::warning('Zoning Maps API request failed', [
