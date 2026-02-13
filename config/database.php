@@ -42,6 +42,22 @@ return [
             'prefix' => '',
             'foreign_key_constraints' => env('DB_FOREIGN_KEYS', true),
         ],
+        'mysql_facilities' => [
+            'driver' => 'mysql',
+            'url' => env('FACILITIES_DATABASE_URL'),
+            'host' => env('DB_FACILITIES_HOST', '127.0.0.1'),
+            'port' => env('DB_FACILITIES_PORT', '3306'),
+            'database' => env('DB_FACILITIES_DATABASE', 'faci_facilities'),
+            'username' => env('DB_FACILITIES_USERNAME', 'faci_facilities'),
+            'password' => env('DB_FACILITIES_PASSWORD', 'cristian123'),
+            'unix_socket' => env('DB_SOCKET', ''),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+        ],
 
         // Authentication Database (Shared with other LGU1 subsystems)
         'auth_db' => [
@@ -155,7 +171,7 @@ return [
 
         'options' => [
             'cluster' => env('REDIS_CLUSTER', 'redis'),
-            'prefix' => env('REDIS_PREFIX', Str::slug(env('APP_NAME', 'laravel'), '_').'_database_'),
+            'prefix' => env('REDIS_PREFIX', Str::slug(env('APP_NAME', 'laravel'), '_') . '_database_'),
         ],
 
         'default' => [

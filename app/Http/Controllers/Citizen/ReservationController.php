@@ -16,10 +16,13 @@ class ReservationController extends Controller
     public function index(Request $request)
     {
         $userId = session('user_id');
+        $userEmail = session('user_email');
         
         if (!$userId) {
             return redirect()->route('login')->with('error', 'Please login to continue.');
         }
+        
+        // FIX: Use applicant_email for cross-system compatibility (local/cloud user IDs may differ)
 
         // Auto-complete past confirmed bookings in real-time (no scheduler needed)
         $this->autoCompletePastBookings($userId);
@@ -40,7 +43,7 @@ class ReservationController extends Controller
                 'lgu_cities.city_name',
                 'lgu_cities.city_code'
             )
-            ->where('bookings.user_id', $userId)
+            ->where('bookings.applicant_email', $userEmail)
             // EXCLUDE terminal statuses AND past events from "My Reservations"
             ->whereNotIn('bookings.status', ['completed', 'expired', 'cancelled', 'canceled', 'rejected', 'refunded'])
             // Only show upcoming/current events (end_time hasn't passed yet)
@@ -72,7 +75,7 @@ class ReservationController extends Controller
         // Get counts for filter badges - only count ACTIVE bookings
         $statusCounts = [
             'all' => DB::connection('facilities_db')->table('bookings')
-                ->where('user_id', $userId)
+                ->where('applicant_email', $userEmail)
                 ->whereNotIn('status', ['completed', 'expired', 'cancelled', 'canceled', 'rejected', 'refunded'])
                 ->where('end_time', '>=', Carbon::now())
                 ->count(),
@@ -82,7 +85,7 @@ class ReservationController extends Controller
                 ->where('end_time', '>=', Carbon::now())
                 ->count(),
             'completed' => DB::connection('facilities_db')->table('bookings')
-                ->where('user_id', $userId)
+                ->where('applicant_email', $userEmail)
                 ->where('status', 'completed')
                 ->count(),
         ];
