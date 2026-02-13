@@ -141,8 +141,6 @@
 @endsection
 
 @push('styles')
-<!-- FullCalendar CSS -->
-<link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css' rel='stylesheet' />
 <style>
     /* FullCalendar Customization for LGU Theme */
     .fc {
@@ -261,7 +259,7 @@
 
 @push('scripts')
 <!-- FullCalendar JS -->
-<script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
+<script src="{{ asset('assets/js/fullcalendar.min.js') }}"></script>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
