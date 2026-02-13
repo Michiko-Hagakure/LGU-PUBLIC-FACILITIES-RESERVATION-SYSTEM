@@ -122,7 +122,10 @@ class RoadTransportApiService
                 $result = $response->json();
 
                 if (!empty($result['success']) && !empty($result['data'])) {
-                    $record = is_array($result['data']) ? ($result['data'][0] ?? null) : null;
+                    $data = $result['data'];
+                    // Their API returns a single object when querying by ID,
+                    // but an array of objects when querying all
+                    $record = isset($data['id']) ? $data : ($data[0] ?? null);
                     return [
                         'success' => true,
                         'data'    => $record,
