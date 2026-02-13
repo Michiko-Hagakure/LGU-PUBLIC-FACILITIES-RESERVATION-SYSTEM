@@ -578,6 +578,7 @@ class FacilityReservationApiController extends Controller
                 'bookings.start_time',
                 'bookings.end_time',
                 'bookings.total_amount',
+                'bookings.down_payment_amount',
                 'bookings.rejected_reason',
                 'bookings.created_at',
                 'facilities.name as facility_name'
@@ -600,6 +601,7 @@ class FacilityReservationApiController extends Controller
                 'start_time' => Carbon::parse($booking->start_time)->format('Y-m-d h:i A'),
                 'end_time' => Carbon::parse($booking->end_time)->format('Y-m-d h:i A'),
                 'total_amount' => number_format($booking->total_amount, 2),
+                'down_payment_amount' => number_format($booking->down_payment_amount ?? 0, 2),
                 'rejected_reason' => $booking->rejected_reason,
                 'submitted_at' => Carbon::parse($booking->created_at)->format('Y-m-d h:i A'),
             ],
