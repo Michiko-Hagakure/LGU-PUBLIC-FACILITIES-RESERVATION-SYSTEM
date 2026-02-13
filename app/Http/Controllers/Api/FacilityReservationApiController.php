@@ -294,7 +294,7 @@ class FacilityReservationApiController extends Controller
                         'status' => $bookingStatus,
                         'payment_tier' => $paymentTier,
                         'payment_method' => $paymentMethod,
-                        'down_payment_amount' => $downPaymentAmount > 0 ? number_format($downPaymentAmount, 2) : null,
+                        'down_payment_amount' => $downPaymentAmount > 0 ? round($downPaymentAmount, 2) : null,
                         'pricing' => [
                             'base_rate' => number_format($pricing['base_rate'], 2),
                             'extension_rate' => number_format($pricing['extension_rate'], 2),
