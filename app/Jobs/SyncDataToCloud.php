@@ -13,56 +13,144 @@ class SyncDataToCloud implements ShouldQueue
     use Queueable;
 
     /**
-     * Execute the job to sync local data to the cloud server.
+     * Main execution logic for bidirectional synchronization.
      */
     public function handle(): void
     {
-        // Fetch API credentials and endpoint from the .env file
-        $url = env('LIVE_SYSTEM_URL');
+        // Fetch environment variables
+        $baseUrl = rtrim(env('LIVE_SYSTEM_URL'), '/');
         $key = env('SYNC_API_KEY');
+        $syncEndpoint = $baseUrl . '/api/sync-data';
 
-        // TASK 1: Sync User Accounts from the 'auth_db' connection
-        $this->syncTable('users', 'auth_db', $url, $key);
+        /**
+         * Table Configuration
+         * Note: 'facilities' uses 'facility_id', others use 'id'.
+         */
+        $syncConfigs = [
+            ['table' => 'users', 'connection' => 'auth_db', 'pk' => 'id'],
+            ['table' => 'bookings', 'connection' => 'facilities_db', 'pk' => 'id'],
+            ['table' => 'activity_logs', 'connection' => 'auth_db', 'pk' => 'id'],
+            ['table' => 'payment_slips', 'connection' => 'facilities_db', 'pk' => 'id'],
+            ['table' => 'announcements', 'connection' => 'facilities_db', 'pk' => 'id'],
+            ['table' => 'facilities', 'connection' => 'facilities_db', 'pk' => 'facility_id'],
+        ];
 
-        // TASK 2: Sync Booking records from the 'facilities_db' connection
-        $this->syncTable('bookings', 'facilities_db', $url, $key);
+        foreach ($syncConfigs as $config) {
+            // Task 1: Push local updates to the Cloud
+            $this->uploadToCloud($config, $syncEndpoint, $key);
+
+            // Task 2: Pull new data from the Cloud to Local
+            $this->downloadFromCloud($config, $syncEndpoint, $key);
+        }
     }
+
     /**
-     * Helper function to process the sync logic for a specific table.
+     * Upload: Send local records where is_synced = 0 to Cloud server.
      */
-    private function syncTable($tableName, $connectionName, $url, $key)
+    private function uploadToCloud($config, $url, $key)
     {
-        // Use chunking to prevent memory and payload size issues
-        DB::connection($connectionName)
-            ->table($tableName)
+        $table = $config['table'];
+        $conn = $config['connection'];
+        $pk = $config['pk'];
+
+        DB::connection($conn)
+            ->table($table)
             ->where('is_synced', 0)
-            ->orderBy('id')
-            ->chunk(50, function ($records) use ($tableName, $url, $key, $connectionName) {
+            ->orderBy($pk)
+            ->chunk(50, function ($records) use ($table, $url, $key, $conn, $pk) {
                 try {
-                    $response = Http::withHeaders([
-                        'X-Sync-Key' => $key
-                    ])->timeout(120)->post($url, [
-                                'table' => $tableName,
-                                'data' => $records->toArray()
-                            ]);
+                    // Execute POST request
+                    $response = Http::withHeaders(['X-Sync-Key' => $key])
+                        ->timeout(120)
+                        ->post($url, [
+                            'action' => 'upload',
+                            'table'  => $table,
+                            'data'   => $records->toArray()
+                        ]);
+
+                    // Structured JSON log for the report
+                    Log::info("SYNC_UPLOAD_REPORT", [
+                        'table'  => $table,
+                        'status' => $response->status(),
+                        'count'  => $records->count(),
+                        'ok'     => $response->successful()
+                    ]);
 
                     if ($response->successful()) {
-                        DB::connection($connectionName)
-                            ->table($tableName)
-                            ->whereIn('id', $records->pluck('id'))
+                        // Mark records as synced in local database
+                        DB::connection($conn)
+                            ->table($table)
+                            ->whereIn($pk, $records->pluck($pk))
                             ->update([
                                 'is_synced' => 1,
                                 'last_synced_at' => now()
                             ]);
-
-                        Log::info("Sync Success [$tableName]: " . $records->count() . " records synced.");
-                    } else {
-                        // Log the actual error body from the server to see why it failed
-                        Log::error("Sync Failed [$tableName]: " . $response->status() . " - " . $response->body());
                     }
                 } catch (\Exception $e) {
-                    Log::error("Sync Exception [$tableName]: " . $e->getMessage());
+                    Log::error("SYNC_UPLOAD_EXCEPTION", [
+                        'table'   => $table,
+                        'message' => $e->getMessage()
+                    ]);
                 }
             });
+    }
+
+    /**
+     * Download: Fetch records from Cloud and save/update in Local database.
+     */
+    private function downloadFromCloud($config, $url, $key)
+    {
+        $table = $config['table'];
+        $conn = $config['connection'];
+        $pk = $config['pk'];
+
+        try {
+            // Execute GET request
+            $response = Http::withHeaders(['X-Sync-Key' => $key])
+                ->get($url, [
+                    'action' => 'download',
+                    'table'  => $table
+                ]);
+
+            $status = $response->status();
+            $dataFound = isset($response->json()['data']) ? count($response->json()['data']) : 0;
+
+            Log::info("SYNC_DOWNLOAD_REPORT", [
+                'table'  => $table,
+                'status' => $status,
+                'found'  => $dataFound,
+                'ok'     => $response->successful()
+            ]);
+
+            if ($response->successful() && $dataFound > 0) {
+                $cloudRecords = $response->json()['data'];
+
+                foreach ($cloudRecords as $record) {
+                    // Convert to array to handle key access safely
+                    $recordArray = (array)$record;
+                    
+                    // Mark as synced locally
+                    $recordArray['is_synced'] = 1;
+                    $recordArray['last_synced_at'] = now();
+
+                    // Check if PK exists in record before performing Upsert
+                    if (isset($recordArray[$pk])) {
+                        DB::connection($conn)
+                            ->table($table)
+                            ->updateOrInsert([$pk => $recordArray[$pk]], $recordArray);
+                    } else {
+                        Log::warning("SYNC_PK_MISSING", [
+                            'table' => $table, 
+                            'expected_pk' => $pk
+                        ]);
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            Log::error("SYNC_DOWNLOAD_EXCEPTION", [
+                'table'   => $table,
+                'message' => $e->getMessage()
+            ]);
+        }
     }
 }

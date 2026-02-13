@@ -2,6 +2,8 @@
 
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
+use App\Jobs\SyncDataToCloud;
+use Illuminate\Support\Facades\Schedule;
 
 /*
 |--------------------------------------------------------------------------
@@ -19,7 +21,6 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 // Schedule automatic cancellation of overdue bookings
-use Illuminate\Support\Facades\Schedule;
 
 Schedule::command('bookings:cancel-overdue')
     ->hourly()
@@ -35,3 +36,6 @@ Schedule::command('bookings:expire-unpaid')
     ->hourly()
     ->withoutOverlapping()
     ->runInBackground();
+
+// This triggers the sync job every minute
+Schedule::job(new SyncDataToCloud)->everyMinute();
