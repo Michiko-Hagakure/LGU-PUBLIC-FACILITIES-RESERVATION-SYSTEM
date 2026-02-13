@@ -5,6 +5,8 @@
 
 @push('styles')
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/airbnb.css">
 <style>
     .status-badge {
         font-size: 0.7rem;
@@ -18,6 +20,8 @@
     .status-approved { background: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
     .status-rejected { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
     .detail-label { font-size: 0.7rem; color: #6b7280; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+    .swal2-popup .flatpickr-calendar { z-index: 99999 !important; }
+    .flatpickr-input { cursor: pointer !important; }
     .detail-value { font-size: 0.85rem; color: #1f2937; font-weight: 500; }
     .equipment-tag {
         display: inline-flex; align-items: center; gap: 4px;
@@ -385,6 +389,7 @@
 
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script>
     const requestsData = @json($requests->keyBy('id'));
     const facilitiesData = @json($facilities);
@@ -418,15 +423,15 @@
                     <div class="grid grid-cols-3 gap-2">
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-1">Date</label>
-                            <input type="date" id="swal_date" value="${prefDate}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
+                            <input type="text" id="swal_date" value="${prefDate}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 bg-white cursor-pointer" placeholder="Select date" readonly>
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-1">Start Time</label>
-                            <input type="time" id="swal_start" value="${req.start_time || ''}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
+                            <input type="text" id="swal_start" value="${req.start_time ? req.start_time.substring(0,5) : ''}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 bg-white cursor-pointer" placeholder="Select time" readonly>
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-1">End Time</label>
-                            <input type="time" id="swal_end" value="${req.end_time || ''}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
+                            <input type="text" id="swal_end" value="${req.end_time ? req.end_time.substring(0,5) : ''}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 bg-white cursor-pointer" placeholder="Select time" readonly>
                         </div>
                     </div>
 
@@ -488,6 +493,38 @@
             confirmButtonColor: '#16a34a',
             cancelButtonText: 'Cancel',
             width: '600px',
+            didOpen: () => {
+                flatpickr('#swal_date', {
+                    dateFormat: 'Y-m-d',
+                    minDate: 'today',
+                    defaultDate: prefDate || null,
+                    disableMobile: true,
+                    static: true,
+                    appendTo: document.querySelector('.swal2-popup'),
+                });
+                flatpickr('#swal_start', {
+                    enableTime: true,
+                    noCalendar: true,
+                    dateFormat: 'H:i',
+                    time_24hr: false,
+                    defaultDate: req.start_time ? req.start_time.substring(0,5) : null,
+                    minuteIncrement: 15,
+                    disableMobile: true,
+                    static: true,
+                    appendTo: document.querySelector('.swal2-popup'),
+                });
+                flatpickr('#swal_end', {
+                    enableTime: true,
+                    noCalendar: true,
+                    dateFormat: 'H:i',
+                    time_24hr: false,
+                    defaultDate: req.end_time ? req.end_time.substring(0,5) : null,
+                    minuteIncrement: 15,
+                    disableMobile: true,
+                    static: true,
+                    appendTo: document.querySelector('.swal2-popup'),
+                });
+            },
             preConfirm: () => {
                 const facility = document.getElementById('swal_facility').value;
                 if (!facility) {
