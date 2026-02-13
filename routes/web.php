@@ -2064,6 +2064,11 @@ Route::middleware(['auth', 'role:admin', 'auto.expire'])->prefix('admin')->name(
     Route::post('/facility-site-selection/search', [\App\Http\Controllers\Admin\FacilitySiteSelectionController::class, 'search'])->name('facility-site-selection.search');
     Route::post('/facility-site-selection/check-suitability', [\App\Http\Controllers\Admin\FacilitySiteSelectionController::class, 'checkSuitability'])->name('facility-site-selection.check-suitability');
 
+    // Zoning Maps Integration (Urban Planning - Site Selection)
+    Route::get('/facility-site-selection/zoning/barangays', [\App\Http\Controllers\Admin\FacilitySiteSelectionController::class, 'getZoningBarangays'])->name('facility-site-selection.zoning-barangays');
+    Route::get('/facility-site-selection/zoning/legend', [\App\Http\Controllers\Admin\FacilitySiteSelectionController::class, 'getZoningLegend'])->name('facility-site-selection.zoning-legend');
+    Route::get('/facility-site-selection/zoning/data', [\App\Http\Controllers\Admin\FacilitySiteSelectionController::class, 'getZoningData'])->name('facility-site-selection.zoning-data');
+
     // Inquiry Management
     Route::get('/inquiries', [\App\Http\Controllers\Admin\InquiryManagementController::class, 'index'])->name('inquiries.index');
     Route::get('/inquiries/{id}', [\App\Http\Controllers\Admin\InquiryManagementController::class, 'show'])->name('inquiries.show');
