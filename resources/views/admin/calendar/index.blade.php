@@ -84,10 +84,7 @@
     </div>
 </div>
 
-@push('styles')
-<!-- FullCalendar CSS -->
-<link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css' rel='stylesheet' />
-@endpush
+@endsection
 
 @push('scripts')
 <!-- FullCalendar JS -->
@@ -361,6 +358,3 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 </style>
 @endpush
-
-@endsection
-
