@@ -200,8 +200,13 @@ document.addEventListener('DOMContentLoaded', function() {
             'staff_verified': { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Awaiting Payment' },
             'paid': { bg: 'bg-green-100', text: 'text-green-800', label: 'Payment Verified' },
             'confirmed': { bg: 'bg-purple-100', text: 'text-purple-800', label: 'Confirmed' },
+            'completed': { bg: 'bg-green-100', text: 'text-green-800', label: 'Completed' },
             'rejected': { bg: 'bg-red-100', text: 'text-red-800', label: 'Rejected' },
-            'cancelled': { bg: 'bg-gray-100', text: 'text-gray-800', label: 'Cancelled' }
+            'admin_rejected': { bg: 'bg-red-100', text: 'text-red-800', label: 'Admin Rejected' },
+            'cancelled': { bg: 'bg-gray-100', text: 'text-gray-800', label: 'Cancelled' },
+            'canceled': { bg: 'bg-gray-100', text: 'text-gray-800', label: 'Cancelled' },
+            'expired': { bg: 'bg-orange-100', text: 'text-orange-800', label: 'Expired' },
+            'refunded': { bg: 'bg-indigo-100', text: 'text-indigo-800', label: 'Refunded' }
         };
         
         const status = statusConfig[booking.status] || statusConfig['pending'];
