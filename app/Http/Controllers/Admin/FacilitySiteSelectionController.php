@@ -324,7 +324,24 @@ class FacilitySiteSelectionController extends Controller
                 ->get($url, $queryParams);
 
             if ($response->successful()) {
-                return $response->json() ?? ['success' => false, 'message' => 'Empty response from Zoning API'];
+                // Strip BOM and any leading characters before JSON
+                $body = $response->body();
+                $jsonStart = strpos($body, '{');
+                if ($jsonStart !== false) {
+                    $cleanBody = substr($body, $jsonStart);
+                    $decoded = json_decode($cleanBody, true);
+                    if ($decoded !== null) {
+                        return $decoded;
+                    }
+                }
+
+                Log::warning('Zoning Maps API - Could not parse response', [
+                    'url' => $url,
+                    'action' => $action,
+                    'body_start' => substr($body, 0, 100),
+                ]);
+
+                return ['success' => false, 'message' => 'Invalid JSON response from Zoning API'];
             }
 
             Log::warning('Zoning Maps API request failed', [
