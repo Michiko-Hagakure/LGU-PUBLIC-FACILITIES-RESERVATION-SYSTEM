@@ -373,3 +373,23 @@ Route::prefix('super-admin/analytics')->group(function () {
 */
 Route::post('/paymongo/webhook', [\App\Http\Controllers\Api\PayMongoWebhookController::class, 'handle'])
     ->name('paymongo.webhook');
+
+/*
+|--------------------------------------------------------------------------
+| Road & Transportation Infrastructure Monitoring - Webhook
+|--------------------------------------------------------------------------
+| Endpoint for the Road & Transportation system to send status notifications
+| (approved/rejected) for traffic event requests we submitted.
+|
+| POST https://your-domain.com/api/road-transport/webhook
+|
+| Expected JSON payload:
+|   request_id  - External request ID from their system
+|   status      - approved | rejected
+|   remarks     - Admin remarks / feedback
+|   event_type  - (optional) Event type
+|   location    - (optional) Location
+|   timestamp   - (optional) When the status changed
+*/
+Route::post('/road-transport/webhook', [\App\Http\Controllers\Api\RoadTransportWebhookController::class, 'handle'])
+    ->name('road-transport.webhook');

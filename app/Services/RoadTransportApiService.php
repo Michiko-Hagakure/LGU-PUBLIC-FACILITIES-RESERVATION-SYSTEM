@@ -8,7 +8,9 @@ use Illuminate\Support\Facades\Log;
 
 class RoadTransportApiService
 {
-    protected string $apiUrl;
+    protected string $submitUrl;
+    protected string $checkStatusUrl;
+    protected string $webhookReceiverUrl;
     protected int $timeout;
 
     /**
@@ -25,102 +27,156 @@ class RoadTransportApiService
 
     public function __construct()
     {
-        $this->apiUrl = config('services.road_transport.api_url');
+        $this->submitUrl = config('services.road_transport.submit_url');
+        $this->checkStatusUrl = config('services.road_transport.check_status_url');
+        $this->webhookReceiverUrl = config('services.road_transport.webhook_receiver_url');
         $this->timeout = config('services.road_transport.timeout', 30);
     }
 
     /**
-     * Create a road assistance request to the Road & Transportation system
+     * Submit a traffic event request to the Road & Transportation system.
+     *
+     * Posts form data to /api/submit_traffic_event.php which expects:
+     *   event_type, location, landmark, start_date, end_date,
+     *   description, system_name, contact_person, contact_number, webhook_url
+     *
+     * Returns JSON: { success, message, request_id }
      */
     public function createRequest(array $data): array
     {
         try {
-            // Map snake_case event_type to human-readable label for external API
             $eventType = $this->eventTypeLabels[$data['event_type']] ?? $data['event_type'];
 
+            // Build our webhook callback URL so they can notify us on approval/rejection
+            $ourWebhookUrl = rtrim(config('app.url'), '/') . '/api/road-transport/webhook';
+
             $payload = [
-                'user_id' => $data['user_id'],
-                'system_name' => 'Public Facility Reservation System',
-                'event_type' => $eventType,
-                'start_date' => $data['start_date'],
-                'end_date' => $data['end_date'],
-                'location' => $data['location'],
-                'landmark' => $data['landmark'] ?? null,
-                'description' => $data['description'],
+                'event_type'     => $eventType,
+                'location'       => $data['location'],
+                'landmark'       => $data['landmark'] ?? null,
+                'start_date'     => $data['start_date'],
+                'end_date'       => $data['end_date'],
+                'description'    => $data['description'],
+                'system_name'    => 'Public Facility Reservation System',
+                'contact_person' => $data['contact_person'] ?? null,
+                'contact_number' => $data['contact_number'] ?? null,
+                'webhook_url'    => $ourWebhookUrl,
             ];
 
             $response = Http::timeout($this->timeout)
-                ->asJson()
-                ->post($this->apiUrl, $payload);
+                ->asForm()
+                ->post($this->submitUrl, $payload);
 
             if ($response->successful()) {
                 $result = $response->json();
-                Log::info('Road assistance request sent successfully', [
-                    'request_id' => $result['request_id'] ?? null,
-                    'user_id' => $data['user_id']
-                ]);
+
+                if (!empty($result['success'])) {
+                    Log::info('Road assistance request submitted to Road & Transportation', [
+                        'request_id'  => $result['request_id'] ?? null,
+                        'user_id'     => $data['user_id'] ?? null,
+                    ]);
+
+                    return [
+                        'success'    => true,
+                        'request_id' => $result['request_id'] ?? null,
+                        'message'    => $result['message'] ?? 'Request submitted successfully',
+                    ];
+                }
+
                 return [
-                    'success' => true,
-                    'request_id' => $result['request_id'] ?? null,
-                    'message' => $result['message'] ?? 'Request submitted successfully'
+                    'success' => false,
+                    'error'   => $result['message'] ?? 'Road & Transportation system rejected the request',
                 ];
             }
 
             Log::error('Road assistance request failed', [
                 'status' => $response->status(),
-                'body' => $response->body()
+                'body'   => $response->body(),
             ]);
 
             return [
                 'success' => false,
-                'error' => 'Failed to submit request to Road & Transportation system'
+                'error'   => 'Failed to submit request to Road & Transportation system (HTTP ' . $response->status() . ')',
             ];
 
         } catch (\Exception $e) {
-            Log::error('Road assistance API exception', [
-                'error' => $e->getMessage()
-            ]);
+            Log::error('Road assistance API exception', ['error' => $e->getMessage()]);
 
             return [
                 'success' => false,
-                'error' => 'Connection error: ' . $e->getMessage()
+                'error'   => 'Connection error: ' . $e->getMessage(),
             ];
         }
     }
 
     /**
-     * Get all requests for a user from the Road & Transportation system
+     * Send a notification to the Road & Transportation webhook receiver.
+     *
+     * Posts JSON to /api/webhook_receiver.php which expects:
+     *   request_id, status, event_type, location, remarks, timestamp
+     */
+    public function sendWebhookNotification(array $data): array
+    {
+        try {
+            $payload = [
+                'request_id' => $data['request_id'],
+                'status'     => $data['status'],
+                'event_type' => $data['event_type'] ?? null,
+                'location'   => $data['location'] ?? null,
+                'remarks'    => $data['remarks'] ?? null,
+                'timestamp'  => $data['timestamp'] ?? now()->toDateTimeString(),
+            ];
+
+            $response = Http::timeout($this->timeout)
+                ->asJson()
+                ->post($this->webhookReceiverUrl, $payload);
+
+            if ($response->successful()) {
+                $result = $response->json();
+                Log::info('Road & Transportation webhook notification sent', [
+                    'request_id' => $data['request_id'],
+                    'status'     => $data['status'],
+                ]);
+
+                return [
+                    'success' => $result['success'] ?? true,
+                    'message' => $result['message'] ?? 'Notification sent',
+                ];
+            }
+
+            Log::error('Road & Transportation webhook notification failed', [
+                'status' => $response->status(),
+                'body'   => $response->body(),
+            ]);
+
+            return ['success' => false, 'error' => 'Webhook notification failed'];
+
+        } catch (\Exception $e) {
+            Log::error('Road & Transportation webhook exception', ['error' => $e->getMessage()]);
+            return ['success' => false, 'error' => 'Connection error: ' . $e->getMessage()];
+        }
+    }
+
+    /**
+     * Get all local requests for a user from the citizen_road_requests table.
+     * Status updates come in via our webhook endpoint, so we read locally.
      */
     public function getRequestsByUser(int $userId): array
     {
         try {
-            $response = Http::timeout($this->timeout)
-                ->get($this->apiUrl, ['user_id' => $userId]);
-
-            if ($response->successful()) {
-                $result = $response->json();
-                return [
-                    'success' => true,
-                    'data' => $result['data'] ?? []
-                ];
-            }
+            $requests = DB::connection('facilities_db')
+                ->table('citizen_road_requests')
+                ->where('user_id', $userId)
+                ->orderBy('created_at', 'desc')
+                ->get();
 
             return [
-                'success' => false,
-                'error' => 'Failed to fetch requests',
-                'data' => []
+                'success' => true,
+                'data'    => $requests->toArray(),
             ];
-
         } catch (\Exception $e) {
-            Log::error('Road assistance API get exception', [
-                'error' => $e->getMessage()
-            ]);
-
-            return [
-                'success' => false,
-                'error' => 'Connection error',
-                'data' => []
-            ];
+            Log::error('Failed to fetch local road requests', ['error' => $e->getMessage()]);
+            return ['success' => false, 'error' => 'Database error', 'data' => []];
         }
     }
 
@@ -139,12 +195,12 @@ class RoadTransportApiService
 
         foreach ($pending as $record) {
             $result = $this->createRequest([
-                'user_id' => $record->user_id,
+                'user_id'    => $record->user_id,
                 'event_type' => $record->event_type,
                 'start_date' => $record->start_datetime,
-                'end_date' => $record->end_datetime,
-                'location' => $record->location,
-                'landmark' => $record->landmark,
+                'end_date'   => $record->end_datetime,
+                'location'   => $record->location,
+                'landmark'   => $record->landmark,
                 'description' => $record->description,
             ]);
 
@@ -154,8 +210,8 @@ class RoadTransportApiService
                     ->where('id', $record->id)
                     ->update([
                         'external_request_id' => $result['request_id'],
-                        'status' => 'pending',
-                        'remarks' => null,
+                        'status'     => 'pending',
+                        'remarks'    => null,
                         'updated_at' => now(),
                     ]);
                 $synced++;
@@ -169,33 +225,23 @@ class RoadTransportApiService
     }
 
     /**
-     * Get a specific request by ID
+     * Get a specific local request by external request ID
      */
-    public function getRequestById(int $requestId): array
+    public function getRequestByExternalId(int $externalRequestId): array
     {
         try {
-            $response = Http::timeout($this->timeout)
-                ->get($this->apiUrl, ['id' => $requestId]);
+            $request = DB::connection('facilities_db')
+                ->table('citizen_road_requests')
+                ->where('external_request_id', $externalRequestId)
+                ->first();
 
-            if ($response->successful()) {
-                $result = $response->json();
-                $data = $result['data'] ?? [];
-                return [
-                    'success' => true,
-                    'data' => is_array($data) && count($data) > 0 ? $data[0] : null
-                ];
+            if ($request) {
+                return ['success' => true, 'data' => $request];
             }
 
-            return [
-                'success' => false,
-                'error' => 'Request not found'
-            ];
-
+            return ['success' => false, 'error' => 'Request not found'];
         } catch (\Exception $e) {
-            return [
-                'success' => false,
-                'error' => 'Connection error'
-            ];
+            return ['success' => false, 'error' => 'Connection error'];
         }
     }
 }

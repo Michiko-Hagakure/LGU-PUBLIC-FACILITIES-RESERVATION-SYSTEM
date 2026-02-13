@@ -61,8 +61,10 @@ return [
     ],
 
     'road_transport' => [
-        'url' => env('ROAD_TRANSPORT_URL', 'https://roads.local-government-unit-1-ph.com'),
-        'api_url' => env('ROAD_TRANSPORT_API_URL', 'https://lucia-road-trans.local-government-unit-1-ph.com/api/integrations/UtilityBillingRequest.php'),
+        'base_url' => env('ROAD_TRANSPORT_BASE_URL', 'https://lucia-road-trans.local-government-unit-1-ph.com'),
+        'submit_url' => env('ROAD_TRANSPORT_SUBMIT_URL', 'https://lucia-road-trans.local-government-unit-1-ph.com/api/submit_traffic_event.php'),
+        'check_status_url' => env('ROAD_TRANSPORT_CHECK_STATUS_URL', 'https://lucia-road-trans.local-government-unit-1-ph.com/api/check_status.php'),
+        'webhook_receiver_url' => env('ROAD_TRANSPORT_WEBHOOK_URL', 'https://lucia-road-trans.local-government-unit-1-ph.com/api/webhook_receiver.php'),
         'timeout' => env('ROAD_TRANSPORT_TIMEOUT', 30),
     ],
 

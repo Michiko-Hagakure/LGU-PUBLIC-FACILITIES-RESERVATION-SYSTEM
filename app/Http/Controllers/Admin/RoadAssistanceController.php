@@ -7,7 +7,6 @@ use App\Models\RoadAssistanceRequest;
 use App\Services\RoadTransportApiService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
@@ -229,51 +228,16 @@ class RoadAssistanceController extends Controller
 
     /**
      * Send approval/rejection notification to Road and Transportation system
+     * via their webhook_receiver.php endpoint (JSON payload)
      */
     private function notifyRoadTransportSystem(RoadAssistanceRequest $roadRequest, array $validated)
     {
-        try {
-            $apiUrl = config('services.road_transport.url');
-            
-            if (empty($apiUrl)) {
-                Log::warning('Road and Transportation API URL not configured');
-                return;
-            }
-
-            $payload = [
-                'receive_approval' => '1',
-                'road_request_id' => $roadRequest->id,
-                'status' => $validated['status'],
-                'feedback' => $validated['feedback'] ?? null,
-                'assigned_personnel' => $validated['assigned_personnel'] ?? null,
-                'assigned_equipment' => $validated['assigned_equipment'] ?? null,
-                'traffic_plan' => $validated['traffic_plan'] ?? null,
-                'deployment_date' => $validated['deployment_date'] ?? null,
-                'deployment_start_time' => $validated['deployment_start_time'] ?? null,
-                'deployment_end_time' => $validated['deployment_end_time'] ?? null,
-                'admin_notes' => $validated['admin_notes'] ?? null,
-            ];
-
-            $response = Http::timeout(10)
-                ->asForm()
-                ->post("{$apiUrl}/request_road_assistance.php", $payload);
-
-            if ($response->successful()) {
-                Log::info('Road and Transportation system notified successfully', [
-                    'road_request_id' => $roadRequest->id,
-                    'status' => $validated['status']
-                ]);
-            } else {
-                Log::error('Failed to notify Road and Transportation system', [
-                    'road_request_id' => $roadRequest->id,
-                    'response' => $response->body()
-                ]);
-            }
-        } catch (\Exception $e) {
-            Log::error('Exception notifying Road and Transportation system', [
-                'road_request_id' => $roadRequest->id,
-                'error' => $e->getMessage()
-            ]);
-        }
+        $this->roadApi->sendWebhookNotification([
+            'request_id' => $roadRequest->id,
+            'status'     => strtolower($validated['status']),
+            'event_type' => $roadRequest->event_name ?? null,
+            'location'   => $roadRequest->event_location ?? null,
+            'remarks'    => $validated['feedback'] ?? null,
+        ]);
     }
 }
