@@ -270,6 +270,7 @@ class BookingController extends Controller
     {
         $userId = session('user_id');
         $userName = session('user_name');
+        $userEmail = session('user_email');
         
         if (!$userId) {
             return redirect()->route('login')->with('error', 'Please login to continue.');
@@ -377,6 +378,7 @@ class BookingController extends Controller
                 'start_time' => $startDateTime,
                 'end_time' => $endDateTime,
                 'user_name' => $userName,
+                'applicant_email' => $userEmail,
                 'status' => 'awaiting_payment',
                 'base_rate' => $pricing['base_rate'],
                 'extension_rate' => $pricing['extension_hours'] > 0 ? $pricing['extension_rate'] : 0,
