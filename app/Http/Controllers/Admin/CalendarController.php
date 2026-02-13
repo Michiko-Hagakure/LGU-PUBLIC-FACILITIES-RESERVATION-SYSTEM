@@ -163,7 +163,12 @@ class CalendarController extends Controller
                 'border' => '#8b5cf6',
                 'text' => '#4c1d95'
             ],
-            'rejected', 'cancelled', 'admin_rejected' => [
+            'completed' => [
+                'bg' => '#22c55e',      // Green - Completed
+                'border' => '#16a34a',
+                'text' => '#052e16'
+            ],
+            'rejected', 'cancelled', 'canceled', 'admin_rejected' => [
                 'bg' => '#f87171',      // Red - Rejected or cancelled
                 'border' => '#ef4444',
                 'text' => '#7f1d1d'
@@ -172,6 +177,11 @@ class CalendarController extends Controller
                 'bg' => '#fb923c',      // Orange - Expired (unpaid after 48h)
                 'border' => '#f97316',
                 'text' => '#7c2d12'
+            ],
+            'refunded' => [
+                'bg' => '#818cf8',      // Indigo - Refunded
+                'border' => '#6366f1',
+                'text' => '#312e81'
             ],
             default => [
                 'bg' => '#9ca3af',      // Gray - Unknown
