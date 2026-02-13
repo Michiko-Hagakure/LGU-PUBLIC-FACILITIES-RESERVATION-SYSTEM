@@ -174,9 +174,9 @@ class CalendarController extends Controller
                 'text' => '#7f1d1d'
             ],
             'expired' => [
-                'bg' => '#fb923c',      // Orange - Expired (unpaid after 48h)
-                'border' => '#f97316',
-                'text' => '#7c2d12'
+                'bg' => '#ea580c',      // Deep Orange - Expired (clearly distinct from yellow pending)
+                'border' => '#c2410c',
+                'text' => '#ffffff'
             ],
             'refunded' => [
                 'bg' => '#818cf8',      // Indigo - Refunded
