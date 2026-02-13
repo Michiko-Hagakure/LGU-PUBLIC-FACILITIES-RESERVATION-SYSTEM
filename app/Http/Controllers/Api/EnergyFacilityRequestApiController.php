@@ -17,12 +17,20 @@ class EnergyFacilityRequestApiController extends Controller
      */
     public function store(Request $request)
     {
-        $validator = Validator::make($request->all(), [
+        // Normalize time fields — accept H:i:s and trim to H:i
+        $input = $request->all();
+        foreach (['start_time', 'end_time', 'alternative_start_time', 'alternative_end_time'] as $tf) {
+            if (!empty($input[$tf]) && preg_match('/^\d{2}:\d{2}:\d{2}$/', $input[$tf])) {
+                $input[$tf] = substr($input[$tf], 0, 5);
+            }
+        }
+
+        $validator = Validator::make($input, [
             // Event Information
             'event_title' => 'required|string|max:255',
             'purpose' => 'nullable|string',
             'organizer_office' => 'nullable|string|max:255',
-            'point_person' => 'required|string|max:255',
+            'point_person' => 'nullable|string|max:255',
             'contact_number' => 'nullable|string|max:50',
             'contact_email' => 'nullable|email|max:255',
 
@@ -73,6 +81,14 @@ class EnergyFacilityRequestApiController extends Controller
         ]);
 
         if ($validator->fails()) {
+            Log::warning('Energy facility request validation failed', [
+                'errors' => $validator->errors()->toArray(),
+                'input_keys' => array_keys($input),
+                'start_time' => $input['start_time'] ?? null,
+                'end_time' => $input['end_time'] ?? null,
+                'preferred_date' => $input['preferred_date'] ?? null,
+            ]);
+
             return response()->json([
                 'status' => 'error',
                 'message' => 'Validation failed',
@@ -92,6 +108,7 @@ class EnergyFacilityRequestApiController extends Controller
             $data['needs_handouts'] = $data['needs_handouts'] ?? false;
             $data['needs_certificates'] = $data['needs_certificates'] ?? false;
             $data['needs_refreshments'] = $data['needs_refreshments'] ?? false;
+            $data['point_person'] = $data['point_person'] ?? 'Not specified';
             $data['laptop_option'] = $data['laptop_option'] ?? 'no';
             $data['microphone_count'] = $data['microphone_count'] ?? 0;
             $data['status'] = 'pending';

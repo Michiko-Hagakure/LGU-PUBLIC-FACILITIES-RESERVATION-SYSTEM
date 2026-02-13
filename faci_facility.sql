@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost
--- Generation Time: Feb 12, 2026 at 11:37 AM
+-- Generation Time: Feb 12, 2026 at 04:44 PM
 -- Server version: 10.11.14-MariaDB-ubu2204
 -- PHP Version: 8.0.30
 
@@ -394,7 +394,7 @@ CREATE TABLE `cache` (
 
 INSERT INTO `cache` (`key`, `value`, `expiration`) VALUES
 ('auto_expire_bookings_last_run', 's:19:\"2026-02-07 12:47:11\";', 1770440531),
-('auto_expire_bookings_v3', 's:19:\"2026-02-12 19:14:26\";', 1770895766);
+('auto_expire_bookings_v3', 's:19:\"2026-02-12 23:02:25\";', 1770909445);
 
 -- --------------------------------------------------------
 
@@ -695,6 +695,57 @@ INSERT INTO `districts` (`id`, `city_id`, `district_number`, `name`, `type`) VAL
 (32, 16, 2, 'District 2', 'congressional'),
 (33, 17, 1, 'District 1', 'congressional'),
 (34, 17, 2, 'District 2', 'congressional');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `energy_facility_requests`
+--
+
+CREATE TABLE `energy_facility_requests` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `event_title` varchar(255) NOT NULL,
+  `purpose` text DEFAULT NULL,
+  `organizer_office` varchar(255) DEFAULT NULL,
+  `point_person` varchar(255) NOT NULL,
+  `contact_number` varchar(50) DEFAULT NULL,
+  `contact_email` varchar(255) DEFAULT NULL,
+  `preferred_date` date NOT NULL,
+  `start_time` time NOT NULL,
+  `end_time` time NOT NULL,
+  `alternative_date` date DEFAULT NULL,
+  `alternative_start_time` time DEFAULT NULL,
+  `alternative_end_time` time DEFAULT NULL,
+  `audience_type` varchar(100) DEFAULT NULL,
+  `session_type` varchar(100) DEFAULT NULL,
+  `facility_type` varchar(50) DEFAULT NULL,
+  `needs_projector` tinyint(1) NOT NULL DEFAULT 0,
+  `laptop_option` varchar(50) NOT NULL DEFAULT 'no',
+  `needs_sound_system` tinyint(1) NOT NULL DEFAULT 0,
+  `needs_microphone` tinyint(1) NOT NULL DEFAULT 0,
+  `microphone_count` int(11) NOT NULL DEFAULT 0,
+  `microphone_type` varchar(50) DEFAULT NULL,
+  `needs_wifi` tinyint(1) NOT NULL DEFAULT 0,
+  `needs_extension_cords` tinyint(1) NOT NULL DEFAULT 0,
+  `additional_power_needs` text DEFAULT NULL,
+  `other_equipment` text DEFAULT NULL,
+  `needs_handouts` tinyint(1) NOT NULL DEFAULT 0,
+  `handouts_format` varchar(50) DEFAULT NULL,
+  `needs_certificates` tinyint(1) NOT NULL DEFAULT 0,
+  `certificates_provider` varchar(100) DEFAULT NULL,
+  `needs_refreshments` tinyint(1) NOT NULL DEFAULT 0,
+  `dietary_notes` text DEFAULT NULL,
+  `delivery_instructions` text DEFAULT NULL,
+  `special_requests` text DEFAULT NULL,
+  `status` varchar(50) NOT NULL DEFAULT 'pending',
+  `admin_feedback` text DEFAULT NULL,
+  `response_data` text DEFAULT NULL,
+  `booking_id` bigint(20) UNSIGNED DEFAULT NULL,
+  `user_id` bigint(20) UNSIGNED DEFAULT NULL,
+  `seminar_id` bigint(20) UNSIGNED DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -1201,7 +1252,8 @@ INSERT INTO `login_history` (`id`, `user_id`, `device_name`, `ip_address`, `coun
 (149, 2, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 Edg/144.0.0.0', '136.158.39.65', 'Philippines', 'Quezon City', 'success', NULL, 0, '2026-02-12 04:07:56', '2026-02-12 04:07:56', '2026-02-12 04:07:56'),
 (150, 5, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '136.158.39.65', 'Philippines', 'Quezon City', 'success', NULL, 1, '2026-02-12 07:05:34', '2026-02-12 07:05:34', '2026-02-12 07:05:34'),
 (151, 3, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 Edg/144.0.0.0', '89.111.30.251', 'Latvia', 'Riga', 'success', NULL, 0, '2026-02-12 07:08:12', '2026-02-12 07:08:12', '2026-02-12 07:08:12'),
-(152, 2, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '136.158.39.65', 'Philippines', 'Quezon City', 'success', NULL, 0, '2026-02-12 11:14:25', '2026-02-12 11:14:25', '2026-02-12 11:14:25');
+(152, 2, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '136.158.39.65', 'Philippines', 'Quezon City', 'success', NULL, 0, '2026-02-12 11:14:25', '2026-02-12 11:14:25', '2026-02-12 11:14:25'),
+(153, 2, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '136.158.39.57', 'Philippines', 'Quezon City', 'success', NULL, 0, '2026-02-12 15:02:25', '2026-02-12 15:02:25', '2026-02-12 15:02:25');
 
 -- --------------------------------------------------------
 
@@ -1984,9 +2036,8 @@ CREATE TABLE `sessions` (
 --
 
 INSERT INTO `sessions` (`id`, `user_id`, `ip_address`, `user_agent`, `payload`, `last_activity`) VALUES
-('0PyzKvnJXcISQUCgFcPjRWKCiT7Kh3UsnFDyFZaM', NULL, '34.78.48.60', 'Mozilla/5.0 (compatible; CMS-Checker/1.0; +https://example.com)', 'YTozOntzOjY6Il90b2tlbiI7czo0MDoiNGRMSnVJVDA5c0dmR281Rm1QRzB3MlBpb21wUTRrRHVSWWlFUGk0WSI7czo5OiJfcHJldmlvdXMiO2E6MTp7czozOiJ1cmwiO3M6NTI6Imh0dHA6Ly93d3cuZmFjaWxpdGllcy5sb2NhbC1nb3Zlcm5tZW50LXVuaXQtMS1waC5jb20iO31zOjY6Il9mbGFzaCI7YToyOntzOjM6Im9sZCI7YTowOnt9czozOiJuZXciO2E6MDp7fX19', 1770894756),
-('GrlOLJLIvKCmwRTDHGUcwGrF8YGovjLvLzAhs5hJ', NULL, '34.79.85.26', 'Mozilla/5.0 (compatible; CMS-Checker/1.0; +https://example.com)', 'YTozOntzOjY6Il90b2tlbiI7czo0MDoiMnRUOFdlTkwwSXVNVGRodTBCUmVndjk3ejZFV0dKQUhpNFZ5WGV2aSI7czo5OiJfcHJldmlvdXMiO2E6MTp7czozOiJ1cmwiO3M6NDg6Imh0dHA6Ly9mYWNpbGl0aWVzLmxvY2FsLWdvdmVybm1lbnQtdW5pdC0xLXBoLmNvbSI7fXM6NjoiX2ZsYXNoIjthOjI6e3M6Mzoib2xkIjthOjA6e31zOjM6Im5ldyI7YTowOnt9fX0=', 1770892954),
-('JLKfJ59FsueeZRzyPrkEq1oyJ5sXTmhbI7ikfBqJ', NULL, '136.158.39.65', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', 'YTo4OntzOjY6Il90b2tlbiI7czo0MDoiVFliWGNTeWQzZlRtSHJGa0NMRFlaS05lYU9weXFjMFRqWHpMUUpmZiI7czo2OiJfZmxhc2giO2E6Mjp7czozOiJvbGQiO2E6MDp7fXM6MzoibmV3IjthOjA6e319czo5OiJfcHJldmlvdXMiO2E6MTp7czozOiJ1cmwiO3M6NzA6Imh0dHBzOi8vZmFjaWxpdGllcy5sb2NhbC1nb3Zlcm5tZW50LXVuaXQtMS1waC5jb20vbm90aWZpY2F0aW9ucy91bnJlYWQiO31zOjc6InVzZXJfaWQiO2k6MjtzOjEwOiJ1c2VyX2VtYWlsIjtzOjMzOiJsbGFuZXRhY3Jpc3RpYW5wYXN0b3JpbEBnbWFpbC5jb20iO3M6OToidXNlcl9uYW1lIjtzOjI1OiJMbGFuZXRhIENyaXN0aWFuIFBhc3RvcmlsIjtzOjk6InVzZXJfcm9sZSI7czo1OiJBZG1pbiI7czoxMzoibGFzdF9hY3Rpdml0eSI7aToxNzcwODk2MDg2O30=', 1770896220);
+('hazxpWM3T5nCqhrFUnJYqnzU3a0vdLcwI35RiT4D', NULL, '136.158.39.65', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', 'YTo4OntzOjY6Il90b2tlbiI7czo0MDoicEtaak1Tcm5WdXJ1bllyVGJsSGtiZ3hXUjJscnV5UmFwTFhzOE03TiI7czo2OiJfZmxhc2giO2E6Mjp7czozOiJuZXciO2E6MDp7fXM6Mzoib2xkIjthOjA6e319czo5OiJfcHJldmlvdXMiO2E6MTp7czozOiJ1cmwiO3M6NzA6Imh0dHBzOi8vZmFjaWxpdGllcy5sb2NhbC1nb3Zlcm5tZW50LXVuaXQtMS1waC5jb20vbm90aWZpY2F0aW9ucy91bnJlYWQiO31zOjc6InVzZXJfaWQiO2k6MjtzOjEwOiJ1c2VyX2VtYWlsIjtzOjMzOiJsbGFuZXRhY3Jpc3RpYW5wYXN0b3JpbEBnbWFpbC5jb20iO3M6OToidXNlcl9uYW1lIjtzOjI1OiJMbGFuZXRhIENyaXN0aWFuIFBhc3RvcmlsIjtzOjk6InVzZXJfcm9sZSI7czo1OiJBZG1pbiI7czoxMzoibGFzdF9hY3Rpdml0eSI7aToxNzcwOTE0MjAzO30=', 1770914650),
+('oOIwjbFjNP5Ik5uPXcbOMT39HFvfGHW9tYZuznG2', NULL, '180.190.164.72', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', 'YTozOntzOjY6Il90b2tlbiI7czo0MDoicXR1SVk4cWY1Nk9iVk83Q2VUbUM0RkhKbEgwY0VuMGhwUVoyOENmRCI7czo5OiJfcHJldmlvdXMiO2E6MTp7czozOiJ1cmwiO3M6NDk6Imh0dHBzOi8vZmFjaWxpdGllcy5sb2NhbC1nb3Zlcm5tZW50LXVuaXQtMS1waC5jb20iO31zOjY6Il9mbGFzaCI7YToyOntzOjM6Im9sZCI7YTowOnt9czozOiJuZXciO2E6MDp7fX19', 1770913260);
 
 -- --------------------------------------------------------
 
@@ -2635,7 +2686,8 @@ INSERT INTO `user_otps` (`id`, `user_id`, `otp_code`, `expires_at`, `used`, `cre
 (355, '2', '337661', '2026-02-12 04:08:07', 1, '2026-02-12 04:07:07'),
 (356, '5', '579252', '2026-02-12 07:06:21', 1, '2026-02-12 07:05:21'),
 (357, '3', '693256', '2026-02-12 07:08:56', 1, '2026-02-12 07:07:56'),
-(358, '2', '817385', '2026-02-12 11:14:49', 1, '2026-02-12 11:13:49');
+(358, '2', '817385', '2026-02-12 11:14:49', 1, '2026-02-12 11:13:49'),
+(359, '2', '860444', '2026-02-12 15:03:03', 1, '2026-02-12 15:02:03');
 
 -- --------------------------------------------------------
 
@@ -2757,7 +2809,8 @@ INSERT INTO `user_sessions` (`id`, `user_id`, `session_id`, `device_name`, `ip_a
 (148, 2, '0eVra9Hqz4zDxZd3PWbvGExzgBmYaOcwuYZMG5kl', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 Edg/144.0.0.0', '136.158.39.65', 'Philippines', 'Quezon City', '2026-02-12 04:07:56', '2026-02-12 04:07:56', '2026-02-12 04:09:56', 1, '2026-02-12 04:07:56', '2026-02-12 04:07:56', NULL, NULL),
 (149, 5, 'ptmqlJ8RZGcXgdzoGGYYEhIQBQWNDFcjoYSi86La', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '136.158.39.65', 'Philippines', 'Quezon City', '2026-02-12 07:05:34', '2026-02-12 07:05:34', '2026-02-12 07:07:34', 1, '2026-02-12 07:05:34', '2026-02-12 07:05:34', NULL, NULL),
 (150, 3, '1lb59LWX3vRE3itGUekUb1IrWARxDw6rqTd7DmdO', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 Edg/144.0.0.0', '89.111.30.251', 'Latvia', 'Riga', '2026-02-12 07:08:12', '2026-02-12 07:08:12', '2026-02-12 07:10:12', 1, '2026-02-12 07:08:12', '2026-02-12 07:08:12', NULL, NULL),
-(151, 2, 'JLKfJ59FsueeZRzyPrkEq1oyJ5sXTmhbI7ikfBqJ', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '136.158.39.65', 'Philippines', 'Quezon City', '2026-02-12 11:14:25', '2026-02-12 11:14:25', '2026-02-12 11:16:25', 1, '2026-02-12 11:14:25', '2026-02-12 11:14:25', NULL, NULL);
+(151, 2, 'JLKfJ59FsueeZRzyPrkEq1oyJ5sXTmhbI7ikfBqJ', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '136.158.39.65', 'Philippines', 'Quezon City', '2026-02-12 11:14:25', '2026-02-12 11:14:25', '2026-02-12 11:16:25', 1, '2026-02-12 11:14:25', '2026-02-12 11:14:25', NULL, NULL),
+(152, 2, 'hazxpWM3T5nCqhrFUnJYqnzU3a0vdLcwI35RiT4D', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36', '136.158.39.57', 'Philippines', 'Quezon City', '2026-02-12 15:02:25', '2026-02-12 15:02:25', '2026-02-12 15:04:25', 1, '2026-02-12 15:02:25', '2026-02-12 15:02:25', NULL, NULL);
 
 --
 -- Indexes for dumped tables
@@ -2850,6 +2903,15 @@ ALTER TABLE `contact_inquiries`
 ALTER TABLE `districts`
   ADD PRIMARY KEY (`id`),
   ADD KEY `districts_city_id_foreign` (`city_id`);
+
+--
+-- Indexes for table `energy_facility_requests`
+--
+ALTER TABLE `energy_facility_requests`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `status` (`status`),
+  ADD KEY `preferred_date` (`preferred_date`),
+  ADD KEY `seminar_id` (`seminar_id`);
 
 --
 -- Indexes for table `events`
@@ -3132,6 +3194,12 @@ ALTER TABLE `districts`
   MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=35;
 
 --
+-- AUTO_INCREMENT for table `energy_facility_requests`
+--
+ALTER TABLE `energy_facility_requests`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `events`
 --
 ALTER TABLE `events`
@@ -3183,7 +3251,7 @@ ALTER TABLE `locations`
 -- AUTO_INCREMENT for table `login_history`
 --
 ALTER TABLE `login_history`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=153;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=154;
 
 --
 -- AUTO_INCREMENT for table `message_templates`
@@ -3279,13 +3347,13 @@ ALTER TABLE `user_favorites`
 -- AUTO_INCREMENT for table `user_otps`
 --
 ALTER TABLE `user_otps`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=359;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=360;
 
 --
 -- AUTO_INCREMENT for table `user_sessions`
 --
 ALTER TABLE `user_sessions`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=152;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=153;
 
 --
 -- Constraints for dumped tables

@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost
--- Generation Time: Feb 12, 2026 at 11:37 AM
+-- Generation Time: Feb 12, 2026 at 04:44 PM
 -- Server version: 10.11.14-MariaDB-ubu2204
 -- PHP Version: 8.0.30
 
@@ -458,7 +458,10 @@ INSERT INTO `citizen_road_requests` (`id`, `user_id`, `external_request_id`, `ev
 (3, 2, NULL, 'traffic_management', '2026-03-03 11:00:00', '2026-03-03 17:00:00', 'South Caloocan City', NULL, 'Road assistance needed for facility booking at Buena Park. Expected attendees: 50. Purpose: Beneficiary Orientation - Test Batch - Test request from Housing and Resettlement Management', 32, 'pending_sync', 'Failed to sync with external system. Will retry later.', '2026-02-03 16:42:49', '2026-02-03 16:42:49'),
 (4, 2, NULL, 'traffic_management', '2026-03-03 11:00:00', '2026-03-03 17:00:00', 'South Caloocan City', NULL, 'Road assistance needed for facility booking at Buena Park. Expected attendees: 50. Purpose: Beneficiary Orientation - Test Batch - Test request from Housing and Resettlement Management', 32, 'pending_sync', 'Failed to sync with external system. Will retry later.', '2026-02-03 16:44:37', '2026-02-03 16:44:37'),
 (5, 2, NULL, 'traffic_management', '2026-03-03 11:00:00', '2026-03-03 17:00:00', 'South Caloocan City', NULL, 'Road assistance needed for facility booking at Buena Park. Expected attendees: 50. Purpose: Beneficiary Orientation - Test Batch - Test request from Housing and Resettlement Management', 32, 'pending_sync', 'Failed to sync with external system. Will retry later.', '2026-02-03 16:51:35', '2026-02-03 16:51:35'),
-(6, 2, NULL, 'traffic_management', '2026-02-05 08:00:00', '2026-02-05 11:00:00', 'South Caloocan City', NULL, 'Road assistance needed for facility booking at Sports Complex. Expected attendees: 50. Purpose: Birthday Celebration', 25, 'pending_sync', 'Failed to sync with external system. Will retry later.', '2026-02-04 09:09:16', '2026-02-04 09:09:16');
+(6, 2, NULL, 'traffic_management', '2026-02-05 08:00:00', '2026-02-05 11:00:00', 'South Caloocan City', NULL, 'Road assistance needed for facility booking at Sports Complex. Expected attendees: 50. Purpose: Birthday Celebration', 25, 'pending_sync', 'Failed to sync with external system. Will retry later.', '2026-02-04 09:09:16', '2026-02-04 09:09:16'),
+(7, 2, NULL, 'traffic_management', '2026-02-14 08:00:00', '2026-02-14 11:00:00', 'South Caloocan City', NULL, 'Road assistance needed for facility booking at Bulwagan Katipunan. Expected attendees: 100. Purpose: Birthday Celebration', 37, 'pending_sync', 'Failed to sync with external system. Will retry later.', '2026-02-12 16:21:53', '2026-02-12 16:21:53'),
+(8, 2, NULL, 'traffic_management', '2026-02-14 08:00:00', '2026-02-14 11:00:00', 'South Caloocan City', NULL, 'Road assistance needed for facility booking at Bulwagan Katipunan. Expected attendees: 100. Purpose: Birthday Celebration', 37, 'pending_sync', 'Failed to sync with external system. Will retry later.', '2026-02-12 16:24:01', '2026-02-12 16:24:01'),
+(9, 2, NULL, 'traffic_management', '2026-02-14 08:00:00', '2026-02-14 11:00:00', 'South Caloocan City', NULL, 'Road assistance needed for facility booking at Bulwagan Katipunan. Expected attendees: 100. Purpose: Birthday Celebration', 37, 'pending_sync', 'Failed to sync with external system. Will retry later.', '2026-02-12 16:36:38', '2026-02-12 16:36:38');
 
 -- --------------------------------------------------------
 
@@ -500,16 +503,23 @@ INSERT INTO `city_events` (`id`, `facility_id`, `start_time`, `end_time`, `event
 CREATE TABLE `community_maintenance_requests` (
   `id` bigint(20) UNSIGNED NOT NULL,
   `external_report_id` bigint(20) UNSIGNED DEFAULT NULL,
+  `external_request_id` bigint(20) UNSIGNED DEFAULT NULL,
+  `category` varchar(255) DEFAULT NULL,
+  `issue_type` varchar(255) DEFAULT NULL,
   `facility_id` bigint(20) UNSIGNED NOT NULL,
   `facility_name` varchar(255) NOT NULL,
   `resident_name` varchar(255) NOT NULL,
   `contact_info` varchar(255) NOT NULL,
   `subject` varchar(500) NOT NULL,
   `description` text NOT NULL,
+  `location` varchar(500) DEFAULT NULL,
+  `reporter_name` varchar(255) DEFAULT NULL,
+  `reporter_contact` varchar(255) DEFAULT NULL,
+  `photo_path` varchar(255) DEFAULT NULL,
   `unit_number` varchar(255) DEFAULT NULL,
   `report_type` enum('maintenance','complaint','suggestion','emergency') DEFAULT 'maintenance',
-  `priority` enum('low','medium','high','urgent') DEFAULT 'medium',
-  `status` enum('submitted','reviewed','in_progress','resolved','closed') DEFAULT 'submitted',
+  `priority` varchar(50) DEFAULT 'medium',
+  `status` varchar(50) DEFAULT 'Pending',
   `submitted_by_user_id` bigint(20) UNSIGNED DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL
@@ -519,9 +529,10 @@ CREATE TABLE `community_maintenance_requests` (
 -- Dumping data for table `community_maintenance_requests`
 --
 
-INSERT INTO `community_maintenance_requests` (`id`, `external_report_id`, `facility_id`, `facility_name`, `resident_name`, `contact_info`, `subject`, `description`, `unit_number`, `report_type`, `priority`, `status`, `submitted_by_user_id`, `created_at`, `updated_at`) VALUES
-(1, 5, 16, 'M.I.C.E. Breakout Room 1', 'Llaneta Cristian Pastoril', '09123456789', 'hrtjrhr', 'dxhzhsdh', 'M.I.C.E. Breakout Room 1, Quezon City M.I.C.E. Center, Floor 1, Quezon City, Metro Manila', 'maintenance', 'medium', 'submitted', 2, '2026-01-29 15:34:38', '2026-01-29 15:34:38'),
-(2, 6, 11, 'Buena Park', 'Llaneta Cristian Pastoril', '09123456789', 'qwertyuiop', 'qwertyuiop', 'Buena Park, South Caloocan City, Metro Manila', 'maintenance', 'medium', 'submitted', 2, '2026-02-03 13:14:20', '2026-02-03 13:14:41');
+INSERT INTO `community_maintenance_requests` (`id`, `external_report_id`, `external_request_id`, `category`, `issue_type`, `facility_id`, `facility_name`, `resident_name`, `contact_info`, `subject`, `description`, `location`, `reporter_name`, `reporter_contact`, `photo_path`, `unit_number`, `report_type`, `priority`, `status`, `submitted_by_user_id`, `created_at`, `updated_at`) VALUES
+(1, 5, NULL, NULL, NULL, 16, 'M.I.C.E. Breakout Room 1', 'Llaneta Cristian Pastoril', '09123456789', 'hrtjrhr', 'dxhzhsdh', NULL, NULL, NULL, NULL, 'M.I.C.E. Breakout Room 1, Quezon City M.I.C.E. Center, Floor 1, Quezon City, Metro Manila', 'maintenance', 'medium', 'Pending', 2, '2026-01-29 15:34:38', '2026-01-29 15:34:38'),
+(2, 6, NULL, NULL, NULL, 11, 'Buena Park', 'Llaneta Cristian Pastoril', '09123456789', 'qwertyuiop', 'qwertyuiop', NULL, NULL, NULL, NULL, 'Buena Park, South Caloocan City, Metro Manila', 'maintenance', 'medium', 'Pending', 2, '2026-02-03 13:14:20', '2026-02-03 13:14:41'),
+(3, 2, 2, 'Facilities', 'Structural Damage', 11, 'Buena Park', 'Llaneta Cristian Pastoril', '09123456789', 'Structural Damage - Facilities', 'May crack ang sahig ng facility na ito.', 'Buena Park, South Caloocan City, Metro Manila', 'Llaneta Cristian Pastoril', '09123456789', NULL, 'Buena Park, South Caloocan City, Metro Manila', 'maintenance', 'medium', 'Pending', 2, '2026-02-12 12:05:59', '2026-02-12 12:51:02');
 
 -- --------------------------------------------------------
 
@@ -1391,7 +1402,9 @@ ALTER TABLE `community_maintenance_requests`
   ADD KEY `idx_external_report_id` (`external_report_id`),
   ADD KEY `idx_facility_id` (`facility_id`),
   ADD KEY `idx_resident_name` (`resident_name`),
-  ADD KEY `idx_status` (`status`);
+  ADD KEY `idx_status` (`status`),
+  ADD KEY `community_maintenance_requests_category_index` (`category`),
+  ADD KEY `community_maintenance_requests_external_request_id_index` (`external_request_id`);
 
 --
 -- Indexes for table `energy_reports_received`
@@ -1645,7 +1658,7 @@ ALTER TABLE `citizen_program_registrations`
 -- AUTO_INCREMENT for table `citizen_road_requests`
 --
 ALTER TABLE `citizen_road_requests`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- AUTO_INCREMENT for table `city_events`
@@ -1657,7 +1670,7 @@ ALTER TABLE `city_events`
 -- AUTO_INCREMENT for table `community_maintenance_requests`
 --
 ALTER TABLE `community_maintenance_requests`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `energy_reports_received`
