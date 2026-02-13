@@ -202,7 +202,7 @@ class EnergyFacilityRequestController extends Controller
 
             $response = Http::timeout($timeout)
                 ->asForm()
-                ->post("{$apiUrl}/facility_request_response.php", $payload);
+                ->post("{$apiUrl}/request_fund.php", $payload);
 
             if ($response->successful()) {
                 Log::info('Energy Efficiency facility request notification sent', [
