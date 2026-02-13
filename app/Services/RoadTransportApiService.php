@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Log;
 class RoadTransportApiService
 {
     protected string $apiUrl;
+    protected int $systemUserId;
     protected int $timeout;
 
     /**
@@ -26,6 +27,7 @@ class RoadTransportApiService
     public function __construct()
     {
         $this->apiUrl = config('services.road_transport.api_url');
+        $this->systemUserId = (int) config('services.road_transport.system_user_id', 35);
         $this->timeout = config('services.road_transport.timeout', 30);
     }
 
@@ -45,7 +47,7 @@ class RoadTransportApiService
             $eventType = $this->eventTypeLabels[$data['event_type']] ?? $data['event_type'];
 
             $payload = [
-                'user_id'     => $data['user_id'],
+                'user_id'     => $this->systemUserId,
                 'system_name' => 'Public Facility Reservation System',
                 'event_type'  => $eventType,
                 'start_date'  => $data['start_date'],

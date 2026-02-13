@@ -63,6 +63,7 @@ return [
     'road_transport' => [
         'base_url' => env('ROAD_TRANSPORT_BASE_URL', 'https://lucia-road-trans.local-government-unit-1-ph.com'),
         'api_url' => env('ROAD_TRANSPORT_API_URL', 'https://lucia-road-trans.local-government-unit-1-ph.com/api/integrations/EventRequest.php'),
+        'system_user_id' => env('ROAD_TRANSPORT_SYSTEM_USER_ID', 35),
         'timeout' => env('ROAD_TRANSPORT_TIMEOUT', 30),
     ],
 
