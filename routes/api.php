@@ -396,3 +396,17 @@ Route::post('/paymongo/webhook', [\App\Http\Controllers\Api\PayMongoWebhookContr
 */
 Route::post('/road-transport/webhook', [\App\Http\Controllers\Api\RoadTransportWebhookController::class, 'handle'])
     ->name('road-transport.webhook');
+
+/*
+|--------------------------------------------------------------------------
+| Database Sync API
+|--------------------------------------------------------------------------
+| Bidirectional sync endpoint used by the SyncDataToCloud job.
+| Localhost pushes local changes to the cloud and pulls cloud changes.
+| Secured via X-Sync-Key header (must match SYNC_API_KEY in .env).
+|
+| POST /api/sync-data  { action: "upload",   table: "...", data: [...] }
+| GET  /api/sync-data  ?action=download&table=...
+*/
+Route::match(['get', 'post'], '/sync-data', [\App\Http\Controllers\Api\SyncDataController::class, 'handle'])
+    ->name('sync-data');
