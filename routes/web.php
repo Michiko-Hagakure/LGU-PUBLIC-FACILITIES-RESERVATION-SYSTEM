@@ -2161,3 +2161,23 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::post('/road-assistance/sync-statuses', [\App\Http\Controllers\Admin\RoadAssistanceController::class, 'syncStatuses'])
         ->name('road-assistance.sync-statuses');
 });
+
+/*
+|--------------------------------------------------------------------------
+| Utility Billing & Management - Water Connection Requests
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/water-connection', [\App\Http\Controllers\Admin\WaterConnectionController::class, 'index'])
+        ->name('water-connection.index');
+    Route::get('/water-connection/create', [\App\Http\Controllers\Admin\WaterConnectionController::class, 'create'])
+        ->name('water-connection.create');
+    Route::post('/water-connection', [\App\Http\Controllers\Admin\WaterConnectionController::class, 'store'])
+        ->name('water-connection.store');
+    Route::get('/water-connection/json', [\App\Http\Controllers\Admin\WaterConnectionController::class, 'getRequestsJson'])
+        ->name('water-connection.json');
+    Route::post('/water-connection/sync-statuses', [\App\Http\Controllers\Admin\WaterConnectionController::class, 'syncStatuses'])
+        ->name('water-connection.sync-statuses');
+    Route::post('/water-connection/retry-sync', [\App\Http\Controllers\Admin\WaterConnectionController::class, 'retrySync'])
+        ->name('water-connection.retry-sync');
+});

@@ -67,6 +67,13 @@ return [
         'timeout' => env('ROAD_TRANSPORT_TIMEOUT', 30),
     ],
 
+    'utility_billing' => [
+        'base_url' => env('UTILITY_BILLING_URL', 'https://utility.local-government-unit-1-ph.com'),
+        'partner_id' => env('UTILITY_BILLING_PARTNER_ID', 'PFRS001'),
+        'system_user_id' => env('UTILITY_BILLING_USER_ID', 35),
+        'timeout' => env('UTILITY_BILLING_TIMEOUT', 30),
+    ],
+
     'google' => [
         'client_id' => env('GOOGLE_CLIENT_ID'),
         'client_secret' => env('GOOGLE_CLIENT_SECRET'),
