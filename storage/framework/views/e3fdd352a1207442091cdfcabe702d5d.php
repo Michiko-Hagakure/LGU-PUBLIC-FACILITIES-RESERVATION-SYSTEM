@@ -1040,6 +1040,31 @@
             },
             
             async checkMobileAndProceed() {
+                // Age validation - must be at least 18 years old
+                const birthdateInput = document.getElementById('birthdate');
+                if (birthdateInput && birthdateInput.value) {
+                    const birthDate = new Date(birthdateInput.value);
+                    const today = new Date();
+                    let age = today.getFullYear() - birthDate.getFullYear();
+                    const monthDiff = today.getMonth() - birthDate.getMonth();
+                    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+                        age--;
+                    }
+                    if (age < 18) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Age Requirement Not Met',
+                            html: `<p>You must be at least <strong>18 years old</strong> to register for LGU1 services.</p><p>Your current age based on the birthdate provided is <strong>${age} years old</strong>.</p><p>If you believe this is an error, please verify your birthdate.</p>`,
+                            confirmButtonColor: '#00473e'
+                        });
+                        birthdateInput.classList.add('is-invalid');
+                        birthdateInput.focus();
+                        return;
+                    } else {
+                        birthdateInput.classList.remove('is-invalid');
+                    }
+                }
+
                 const mobileInput = document.getElementById('mobile_number');
                 const mobile = mobileInput.value.trim();
                 const mobileError = document.getElementById('mobileError');
