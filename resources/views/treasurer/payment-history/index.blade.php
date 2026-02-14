@@ -8,7 +8,7 @@
 <div class="space-y-gr-lg">
     
     <!-- Statistics Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-gr-md">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-gr-md">
         <!-- Total Verified Payments -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-gr-md hover:shadow-md transition-shadow">
             <div class="flex items-center justify-between">
@@ -60,6 +60,19 @@
                 </div>
             </div>
         </div>
+
+        <!-- Expired Slips -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-gr-md hover:shadow-md transition-shadow">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-caption text-gray-500 font-medium mb-gr-xs">Expired</p>
+                    <h3 class="text-h3 font-bold text-gray-500">{{ number_format($stats['total_expired'] ?? 0) }}</h3>
+                </div>
+                <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
+                    <i data-lucide="clock" class="w-6 h-6 text-gray-500"></i>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Filters and Search -->
@@ -80,6 +93,18 @@
                     <i data-lucide="search" class="w-5 h-5 text-gray-400 absolute left-3 top-[42px] transform pointer-events-none"></i>
                 </div>
 
+                <!-- Status Filter -->
+                <div>
+                    <label for="slip_status" class="block text-caption font-semibold text-gray-700 mb-gr-xs">Status</label>
+                    <select name="slip_status" id="slip_status" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-lgu-button focus:border-transparent text-body">
+                        <option value="all" {{ request('slip_status') === 'all' ? 'selected' : '' }}>All Statuses</option>
+                        <option value="paid" {{ request('slip_status') === 'paid' ? 'selected' : '' }}>Paid</option>
+                        <option value="expired" {{ request('slip_status') === 'expired' ? 'selected' : '' }}>Expired</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-gr-md">
                 <!-- Payment Method Filter -->
                 <div>
                     <label for="payment_method" class="block text-caption font-semibold text-gray-700 mb-gr-xs">Payment Method</label>
@@ -134,20 +159,21 @@
     <!-- Payment History Table -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div class="p-gr-md border-b border-gray-200">
-            <h2 class="text-h3 font-bold text-lgu-headline">Verified Payments</h2>
-            <p class="text-small text-gray-600 mt-gr-xs">Complete history of all verified and paid reservations</p>
+            <h2 class="text-h3 font-bold text-lgu-headline">Payment History</h2>
+            <p class="text-small text-gray-600 mt-gr-xs">Complete history of all verified, paid, and expired payment slips</p>
         </div>
 
         @if($paymentSlips->count() > 0)
         <table class="w-full table-fixed divide-y divide-gray-200">
             <colgroup>
                 <col style="width: 10%;"> <!-- Slip # -->
-                <col style="width: 10%;"> <!-- OR # -->
-                <col style="width: 22%;"> <!-- Citizen -->
-                <col style="width: 13%;"> <!-- Facility -->
-                <col style="width: 11%;"> <!-- Amount -->
+                <col style="width: 8%;"> <!-- OR # -->
+                <col style="width: 19%;"> <!-- Citizen -->
+                <col style="width: 12%;"> <!-- Facility -->
+                <col style="width: 10%;"> <!-- Amount -->
+                <col style="width: 8%;"> <!-- Status -->
                 <col style="width: 9%;"> <!-- Method -->
-                <col style="width: 13%;"> <!-- Paid Date -->
+                <col style="width: 12%;"> <!-- Date -->
                 <col style="width: 6%;"> <!-- Actions -->
             </colgroup>
             <thead class="bg-gray-50">
@@ -157,6 +183,7 @@
                     <th class="px-2 py-2.5 text-left text-xs font-bold text-gray-600 uppercase">Citizen</th>
                     <th class="px-2 py-2.5 text-left text-xs font-bold text-gray-600 uppercase">Facility</th>
                     <th class="px-2 py-2.5 text-left text-xs font-bold text-gray-600 uppercase">Amount</th>
+                    <th class="px-2 py-2.5 text-left text-xs font-bold text-gray-600 uppercase">Status</th>
                     <th class="px-2 py-2.5 text-left text-xs font-bold text-gray-600 uppercase">Method</th>
                     <th class="px-2 py-2.5 text-left text-xs font-bold text-gray-600 uppercase">Date</th>
                     <th class="px-2 py-2.5 text-center text-xs font-bold text-gray-600 uppercase">Action</th>
@@ -164,13 +191,15 @@
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
                 @foreach($paymentSlips as $slip)
-                <tr class="hover:bg-gray-50 transition-colors">
+                <tr class="hover:bg-gray-50 transition-colors {{ $slip->status === 'expired' ? 'bg-gray-50 opacity-75' : '' }}">
                     <td class="px-2 py-2.5 whitespace-nowrap overflow-hidden">
-                        <span class="text-xs font-bold text-lgu-button truncate block">{{ $slip->slip_number }}</span>
+                        <span class="text-xs font-bold {{ $slip->status === 'expired' ? 'text-gray-400' : 'text-lgu-button' }} truncate block">{{ $slip->slip_number }}</span>
                     </td>
                     <td class="px-2 py-2.5 whitespace-nowrap overflow-hidden">
                         @if($slip->or_number)
                             <span class="text-xs font-semibold text-green-600 truncate block">{{ $slip->or_number }}</span>
+                        @elseif($slip->status === 'expired')
+                            <span class="text-xs text-gray-400">—</span>
                         @else
                             <span class="text-xs text-gray-400">Pending</span>
                         @endif
@@ -184,6 +213,13 @@
                     </td>
                     <td class="px-2 py-2.5 whitespace-nowrap overflow-hidden">
                         <span class="text-xs font-bold text-lgu-headline truncate block">₱{{ number_format($slip->amount_due, 2) }}</span>
+                    </td>
+                    <td class="px-2 py-2.5 whitespace-nowrap overflow-hidden">
+                        @if($slip->status === 'paid')
+                            <span class="inline-block px-1.5 py-0.5 rounded text-xs font-bold bg-green-100 text-green-800">Paid</span>
+                        @elseif($slip->status === 'expired')
+                            <span class="inline-block px-1.5 py-0.5 rounded text-xs font-bold bg-gray-100 text-gray-600">Expired</span>
+                        @endif
                     </td>
                     <td class="px-2 py-2.5 whitespace-nowrap overflow-hidden">
                         @php
@@ -212,8 +248,14 @@
                         </div>
                     </td>
                     <td class="px-2 py-2.5 whitespace-nowrap overflow-hidden">
-                        <div class="text-xs text-gray-900 truncate">{{ \Carbon\Carbon::parse($slip->paid_at)->format('M d, Y') }}</div>
-                        <div class="text-xs text-gray-500 truncate">{{ \Carbon\Carbon::parse($slip->paid_at)->format('h:i A') }}</div>
+                        @if($slip->paid_at)
+                            <div class="text-xs text-gray-900 truncate">{{ \Carbon\Carbon::parse($slip->paid_at)->format('M d, Y') }}</div>
+                            <div class="text-xs text-gray-500 truncate">{{ \Carbon\Carbon::parse($slip->paid_at)->format('h:i A') }}</div>
+                        @elseif($slip->status === 'expired')
+                            <div class="text-xs text-gray-400 truncate">Never paid</div>
+                        @else
+                            <div class="text-xs text-gray-400 truncate">—</div>
+                        @endif
                     </td>
                     <td class="px-2 py-2.5 whitespace-nowrap text-center">
                         <a href="{{ URL::signedRoute('treasurer.payment-slips.show', $slip->id) }}" class="inline-flex items-center justify-center text-lgu-button hover:text-lgu-highlight transition-colors" title="View Details">

@@ -418,7 +418,12 @@ class PaymentVerificationController extends Controller
                     'bookings.end_time',
                     'facilities.name as facility_name'
                 )
-                ->where('payment_slips.status', 'paid'); // Only verified payments
+                ->whereIn('payment_slips.status', ['paid', 'expired']);
+            
+            // Filter by slip status (paid or expired)
+            if ($request->filled('slip_status') && $request->slip_status !== 'all') {
+                $query->where('payment_slips.status', $request->slip_status);
+            }
             
             // Search functionality
             if ($request->filled('search')) {
@@ -444,8 +449,8 @@ class PaymentVerificationController extends Controller
                 $query->whereDate('payment_slips.paid_at', '<=', $request->date_to);
             }
             
-            // Sort by payment date (most recent first)
-            $paymentSlips = $query->orderBy('payment_slips.paid_at', 'desc')->paginate(15);
+            // Sort by payment date (most recent first), with fallback for expired slips that have no paid_at
+            $paymentSlips = $query->orderByRaw('COALESCE(payment_slips.paid_at, payment_slips.updated_at, payment_slips.created_at) DESC')->paginate(15);
             
             // Fetch user data for bookings without applicant_name
             $userIds = $paymentSlips->filter(function($slip) {
@@ -491,6 +496,14 @@ class PaymentVerificationController extends Controller
                     ->where('status', 'paid')
                     ->whereDate('paid_at', today())
                     ->sum('amount_due'),
+                'total_expired' => DB::connection('facilities_db')
+                    ->table('payment_slips')
+                    ->where('status', 'expired')
+                    ->count(),
+                'expired_amount' => DB::connection('facilities_db')
+                    ->table('payment_slips')
+                    ->where('status', 'expired')
+                    ->sum('amount_due'),
             ];
             
         } catch (\Exception $e) {
@@ -510,6 +523,8 @@ class PaymentVerificationController extends Controller
                 'total_amount' => 0,
                 'today_verified' => 0,
                 'today_amount' => 0,
+                'total_expired' => 0,
+                'expired_amount' => 0,
             ];
         }
         
