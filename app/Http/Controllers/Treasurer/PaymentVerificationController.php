@@ -100,6 +100,16 @@ class PaymentVerificationController extends Controller
                 $query->where('payment_slips.status', $status);
             }
             
+            // Exclude payment slips for bookings that are already fully paid or confirmed
+            // (cashless payments update booking but may not update the slip)
+            if ($status === 'unpaid') {
+                $query->whereNotIn('bookings.status', ['paid', 'confirmed', 'completed']);
+                $query->where(function ($q) {
+                    $q->where('bookings.amount_remaining', '>', 0)
+                      ->orWhereNull('bookings.amount_remaining');
+                });
+            }
+            
             // Search functionality
             if ($request->filled('search')) {
                 $search = $request->get('search');
@@ -168,6 +178,15 @@ class PaymentVerificationController extends Controller
         $status = $request->get('status', 'unpaid');
         if ($status !== 'all') {
             $query->where('payment_slips.status', $status);
+        }
+
+        // Exclude payment slips for bookings that are already fully paid or confirmed
+        if ($status === 'unpaid') {
+            $query->whereNotIn('bookings.status', ['paid', 'confirmed', 'completed']);
+            $query->where(function ($q) {
+                $q->where('bookings.amount_remaining', '>', 0)
+                  ->orWhereNull('bookings.amount_remaining');
+            });
         }
 
         if ($request->filled('search')) {
