@@ -46,10 +46,18 @@ class UtilityBillingApiService
 
             $url = $this->baseUrl . '/api/pfrs_clean.php';
 
+            Log::info('PFRS API: Sending request', ['url' => $url, 'payload' => $payload]);
+
             $response = Http::withoutVerifying()
                 ->timeout($this->timeout)
-                ->asJson()
+                ->asForm()
                 ->post($url, $payload);
+
+            Log::info('PFRS API: Response received', [
+                'status'       => $response->status(),
+                'content_type' => $response->header('Content-Type'),
+                'body_preview' => substr($response->body(), 0, 500),
+            ]);
 
             if ($response->successful()) {
                 $result = $response->json();
@@ -76,7 +84,7 @@ class UtilityBillingApiService
 
             Log::error('PFRS request failed', [
                 'status' => $response->status(),
-                'body'   => $response->body(),
+                'body'   => substr($response->body(), 0, 500),
             ]);
 
             return [
