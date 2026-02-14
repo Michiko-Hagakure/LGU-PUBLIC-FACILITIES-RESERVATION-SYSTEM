@@ -1035,6 +1035,16 @@ class FacilityReservationApiController extends Controller
                     'payment_method' => 'cashless',
                 ]);
 
+                // Generate Official Receipt number for the cashless payment
+                $year = now()->year;
+                $lastOR = DB::connection('facilities_db')
+                    ->table('payment_slips')
+                    ->where('or_number', 'like', "OR-{$year}-%")
+                    ->orderBy('or_number', 'desc')
+                    ->value('or_number');
+                $nextSeq = $lastOR ? str_pad(intval(substr($lastOR, -4)) + 1, 4, '0', STR_PAD_LEFT) : '0001';
+                $orNumber = "OR-{$year}-{$nextSeq}";
+
                 // Update the associated payment slip to 'paid'
                 DB::connection('facilities_db')
                     ->table('payment_slips')
@@ -1044,6 +1054,7 @@ class FacilityReservationApiController extends Controller
                         'status' => 'paid',
                         'payment_method' => 'paymongo',
                         'paid_at' => Carbon::now(),
+                        'or_number' => $orNumber,
                         'transaction_reference' => $validated['booking_reference'] . '-balance',
                         'updated_at' => Carbon::now(),
                     ]);
