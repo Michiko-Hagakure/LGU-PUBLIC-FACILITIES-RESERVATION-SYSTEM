@@ -56,10 +56,11 @@ class SyncDataToCloud implements ShouldQueue
                         ]);
 
                     Log::info("SYNC_UPLOAD_REPORT", [
-                        'table'  => $table,
-                        'status' => $response->status(),
-                        'count'  => $records->count(),
-                        'ok'     => $response->successful()
+                        'table'    => $table,
+                        'status'   => $response->status(),
+                        'count'    => $records->count(),
+                        'ok'       => $response->successful(),
+                        'response' => $response->json()
                     ]);
 
                     if ($response->successful()) {

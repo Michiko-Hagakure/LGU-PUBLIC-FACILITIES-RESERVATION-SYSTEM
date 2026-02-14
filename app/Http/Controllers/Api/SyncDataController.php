@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 
 class SyncDataController extends Controller
 {
@@ -67,9 +68,14 @@ class SyncDataController extends Controller
             return response()->json(['message' => 'No data provided'], 200);
         }
 
+        // Get valid column names for this table so we can filter out
+        // any columns the source has that this database does not.
+        $validColumns = Schema::connection($conn)->getColumnListing($table);
+
         $inserted = 0;
         $updated  = 0;
         $errors   = 0;
+        $errorDetails = [];
 
         foreach ($rows as $row) {
             try {
@@ -78,6 +84,9 @@ class SyncDataController extends Controller
                 // Mark as synced on receipt
                 $record['is_synced']       = 1;
                 $record['last_synced_at']  = now();
+
+                // Filter to only columns that exist in the target table
+                $record = array_intersect_key($record, array_flip($validColumns));
 
                 if (!isset($record[$pk])) {
                     Log::warning('SYNC_RECEIVE_PK_MISSING', [
@@ -108,8 +117,10 @@ class SyncDataController extends Controller
             } catch (\Exception $e) {
                 Log::error('SYNC_RECEIVE_ROW_ERROR', [
                     'table'   => $table,
+                    'pk'      => $record[$pk] ?? 'unknown',
                     'message' => $e->getMessage(),
                 ]);
+                $errorDetails[] = ($record[$pk] ?? '?') . ': ' . $e->getMessage();
                 $errors++;
             }
         }
@@ -122,10 +133,11 @@ class SyncDataController extends Controller
         ]);
 
         return response()->json([
-            'message'  => 'Upload processed',
-            'inserted' => $inserted,
-            'updated'  => $updated,
-            'errors'   => $errors,
+            'message'      => 'Upload processed',
+            'inserted'     => $inserted,
+            'updated'      => $updated,
+            'errors'       => $errors,
+            'error_details' => array_slice($errorDetails, 0, 5),
         ], 200);
     }
 
