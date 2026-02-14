@@ -434,9 +434,9 @@ The application is deployed on a live domain: `https://facilities.local-governme
 
 | Component | File Path |
 |-----------|-----------|
-| Apache Config | `.htaccess` |
 | Docker Config | `Dockerfile`, `docker-compose.yml` |
 | App URL Config | `config/app.php` (line 55: `'url' => env('APP_URL')`) |
+| Public Entry Point | `public/index.php` |
 
 **Tests to Perform:**
 1. Open browser → navigate to `https://facilities.local-government-unit-1-ph.com`
