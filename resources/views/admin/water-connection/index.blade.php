@@ -132,7 +132,7 @@
 
     {{-- Requests Table --}}
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div class="bg-gradient-to-r from-blue-600 to-cyan-600 px-gr-md py-gr-sm">
+        <div class="bg-lgu-headline px-gr-md py-gr-sm">
             <h3 class="text-white font-semibold flex items-center gap-2">
                 <i data-lucide="droplets" class="w-5 h-5"></i>
                 Water Connection Requests
