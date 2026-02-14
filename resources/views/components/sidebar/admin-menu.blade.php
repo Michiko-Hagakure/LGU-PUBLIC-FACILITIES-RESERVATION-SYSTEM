@@ -184,12 +184,6 @@
                 <span>Facility Requests</span>
             </a>
         </li>
-        <li>
-            <a href="{{ URL::signedRoute('admin.fund-requests.index') }}" class="sidebar-link flex items-center px-gr-sm py-gr-xs text-small font-medium rounded-lg transition-colors duration-200 {{ request()->routeIs('admin.fund-requests.*') ? 'active' : '' }}">
-                <i data-lucide="banknote" class="w-5 h-5 mr-gr-xs flex-shrink-0"></i>
-                <span>Fund Requests</span>
-            </a>
-        </li>
     </ul>
 </div>
 
