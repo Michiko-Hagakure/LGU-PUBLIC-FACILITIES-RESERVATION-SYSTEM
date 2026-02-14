@@ -25,6 +25,7 @@ class SyncDataToCloud implements ShouldQueue
             ['table' => 'payment_slips', 'connection' => 'facilities_db', 'pk' => 'id'],
             ['table' => 'announcements', 'connection' => 'facilities_db', 'pk' => 'id'],
             ['table' => 'facilities', 'connection' => 'facilities_db', 'pk' => 'facility_id'],
+            ['table' => 'water_connection_requests', 'connection' => 'facilities_db', 'pk' => 'id'],
         ];
 
         foreach ($syncConfigs as $config) {
