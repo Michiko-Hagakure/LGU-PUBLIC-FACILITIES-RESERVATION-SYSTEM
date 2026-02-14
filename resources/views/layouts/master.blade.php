@@ -27,13 +27,13 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     
     <!-- Alpine.js -->
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/alpinejs/3.14.3/cdn.min.js"></script>
     
     <!-- ApexCharts for dashboard graphs (per ARCHITECTURE.md) -->
-    <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.45.0/dist/apexcharts.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.45.0/apexcharts.min.js"></script>
     
     <!-- SweetAlert2 -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.14.5/sweetalert2.all.min.js"></script>
     
     <!-- Lucide Icons (PROJECT_DESIGN_RULES.md requirement) -->
     <script src="https://unpkg.com/lucide@latest"></script>

@@ -4,7 +4,7 @@
 @section('page-subtitle', 'Manage fund requests from Energy Efficiency and Conservation Management')
 
 @push('styles')
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.14.5/sweetalert2.min.css">
 <style>
     .logistics-modal {
         transition: all 0.3s ease;
@@ -242,7 +242,7 @@
 </form>
 
 @push('scripts')
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.14.5/sweetalert2.all.min.js"></script>
 <script>
     // Store request data for modal
     const requestsData = @json($requests->keyBy('id'));

@@ -4,7 +4,7 @@
 @section('page-subtitle', 'Facility requests from Housing and Resettlement Management for beneficiary orientations')
 
 @push('styles')
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.14.5/sweetalert2.min.css">
 <style>
     .status-badge {
         font-size: 0.65rem;
@@ -144,7 +144,7 @@
 @endsection
 
 @push('scripts')
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.14.5/sweetalert2.all.min.js"></script>
 <script>
 const csrfToken = '{{ csrf_token() }}';
 let lastCount = {{ $stats['total'] }};

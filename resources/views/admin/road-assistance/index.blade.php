@@ -4,7 +4,7 @@
 @section('page-subtitle', 'Manage road assistance requests from Road and Transportation Infrastructure Monitoring')
 
 @push('styles')
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.14.5/sweetalert2.min.css">
 <style>
     .swal2-popup {
         font-family: inherit;
@@ -424,7 +424,7 @@
 @endsection
 
 @push('scripts')
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.14.5/sweetalert2.all.min.js"></script>
 <script>
     const requestsData = @json($requests->keyBy('id'));
     const assistanceTypesData = @json($assistanceTypes);

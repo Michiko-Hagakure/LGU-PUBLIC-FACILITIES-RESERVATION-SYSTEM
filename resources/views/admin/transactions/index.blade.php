@@ -226,7 +226,7 @@
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tensorflow/4.11.0/tf.min.js"></script>
 <script>
     async function runAIAudit() {
         console.log("[AI Audit] Initializing Strict Security Model...");
