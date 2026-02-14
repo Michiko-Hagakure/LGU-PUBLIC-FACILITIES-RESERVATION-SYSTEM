@@ -103,14 +103,9 @@ class PaymentVerificationController extends Controller
                 $query->where('payment_slips.status', $status);
             }
             
-            // Exclude payment slips for bookings that are already fully paid or confirmed
-            // (cashless payments update booking but may not update the slip)
+            // Exclude payment slips for bookings that are already fully paid, confirmed, expired, or cancelled
             if ($status === 'unpaid') {
-                $query->whereNotIn('bookings.status', ['paid', 'confirmed', 'completed']);
-                $query->where(function ($q) {
-                    $q->where('bookings.amount_remaining', '>', 0)
-                      ->orWhereNull('bookings.amount_remaining');
-                });
+                $query->whereNotIn('bookings.status', ['paid', 'confirmed', 'completed', 'expired', 'cancelled']);
             }
             
             // Search functionality
@@ -183,13 +178,9 @@ class PaymentVerificationController extends Controller
             $query->where('payment_slips.status', $status);
         }
 
-        // Exclude payment slips for bookings that are already fully paid or confirmed
+        // Exclude payment slips for bookings that are already fully paid, confirmed, expired, or cancelled
         if ($status === 'unpaid') {
-            $query->whereNotIn('bookings.status', ['paid', 'confirmed', 'completed']);
-            $query->where(function ($q) {
-                $q->where('bookings.amount_remaining', '>', 0)
-                  ->orWhereNull('bookings.amount_remaining');
-            });
+            $query->whereNotIn('bookings.status', ['paid', 'confirmed', 'completed', 'expired', 'cancelled']);
         }
 
         if ($request->filled('search')) {
@@ -572,6 +563,13 @@ class PaymentVerificationController extends Controller
                     ->where('status', 'unpaid')
                     ->update(['status' => 'expired']);
             }
+            // 3. Clean up orphaned payment slips — booking already expired/cancelled but slip still unpaid
+            DB::connection('facilities_db')
+                ->table('payment_slips')
+                ->join('bookings', 'payment_slips.booking_id', '=', 'bookings.id')
+                ->where('payment_slips.status', 'unpaid')
+                ->whereIn('bookings.status', ['expired', 'cancelled'])
+                ->update(['payment_slips.status' => 'expired', 'payment_slips.updated_at' => $now]);
         } catch (\Exception $e) {
             \Log::error('Treasurer auto-expire bookings failed: ' . $e->getMessage());
         }
