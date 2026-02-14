@@ -691,6 +691,107 @@ class FacilityReservationApiController extends Controller
     }
 
     /**
+     * Get payment history/receipt for a specific booking.
+     * 
+     * GET /api/facility-reservation/payment-history/{reference}
+     */
+    public function paymentHistory($reference)
+    {
+        try {
+            $bookingId = (int) preg_replace('/[^0-9]/', '', $reference);
+
+            $booking = DB::connection('facilities_db')
+                ->table('bookings')
+                ->join('facilities', 'bookings.facility_id', '=', 'facilities.facility_id')
+                ->where('bookings.id', $bookingId)
+                ->select(
+                    'bookings.id',
+                    'bookings.status',
+                    'bookings.start_time',
+                    'bookings.end_time',
+                    'bookings.total_amount',
+                    'bookings.payment_tier',
+                    'bookings.down_payment_amount',
+                    'bookings.amount_paid',
+                    'bookings.amount_remaining',
+                    'bookings.payment_method',
+                    'bookings.down_payment_paid_at',
+                    'bookings.paymongo_checkout_id',
+                    'bookings.paymongo_payment_id',
+                    'bookings.applicant_name',
+                    'bookings.applicant_email',
+                    'bookings.created_at',
+                    'facilities.name as facility_name'
+                )
+                ->first();
+
+            if (!$booking) {
+                return response()->json(['status' => 'error', 'message' => 'Booking not found.'], 404);
+            }
+
+            $bookingRef = 'BK' . str_pad($booking->id, 6, '0', STR_PAD_LEFT);
+
+            // Build payment transactions list
+            $transactions = [];
+
+            // Down payment transaction
+            if ($booking->down_payment_paid_at) {
+                $transactions[] = [
+                    'type' => 'down_payment',
+                    'label' => 'Down Payment (' . ($booking->payment_tier ?? 25) . '%)',
+                    'amount' => number_format($booking->down_payment_amount ?? 0, 2),
+                    'method' => ucfirst($booking->payment_method ?? 'cashless'),
+                    'date' => Carbon::parse($booking->down_payment_paid_at)->format('F d, Y \\a\\t h:i A'),
+                    'reference' => $booking->paymongo_payment_id ?? $booking->paymongo_checkout_id ?? null,
+                    'status' => 'paid',
+                ];
+            }
+
+            // Check payment_slips for additional payments (remaining balance, etc.)
+            $slips = DB::connection('facilities_db')
+                ->table('payment_slips')
+                ->where('booking_id', $bookingId)
+                ->orderBy('created_at', 'asc')
+                ->get();
+
+            foreach ($slips as $slip) {
+                $transactions[] = [
+                    'type' => 'payment_slip',
+                    'label' => 'Payment Slip ' . $slip->slip_number,
+                    'amount' => number_format($slip->amount_due, 2),
+                    'method' => ucfirst($slip->payment_method ?? 'N/A'),
+                    'date' => $slip->paid_at ? Carbon::parse($slip->paid_at)->format('F d, Y \\a\\t h:i A') : null,
+                    'reference' => $slip->transaction_reference ?? $slip->slip_number,
+                    'status' => $slip->status,
+                    'deadline' => $slip->payment_deadline ? Carbon::parse($slip->payment_deadline)->format('F d, Y \\a\\t h:i A') : null,
+                ];
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'data' => [
+                    'booking_reference' => $bookingRef,
+                    'facility_name' => $booking->facility_name,
+                    'booking_status' => $booking->status,
+                    'applicant_name' => $booking->applicant_name,
+                    'applicant_email' => $booking->applicant_email,
+                    'start_time' => Carbon::parse($booking->start_time)->format('F d, Y h:i A'),
+                    'end_time' => Carbon::parse($booking->end_time)->format('F d, Y h:i A'),
+                    'total_amount' => number_format($booking->total_amount, 2),
+                    'amount_paid' => number_format($booking->amount_paid ?? 0, 2),
+                    'amount_remaining' => number_format($booking->amount_remaining ?? 0, 2),
+                    'payment_tier' => $booking->payment_tier,
+                    'submitted_at' => Carbon::parse($booking->created_at)->format('F d, Y h:i A'),
+                    'transactions' => $transactions,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Payment history API error: ' . $e->getMessage());
+            return response()->json(['status' => 'error', 'message' => 'An error occurred.'], 500);
+        }
+    }
+
+    /**
      * Calculate pricing for the booking
      */
     private function calculatePricing($facility, $validated, $startDateTime, $endDateTime)

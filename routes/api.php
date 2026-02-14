@@ -90,6 +90,9 @@ Route::prefix('facility-reservation')->group(function () {
     // GET https://facilities.local-government-unit-1-ph.com/api/facility-reservation/status/{reference}
     Route::get('/status/{reference}', [\App\Http\Controllers\Api\FacilityReservationApiController::class, 'checkStatus']);
     
+    // GET https://facilities.local-government-unit-1-ph.com/api/facility-reservation/payment-history/{reference}
+    Route::get('/payment-history/{reference}', [\App\Http\Controllers\Api\FacilityReservationApiController::class, 'paymentHistory']);
+    
     // POST https://facilities.local-government-unit-1-ph.com/api/facility-reservation
     Route::post('/', [\App\Http\Controllers\Api\FacilityReservationApiController::class, 'store']);
     
