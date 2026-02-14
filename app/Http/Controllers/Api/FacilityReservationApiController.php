@@ -998,39 +998,65 @@ class FacilityReservationApiController extends Controller
                 return response()->json(['status' => 'error', 'message' => 'Booking not found.'], 404);
             }
 
-            // Only promote if currently awaiting_payment
-            if ($booking->status !== 'awaiting_payment') {
+            // Handle based on current booking status
+            if ($booking->status === 'awaiting_payment') {
+                // Down payment: promote to pending (staff review)
+                $booking->update([
+                    'status' => 'pending',
+                    'amount_paid' => $booking->down_payment_amount,
+                    'amount_remaining' => $booking->total_amount - $booking->down_payment_amount,
+                    'down_payment_paid_at' => Carbon::now(),
+                    'payment_method' => 'cashless',
+                ]);
+
+                Log::info('Booking promoted after down payment (cashless)', [
+                    'booking_reference' => $validated['booking_reference'],
+                    'booking_id' => $bookingId,
+                    'source_system' => $validated['source_system'] ?? 'unknown',
+                ]);
+
                 return response()->json([
                     'status' => 'success',
-                    'message' => 'Booking already promoted.',
+                    'message' => 'Booking promoted to pending for staff review.',
                     'data' => [
                         'booking_reference' => $validated['booking_reference'],
-                        'booking_status' => $booking->status,
+                        'booking_status' => 'pending',
                     ]
                 ]);
             }
 
-            // Promote to pending (staff review) and mark down payment as paid
-            $booking->update([
-                'status' => 'pending',
-                'amount_paid' => $booking->down_payment_amount,
-                'amount_remaining' => $booking->total_amount - $booking->down_payment_amount,
-                'down_payment_paid_at' => Carbon::now(),
-                'payment_method' => 'cashless',
-            ]);
+            // Remaining balance payment: staff_verified / reserved / payment_pending
+            if (in_array($booking->status, ['staff_verified', 'reserved', 'payment_pending'])) {
+                $booking->update([
+                    'status' => 'confirmed',
+                    'amount_paid' => $booking->total_amount,
+                    'amount_remaining' => 0,
+                    'payment_method' => 'cashless',
+                ]);
 
-            Log::info('Booking promoted after cashless payment (fallback)', [
-                'booking_reference' => $validated['booking_reference'],
-                'booking_id' => $bookingId,
-                'source_system' => $validated['source_system'] ?? 'unknown',
-            ]);
+                Log::info('Booking fully paid — remaining balance settled (cashless)', [
+                    'booking_reference' => $validated['booking_reference'],
+                    'booking_id' => $bookingId,
+                    'source_system' => $validated['source_system'] ?? 'unknown',
+                ]);
 
+                return response()->json([
+                    'status' => 'success',
+                    'message' => 'Remaining balance paid. Booking confirmed.',
+                    'data' => [
+                        'booking_reference' => $validated['booking_reference'],
+                        'booking_status' => 'confirmed',
+                    ]
+                ]);
+            }
+
+            // Already fully processed
             return response()->json([
                 'status' => 'success',
-                'message' => 'Booking promoted to pending for staff review.',
+                'message' => 'Booking already processed.',
                 'data' => [
                     'booking_reference' => $validated['booking_reference'],
-                    'booking_status' => 'pending',
+                    'booking_status' => $booking->status,
                 ]
             ]);
 
