@@ -1,7 +1,7 @@
 <!-- Notification Bell Icon (Facebook-style) -->
 <div class="relative" x-data="notificationBell()" x-init="init()">
     <!-- Bell Icon Button -->
-    <button @click="toggleDropdown()" class="relative p-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">
+    <button @click.stop="toggleDropdown()" class="relative p-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">
         <!-- Bell Icon (Lucide) -->
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-bell">
             <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
@@ -18,7 +18,7 @@
 
     <!-- Dropdown Menu -->
     <div x-show="isOpen" 
-         @click.away="isOpen = false"
+         @click.outside="isOpen = false"
          x-transition:enter="transition ease-out duration-200"
          x-transition:enter-start="opacity-0 scale-95"
          x-transition:enter-end="opacity-100 scale-100"
