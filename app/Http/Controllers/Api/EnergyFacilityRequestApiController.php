@@ -35,10 +35,10 @@ class EnergyFacilityRequestApiController extends Controller
             'contact_email' => 'nullable|email|max:255',
 
             // Schedule Details
-            'preferred_date' => 'required|date|after_or_equal:today',
+            'preferred_date' => 'required|date',
             'start_time' => 'required|date_format:H:i',
             'end_time' => 'required|date_format:H:i|after:start_time',
-            'alternative_date' => 'nullable|date|after_or_equal:today',
+            'alternative_date' => 'nullable|date',
             'alternative_start_time' => 'nullable|date_format:H:i',
             'alternative_end_time' => 'nullable|date_format:H:i',
 
