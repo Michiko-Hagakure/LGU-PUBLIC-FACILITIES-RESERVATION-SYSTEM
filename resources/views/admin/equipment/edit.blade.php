@@ -160,7 +160,7 @@
                 @if($equipment->image_path)
                     <div>
                         <label class="block text-small font-semibold text-lgu-headline mb-gr-xs">Current Photo</label>
-                        <img src="{{ Storage::url($equipment->image_path) }}" alt="{{ $equipment->name }}" 
+                        <img src="{{ url('/files/' . $equipment->image_path) }}" alt="{{ $equipment->name }}" 
                             class="w-48 h-32 object-cover rounded-lg border border-gray-200">
                     </div>
                 @endif

@@ -184,9 +184,9 @@
                     @if($facility->image_path)
                         <div class="flex items-start gap-3" id="primary-photo-container">
                             <div class="relative inline-block">
-                                <img src="{{ Storage::url($facility->image_path) }}" alt="{{ $facility->name }}" 
+                                <img src="{{ url('/files/' . $facility->image_path) }}" alt="{{ $facility->name }}" 
                                     class="w-48 h-32 object-cover rounded-lg border border-gray-200 cursor-pointer hover:opacity-90 transition"
-                                    onclick="showFullImage('{{ Storage::url($facility->image_path) }}', '{{ $facility->name }}')">
+                                    onclick="showFullImage('{{ url('/files/' . $facility->image_path) }}', '{{ $facility->name }}')">
                                 <span class="absolute top-2 left-2 bg-lgu-green text-white text-xs px-2 py-1 rounded">Primary</span>
                             </div>
                             <button type="button" 
@@ -222,9 +222,9 @@
                         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                             @foreach($facilityImages as $image)
                                 <div class="relative group" id="image-{{ $image->id }}">
-                                    <img src="{{ Storage::url($image->image_path) }}" alt="Facility image" 
+                                    <img src="{{ url('/files/' . $image->image_path) }}" alt="Facility image" 
                                         class="w-full h-24 object-cover rounded-lg border border-gray-200 cursor-pointer hover:opacity-90 transition"
-                                        onclick="showFullImage('{{ Storage::url($image->image_path) }}', 'Facility Image')">
+                                        onclick="showFullImage('{{ url('/files/' . $image->image_path) }}', 'Facility Image')">
                                     <button type="button" 
                                         onclick="deleteImage({{ $facility->facility_id }}, {{ $image->id }})"
                                         class="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"

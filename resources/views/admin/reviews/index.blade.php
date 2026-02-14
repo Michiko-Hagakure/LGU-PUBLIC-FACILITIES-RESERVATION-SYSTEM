@@ -77,7 +77,7 @@
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-gr-lg">
                     <div class="flex items-start gap-gr-md">
                         @if($review->facility_image)
-                            <img src="{{ Storage::url($review->facility_image) }}" alt="{{ $review->facility_name }}" 
+                            <img src="{{ url('/files/' . $review->facility_image) }}" alt="{{ $review->facility_name }}" 
                                 class="w-20 h-20 object-cover rounded-lg flex-shrink-0">
                         @else
                             <div class="w-20 h-20 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">

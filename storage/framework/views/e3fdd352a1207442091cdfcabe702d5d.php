@@ -905,7 +905,7 @@
 
 <?php $__env->startPush('scripts'); ?>
 <!-- SweetAlert2 -->
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.14.5/sweetalert2.all.min.js"></script>
 <!-- SweetAlert2 fallback when CDN is unavailable -->
 <script>
 if (typeof Swal === 'undefined') {
@@ -937,13 +937,13 @@ if (typeof Swal === 'undefined') {
 </script>
 
 <!-- TensorFlow.js -->
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.11.0"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tensorflow/4.11.0/tf.min.js"></script>
 
 <!-- Face-API.js - Official library -->
-<script defer src="https://cdn.jsdelivr.net/npm/face-api.js/dist/face-api.min.js"></script>
+<script defer src="https://unpkg.com/face-api.js/dist/face-api.min.js"></script>
 
 <!-- Google Teachable Machine -->
-<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8.6/dist/teachablemachine-image.min.js"></script>
+<script src="https://unpkg.com/@teachablemachine/image@0.8.6/dist/teachablemachine-image.min.js"></script>
 
 <!-- Our AI Script -->
 <script src="<?php echo e(asset('js/azure-ai-verification.js')); ?>"></script>
