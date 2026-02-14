@@ -116,11 +116,14 @@ function notificationBell() {
         async fetchNotifications() {
             try {
                 const response = await fetch('{{ route("notifications.unread") }}');
+                if (!response.ok) return;
+                const contentType = response.headers.get('content-type') || '';
+                if (!contentType.includes('application/json')) return;
                 const data = await response.json();
                 this.notifications = data.notifications || [];
                 this.unreadCount = data.unread_count || 0;
             } catch (error) {
-                console.error('Failed to fetch notifications:', error);
+                // Silently ignore — likely a session expiry or network issue
             }
         },
         
@@ -142,6 +145,17 @@ function notificationBell() {
         async showNotificationDetails(notification) {
             // Close dropdown
             this.isOpen = false;
+
+            if (typeof Swal === 'undefined') {
+                // SweetAlert2 not loaded — fall back to navigating to notifications page
+                if (notification.data && notification.data.action_url) {
+                    window.location.href = notification.data.action_url;
+                } else {
+                    window.location.href = '{{ route("notifications.index") }}';
+                }
+                await this.markAsRead(notification.id);
+                return;
+            }
             
             // Prepare HTML content with payment instructions if available
             let htmlContent = `<div class="text-left"><p class="text-gray-700 mb-3">${notification.message}</p>`;

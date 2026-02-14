@@ -342,6 +342,11 @@ class PaymentVerificationController extends Controller
                 }
                 
                 $booking->save();
+
+                // Auto-cancel overlapping unpaid bookings — whoever pays first gets the slot
+                if ($wasAwaitingPayment) {
+                    Booking::cancelOverlappingUnpaidBookings($booking);
+                }
             }
             
             // Send notifications

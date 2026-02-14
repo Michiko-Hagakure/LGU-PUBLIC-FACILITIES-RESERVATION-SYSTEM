@@ -176,6 +176,11 @@ class PayMongoWebhookController extends Controller
             'paymongo_payment_id' => $paymentId,
         ]);
 
+        // Auto-cancel overlapping unpaid bookings — whoever pays first gets the slot
+        if ($wasAwaitingPayment) {
+            Booking::cancelOverlappingUnpaidBookings($booking);
+        }
+
         Log::info("PayMongo webhook: booking #{$bookingId} down payment confirmed" . ($wasAwaitingPayment ? ' (promoted to pending)' : ''), [
             'amount' => $booking->down_payment_amount,
             'payment_id' => $paymentId,
