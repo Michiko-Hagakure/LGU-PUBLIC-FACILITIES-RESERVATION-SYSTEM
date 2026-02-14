@@ -1026,15 +1026,29 @@ class FacilityReservationApiController extends Controller
             }
 
             // Remaining balance payment: staff_verified / reserved / payment_pending
+            // Status goes to 'paid' (not 'confirmed') — admin must still verify before confirming
             if (in_array($booking->status, ['staff_verified', 'reserved', 'payment_pending'])) {
                 $booking->update([
-                    'status' => 'confirmed',
+                    'status' => 'paid',
                     'amount_paid' => $booking->total_amount,
                     'amount_remaining' => 0,
                     'payment_method' => 'cashless',
                 ]);
 
-                Log::info('Booking fully paid — remaining balance settled (cashless)', [
+                // Update the associated payment slip to 'paid'
+                DB::connection('facilities_db')
+                    ->table('payment_slips')
+                    ->where('booking_id', $bookingId)
+                    ->where('status', 'unpaid')
+                    ->update([
+                        'status' => 'paid',
+                        'payment_method' => 'paymongo',
+                        'paid_at' => Carbon::now(),
+                        'transaction_reference' => $validated['booking_reference'] . '-balance',
+                        'updated_at' => Carbon::now(),
+                    ]);
+
+                Log::info('Booking fully paid — remaining balance settled (cashless), awaiting admin confirmation', [
                     'booking_reference' => $validated['booking_reference'],
                     'booking_id' => $bookingId,
                     'source_system' => $validated['source_system'] ?? 'unknown',
@@ -1042,10 +1056,10 @@ class FacilityReservationApiController extends Controller
 
                 return response()->json([
                     'status' => 'success',
-                    'message' => 'Remaining balance paid. Booking confirmed.',
+                    'message' => 'Remaining balance paid. Awaiting admin confirmation.',
                     'data' => [
                         'booking_reference' => $validated['booking_reference'],
-                        'booking_status' => 'confirmed',
+                        'booking_status' => 'paid',
                     ]
                 ]);
             }
