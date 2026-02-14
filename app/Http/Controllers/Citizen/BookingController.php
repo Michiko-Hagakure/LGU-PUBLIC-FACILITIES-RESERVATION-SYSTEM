@@ -158,6 +158,7 @@ class BookingController extends Controller
         $equipmentRaw = DB::connection('facilities_db')
             ->table('equipment_items')
             ->where('is_available', true)
+            ->whereNull('deleted_at')
             ->orderBy('category')
             ->orderBy('name')
             ->get();
