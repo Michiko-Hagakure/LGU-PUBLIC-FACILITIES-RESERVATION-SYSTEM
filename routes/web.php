@@ -882,6 +882,14 @@ Route::post('/register', function () {
         return back()->withErrors($validator)->withInput();
     }
 
+    // Age validation - must be at least 18 years old
+    $birthdate = new \DateTime(request('birthdate'));
+    $today = new \DateTime();
+    $age = $today->diff($birthdate)->y;
+    if ($age < 18) {
+        return back()->withErrors(['birthdate' => 'You must be at least 18 years old to register. Your age based on the birthdate provided is ' . $age . ' years old.'])->withInput();
+    }
+
     // Note: Email uniqueness is checked upfront via AJAX in Step 1
     // But we still validate as a safety net on the backend
 

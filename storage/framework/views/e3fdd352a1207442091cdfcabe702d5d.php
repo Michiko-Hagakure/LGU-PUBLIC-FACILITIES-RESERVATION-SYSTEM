@@ -1,15 +1,15 @@
-@extends('layouts.auth')
 
-@section('title', 'Register - LGU1')
 
-@section('hero-title', 'Registration Portal')
+<?php $__env->startSection('title', 'Register - LGU1'); ?>
 
-@section('hero-description', 'Create your account to access LGU1 services and systems. Join our digital government platform for efficient service delivery.')
+<?php $__env->startSection('hero-title', 'Registration Portal'); ?>
 
-@section('content')
-<div x-data="registerForm({{ $step }}, {{ $verificationEmailSent ? 'true' : 'false' }})">
+<?php $__env->startSection('hero-description', 'Create your account to access LGU1 services and systems. Join our digital government platform for efficient service delivery.'); ?>
+
+<?php $__env->startSection('content'); ?>
+<div x-data="registerForm(<?php echo e($step); ?>, <?php echo e($verificationEmailSent ? 'true' : 'false'); ?>)">
     <div class="text-center mb-4">
-        <img src="{{ asset('assets/images/logo.png') }}" alt="LGU1 Logo" style="max-width: 80px; margin-bottom: 1rem;">
+        <img src="<?php echo e(asset('assets/images/logo.png')); ?>" alt="LGU1 Logo" style="max-width: 80px; margin-bottom: 1rem;">
         <h2 style="color: var(--headline); font-family: 'Merriweather', serif; font-weight: 700;">Create Account</h2>
         <p class="text-muted"><i class="bi bi-people-fill"></i> For Official Use of LGU1</p>
     </div>
@@ -42,24 +42,25 @@
         </div>
     </div>
 
-    @if ($errors->any())
+    <?php if($errors->any()): ?>
         <div class="alert alert-danger">
             <ul class="mb-0">
-                @foreach ($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
+                <?php $__currentLoopData = $errors->all(); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $error): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                    <li><?php echo e($error); ?></li>
+                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
             </ul>
         </div>
-    @endif
+    <?php endif; ?>
 
-    @if (session('success'))
+    <?php if(session('success')): ?>
         <div class="alert alert-success">
-            {{ session('success') }}
-        </div>
-    @endif
+            <?php echo e(session('success')); ?>
 
-    <form method="POST" action="{{ route('register') }}" enctype="multipart/form-data">
-        @csrf
+        </div>
+    <?php endif; ?>
+
+    <form method="POST" action="<?php echo e(route('register')); ?>" enctype="multipart/form-data">
+        <?php echo csrf_field(); ?>
         
         <!-- Hidden field for AI verification data -->
         <input type="hidden" id="ai_verification_data" name="ai_verification_data" value="">
@@ -89,14 +90,14 @@
                 <label for="username" class="form-label"><i class="bi bi-person-badge"></i> Username</label>
                 <div class="input-group">
                     <span class="input-group-text"><i class="bi bi-person"></i></span>
-                    <input type="text" class="form-control" id="username" name="username" required maxlength="50" value="{{ old('username') }}">
+                    <input type="text" class="form-control" id="username" name="username" required maxlength="50" value="<?php echo e(old('username')); ?>">
                 </div>
             </div>
             <div class="mb-3">
                 <label for="email" class="form-label"><i class="bi bi-envelope-paper"></i> Email</label>
                 <div class="input-group">
                     <span class="input-group-text"><i class="bi bi-envelope"></i></span>
-                    <input type="email" class="form-control" id="email" name="email" required maxlength="100" value="{{ old('email') }}">
+                    <input type="email" class="form-control" id="email" name="email" required maxlength="100" value="<?php echo e(old('email')); ?>">
                 </div>
                 <div id="emailError" class="text-danger mt-1" style="display: none; font-size: 0.875rem;"></div>
             </div>
@@ -138,21 +139,21 @@
                 <label for="full_name" class="form-label"><i class="bi bi-person-vcard"></i> Full Name</label>
                 <div class="input-group">
                     <span class="input-group-text"><i class="bi bi-card-text"></i></span>
-                    <input type="text" class="form-control" id="full_name" name="full_name" required maxlength="100" value="{{ old('full_name') }}">
+                    <input type="text" class="form-control" id="full_name" name="full_name" required maxlength="100" value="<?php echo e(old('full_name')); ?>">
                 </div>
             </div>
             <div class="mb-3">
                 <label for="birthdate" class="form-label"><i class="bi bi-calendar-date"></i> Birthdate</label>
                 <div class="input-group">
                     <span class="input-group-text"><i class="bi bi-calendar"></i></span>
-                    <input type="date" class="form-control" id="birthdate" name="birthdate" required value="{{ old('birthdate') }}">
+                    <input type="date" class="form-control" id="birthdate" name="birthdate" required value="<?php echo e(old('birthdate')); ?>">
                 </div>
             </div>
             <div class="mb-3">
                 <label for="mobile_number" class="form-label"><i class="bi bi-phone"></i> Mobile Number</label>
                 <div class="input-group">
                     <span class="input-group-text"><i class="bi bi-phone"></i></span>
-                    <input type="tel" class="form-control" id="mobile_number" name="mobile_number" required placeholder="09xxxxxxxxx" pattern="^09\d{9}$" maxlength="11" value="{{ old('mobile_number') }}">
+                    <input type="tel" class="form-control" id="mobile_number" name="mobile_number" required placeholder="09xxxxxxxxx" pattern="^09\d{9}$" maxlength="11" value="<?php echo e(old('mobile_number')); ?>">
                 </div>
                 <small class="text-muted">Must be 11 digits starting with 09</small>
                 <div id="mobileError" class="text-danger mt-1" style="display: none; font-size: 0.875rem;"></div>
@@ -186,7 +187,7 @@
                 <label for="nationality" class="form-label"><i class="bi bi-flag"></i> Nationality</label>
                 <div class="input-group">
                     <span class="input-group-text"><i class="bi bi-globe"></i></span>
-                    <input type="text" class="form-control" id="nationality" name="nationality" required maxlength="50" value="{{ old('nationality', 'Filipino') }}">
+                    <input type="text" class="form-control" id="nationality" name="nationality" required maxlength="50" value="<?php echo e(old('nationality', 'Filipino')); ?>">
                 </div>
             </div>
             <div class="step-buttons">
@@ -209,7 +210,7 @@
                 <label for="current_address" class="form-label"><i class="bi bi-geo"></i> Current Residential Address</label>
                 <div class="input-group">
                     <span class="input-group-text"><i class="bi bi-house-door"></i></span>
-                    <textarea class="form-control" id="current_address" name="current_address" required rows="3" placeholder="Enter your complete residential address (House No., Street, Subdivision, etc.)">{{ old('current_address') }}</textarea>
+                    <textarea class="form-control" id="current_address" name="current_address" required rows="3" placeholder="Enter your complete residential address (House No., Street, Subdivision, etc.)"><?php echo e(old('current_address')); ?></textarea>
                 </div>
                 <small class="text-muted">Example: Blk 1 Lot 2, Sample Street, XYZ Subdivision</small>
             </div>
@@ -275,7 +276,7 @@
                 <label for="zip_code" class="form-label"><i class="bi bi-mailbox"></i> Zip Code</label>
                 <div class="input-group">
                     <span class="input-group-text"><i class="bi bi-envelope"></i></span>
-                    <input type="text" class="form-control" id="zip_code" name="zip_code" required maxlength="10" pattern="[0-9]{4,10}" placeholder="e.g. 1100" value="{{ old('zip_code') }}">
+                    <input type="text" class="form-control" id="zip_code" name="zip_code" required maxlength="10" pattern="[0-9]{4,10}" placeholder="e.g. 1100" value="<?php echo e(old('zip_code')); ?>">
                 </div>
             </div>
 
@@ -362,16 +363,16 @@
     </form>
 
     <!-- Step 5: Email Verification -->
-    <form method="POST" action="{{ route('register.verify-otp') }}" x-show="currentStep === 5" x-cloak>
-        @csrf
+    <form method="POST" action="<?php echo e(route('register.verify-otp')); ?>" x-show="currentStep === 5" x-cloak>
+        <?php echo csrf_field(); ?>
         <div class="step">
             <h5 class="mb-3 text-center" style="color: var(--headline);">Email Verification</h5>
-            @if($verificationEmailSent)
+            <?php if($verificationEmailSent): ?>
                 <div class="alert alert-info text-center">
                     <i class="bi bi-envelope-check"></i> We've sent a verification code to<br>
-                    <strong>{{ session('pending_user_email') }}</strong>
+                    <strong><?php echo e(session('pending_user_email')); ?></strong>
                 </div>
-            @endif
+            <?php endif; ?>
             <div class="mb-3">
                 <label for="otp" class="form-label"><i class="bi bi-shield-check"></i> Enter Verification Code</label>
                 <div class="input-group">
@@ -563,18 +564,18 @@
                 </div>
                 <h5 class="mb-3" style="color: var(--headline);">Registration Complete!</h5>
                 <p class="text-muted mb-4">Your account has been successfully created and verified. You can now log in to access the LGU1 system.</p>
-                <a href="{{ route('login') }}" class="btn btn-primary"><i class="bi bi-box-arrow-in-right"></i> Go to Login</a>
+                <a href="<?php echo e(route('login')); ?>" class="btn btn-primary"><i class="bi bi-box-arrow-in-right"></i> Go to Login</a>
             </div>
         </div>
     </div>
 
     <div x-show="currentStep < 5" class="divider">or</div>
     <div x-show="currentStep < 5" class="text-center">
-        <a href="{{ route('login') }}" class="register-link"><i class="bi bi-box-arrow-in-right"></i> Already have an account? Sign In</a>
+        <a href="<?php echo e(route('login')); ?>" class="register-link"><i class="bi bi-box-arrow-in-right"></i> Already have an account? Sign In</a>
     </div>
 </div>
 
-@push('styles')
+<?php $__env->startPush('styles'); ?>
 <style>
     [x-cloak] { display: none !important; }
     
@@ -900,9 +901,9 @@
         }
     }
 </style>
-@endpush
+<?php $__env->stopPush(); ?>
 
-@push('scripts')
+<?php $__env->startPush('scripts'); ?>
 <!-- SweetAlert2 -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
@@ -916,7 +917,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8.6/dist/teachablemachine-image.min.js"></script>
 
 <!-- Our AI Script -->
-<script src="{{ asset('js/azure-ai-verification.js') }}"></script>
+<script src="<?php echo e(asset('js/azure-ai-verification.js')); ?>"></script>
 <script>
     function registerForm(initialStep, emailSent) {
         return {
@@ -927,7 +928,7 @@
             isVerifying: false,
             termsAccepted: false,
             showTermsModal: false,
-            csrfToken: '{{ csrf_token() }}',
+            csrfToken: '<?php echo e(csrf_token()); ?>',
             
             init() {
                 // CSRF Token Management - Prevent stale token issues
@@ -944,11 +945,11 @@
                 });
                 
                 // Check if registration was just completed
-                @if(session('verified'))
+                <?php if(session('verified')): ?>
                     this.currentStep = 6;
                     // Clear session data
                     fetch('/register/clear-session', { method: 'POST', headers: { 'X-CSRF-TOKEN': this.csrfToken } });
-                @endif
+                <?php endif; ?>
                 
                 // Watch for step changes to auto-show terms modal
                 this.$watch('currentStep', (newStep, oldStep) => {
@@ -1039,31 +1040,6 @@
             },
             
             async checkMobileAndProceed() {
-                // Age validation - must be at least 18 years old
-                const birthdateInput = document.getElementById('birthdate');
-                if (birthdateInput && birthdateInput.value) {
-                    const birthDate = new Date(birthdateInput.value);
-                    const today = new Date();
-                    let age = today.getFullYear() - birthDate.getFullYear();
-                    const monthDiff = today.getMonth() - birthDate.getMonth();
-                    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-                        age--;
-                    }
-                    if (age < 18) {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Age Requirement Not Met',
-                            html: `<p>You must be at least <strong>18 years old</strong> to register for LGU1 services.</p><p>Your current age based on the birthdate provided is <strong>${age} years old</strong>.</p><p>If you believe this is an error, please verify your birthdate.</p>`,
-                            confirmButtonColor: '#00473e'
-                        });
-                        birthdateInput.classList.add('is-invalid');
-                        birthdateInput.focus();
-                        return;
-                    } else {
-                        birthdateInput.classList.remove('is-invalid');
-                    }
-                }
-
                 const mobileInput = document.getElementById('mobile_number');
                 const mobile = mobileInput.value.trim();
                 const mobileError = document.getElementById('mobileError');
@@ -1277,7 +1253,7 @@
                 await new Promise(resolve => setTimeout(resolve, 2000));
                 
                 // Submit the form
-                document.querySelector('form[action="{{ route('register') }}"]').submit();
+                document.querySelector('form[action="<?php echo e(route('register')); ?>"]').submit();
             },
             
             async resendVerificationEmail() {
@@ -1291,7 +1267,7 @@
                         }
                     });
                     
-                    const response = await fetch('{{ route('register.resend-email') }}', {
+                    const response = await fetch('<?php echo e(route('register.resend-email')); ?>', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -1650,6 +1626,8 @@
         }
     });
 </script>
-@endpush
-@endsection
+<?php $__env->stopPush(); ?>
+<?php $__env->stopSection(); ?>
 
+
+<?php echo $__env->make('layouts.auth', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\laragon\www\local-government-unit-1-ph.com\resources\views/auth/register.blade.php ENDPATH**/ ?>
