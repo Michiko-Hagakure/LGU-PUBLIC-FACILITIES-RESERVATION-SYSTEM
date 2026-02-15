@@ -72,14 +72,14 @@ class FacilityController extends Controller
         // Filter by price range
         if ($request->filled('min_price')) {
             $query->where(function($q) use ($request) {
-                $q->where('per_person_rate', '>=', $request->min_price)
+                $q->where('base_rate_3hrs', '>=', $request->min_price)
                   ->orWhere('hourly_rate', '>=', $request->min_price);
             });
         }
         
         if ($request->filled('max_price')) {
             $query->where(function($q) use ($request) {
-                $q->where('per_person_rate', '<=', $request->max_price)
+                $q->where('base_rate_3hrs', '<=', $request->max_price)
                   ->orWhere('hourly_rate', '<=', $request->max_price);
             });
         }
@@ -114,10 +114,10 @@ class FacilityController extends Controller
                 $query->orderByDesc('rating');
                 break;
             case 'price_low':
-                $query->orderByRaw('COALESCE(per_person_rate, hourly_rate) ASC');
+                $query->orderByRaw('COALESCE(base_rate_3hrs, hourly_rate) ASC');
                 break;
             case 'price_high':
-                $query->orderByRaw('COALESCE(per_person_rate, hourly_rate) DESC');
+                $query->orderByRaw('COALESCE(base_rate_3hrs, hourly_rate) DESC');
                 break;
             case 'capacity_high':
                 $query->orderByDesc('capacity');

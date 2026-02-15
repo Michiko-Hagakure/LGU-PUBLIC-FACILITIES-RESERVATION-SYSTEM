@@ -150,17 +150,34 @@
             </h2>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-gr-md">
-                {{-- Per Person Rate --}}
+                {{-- Base Rate (3 Hours) --}}
                 <div>
-                    <label for="per_person_rate" class="block text-small font-semibold text-lgu-headline mb-gr-xs">
-                        Per Person Rate <span class="text-red-500">*</span>
+                    <label for="base_rate_3hrs" class="block text-small font-semibold text-lgu-headline mb-gr-xs">
+                        Base Rate (3 Hours) <span class="text-red-500">*</span>
                     </label>
                     <div class="relative">
                         <span class="absolute left-3 top-1/2 -translate-y-1/2 text-lgu-paragraph font-semibold">₱</span>
-                        <input type="number" id="per_person_rate" name="per_person_rate" value="{{ old('per_person_rate') }}" min="0" step="0.01" required
-                            class="w-full pl-8 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-lgu-highlight focus:border-transparent @error('per_person_rate') border-red-500 @enderror">
+                        <input type="number" id="base_rate_3hrs" name="base_rate_3hrs" value="{{ old('base_rate_3hrs') }}" min="0" step="0.01" required
+                            class="w-full pl-8 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-lgu-highlight focus:border-transparent @error('base_rate_3hrs') border-red-500 @enderror">
                     </div>
-                    @error('per_person_rate')
+                    <p class="mt-1 text-xs text-gray-500">Flat rate for first 3 hours of reservation</p>
+                    @error('base_rate_3hrs')
+                        <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                {{-- Extension Rate (+2 Hours) --}}
+                <div>
+                    <label for="extension_rate_2hrs" class="block text-small font-semibold text-lgu-headline mb-gr-xs">
+                        Extension Rate (+2 Hours)
+                    </label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-lgu-paragraph font-semibold">₱</span>
+                        <input type="number" id="extension_rate_2hrs" name="extension_rate_2hrs" value="{{ old('extension_rate_2hrs') }}" min="0" step="0.01"
+                            class="w-full pl-8 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-lgu-highlight focus:border-transparent @error('extension_rate_2hrs') border-red-500 @enderror">
+                    </div>
+                    <p class="mt-1 text-xs text-gray-500">Flat rate for each 2-hour extension block</p>
+                    @error('extension_rate_2hrs')
                         <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
                     @enderror
                 </div>

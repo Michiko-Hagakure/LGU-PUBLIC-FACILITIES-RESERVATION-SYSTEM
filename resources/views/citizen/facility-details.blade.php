@@ -290,26 +290,26 @@
                         </div>
                     </div>
 
-                    @if($facility->per_person_rate)
+                    @if($facility->base_rate_3hrs)
                         <div class="flex items-start">
                             <div class="w-5 h-5 flex items-center justify-center text-lgu-button font-bold text-lg mr-3 mt-1 flex-shrink-0">
                                 ₱
                             </div>
                             <div>
-                                <p class="text-sm font-medium text-gray-600">Per Person Rate</p>
-                                <p class="text-base font-semibold text-gray-900">₱{{ number_format($facility->per_person_rate, 2) }}</p>
+                                <p class="text-sm font-medium text-gray-600">Base Rate (3 Hours)</p>
+                                <p class="text-base font-semibold text-gray-900">₱{{ number_format($facility->base_rate_3hrs, 2) }}</p>
                             </div>
                         </div>
                     @endif
 
-                    @if($facility->hourly_rate)
+                    @if($facility->extension_rate_2hrs)
                         <div class="flex items-start">
                             <div class="w-5 h-5 flex items-center justify-center text-lgu-button font-bold text-lg mr-3 mt-1 flex-shrink-0">
                                 ₱
                             </div>
                             <div>
-                                <p class="text-sm font-medium text-gray-600">Hourly Rate</p>
-                                <p class="text-base font-semibold text-gray-900">₱{{ number_format($facility->hourly_rate, 2) }}</p>
+                                <p class="text-sm font-medium text-gray-600">Extension Rate (+2 Hours)</p>
+                                <p class="text-base font-semibold text-gray-900">₱{{ number_format($facility->extension_rate_2hrs, 2) }}</p>
                             </div>
                         </div>
                     @endif
@@ -349,14 +349,20 @@
                 
                 <!-- Pricing Summary -->
                 <div class="space-y-3 mb-6">
-                    @if($facility->per_person_rate)
+                    @if($facility->base_rate_3hrs)
                         <div class="flex justify-between">
-                            <span class="text-gray-600">Per Person:</span>
-                            <span class="font-bold text-gray-900">₱{{ number_format($facility->per_person_rate, 2) }}</span>
+                            <span class="text-gray-600">3 Hours:</span>
+                            <span class="font-bold text-gray-900">₱{{ number_format($facility->base_rate_3hrs, 2) }}</span>
                         </div>
+                        @if($facility->extension_rate_2hrs)
                         <div class="flex justify-between text-sm">
-                            <span class="text-gray-600">Payment Type:</span>
-                            <span class="text-gray-900">Per attendee</span>
+                            <span class="text-gray-600">+2 Hr Extension:</span>
+                            <span class="text-gray-900">₱{{ number_format($facility->extension_rate_2hrs, 2) }}</span>
+                        </div>
+                        @endif
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-600">Pricing:</span>
+                            <span class="text-gray-900">Flat rate</span>
                         </div>
                     @elseif($facility->hourly_rate)
                         <div class="flex justify-between">

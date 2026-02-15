@@ -142,7 +142,8 @@ class FacilityController extends Controller
             'description' => 'nullable|string',
             'capacity' => 'required|integer|min:1',
             'address' => 'required|string|max:255',
-            'per_person_rate' => 'required|numeric|min:0',
+            'base_rate_3hrs' => 'required|numeric|min:0',
+            'extension_rate_2hrs' => 'nullable|numeric|min:0',
             'is_available' => 'nullable|in:0,1',
             'image_path' => 'nullable|image|mimes:jpeg,png,jpg|max:2048'
         ]);
@@ -167,7 +168,8 @@ class FacilityController extends Controller
                 'description' => $request->description,
                 'capacity' => $request->capacity,
                 'address' => $request->address,
-                'per_person_rate' => $request->per_person_rate,
+                'base_rate_3hrs' => $request->base_rate_3hrs,
+                'extension_rate_2hrs' => $request->extension_rate_2hrs ?? 0,
                 'is_available' => $request->is_available ?? 1,
                 'image_path' => $imagePath,
                 'created_at' => now(),
@@ -246,7 +248,8 @@ class FacilityController extends Controller
             'description' => 'nullable|string',
             'capacity' => 'required|integer|min:1',
             'address' => 'required|string|max:255',
-            'per_person_rate' => 'required|numeric|min:0',
+            'base_rate_3hrs' => 'required|numeric|min:0',
+            'extension_rate_2hrs' => 'nullable|numeric|min:0',
             'is_available' => 'nullable|in:0,1',
             'image_path' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
             'additional_images.*' => 'nullable|image|mimes:jpeg,png,jpg|max:2048'
@@ -309,7 +312,8 @@ class FacilityController extends Controller
                     'description' => $request->description,
                     'capacity' => $request->capacity,
                     'address' => $request->address,
-                    'per_person_rate' => $request->per_person_rate,
+                    'base_rate_3hrs' => $request->base_rate_3hrs,
+                    'extension_rate_2hrs' => $request->extension_rate_2hrs ?? 0,
                     'is_available' => $request->is_available ?? 1,
                     'image_path' => $imagePath,
                     'updated_at' => now()

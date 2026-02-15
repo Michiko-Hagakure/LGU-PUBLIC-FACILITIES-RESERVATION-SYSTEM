@@ -202,13 +202,13 @@
                                     </div>
                                 @endif
 
-                                @if($facility->per_person_rate)
+                                @if($facility->base_rate_3hrs)
                                     <div class="flex items-center justify-between text-small">
                                         <span class="text-gray-600 flex items-center gap-1">
-                                            <i data-lucide="user" class="w-4 h-4"></i>
-                                            Per Person
+                                            <i data-lucide="clock" class="w-4 h-4"></i>
+                                            3 Hours
                                         </span>
-                                        <span class="font-semibold text-primary-600">₱{{ number_format($facility->per_person_rate, 2) }}</span>
+                                        <span class="font-semibold text-primary-600">₱{{ number_format($facility->base_rate_3hrs, 2) }}</span>
                                     </div>
                                 @endif
 

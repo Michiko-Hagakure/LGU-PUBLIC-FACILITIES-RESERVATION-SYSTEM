@@ -566,7 +566,8 @@ class BookingController extends Controller
     }
 
     /**
-     * Calculate pricing based on facility pricing model (per-person or hourly)
+     * Calculate pricing based on facility flat-rate pricing model
+     * Pricing: flat base rate for 3 hours + flat extension rate per 2-hour block
      */
     private function calculatePricing($step1Data, $selectedEquipment)
     {
@@ -588,34 +589,33 @@ class BookingController extends Controller
 
         $baseRate = 0;
         $extensionRate = 0;
-        $perPersonRate = 0;
-        $extensionRatePer2Hours = 0;
+        $baseRate3hrs = 0;
+        $extensionRate2hrs = 0;
         $baseHours = 3;
         $extensionHours = 0;
         $extensionBlocks = 0;
         $pricingModel = 'default';
         
-        // Determine pricing model based on facility
-        if (isset($facility->per_person_rate) && $facility->per_person_rate > 0) {
-            // Per-person pricing model with FIXED 2-HOUR EXTENSION BLOCKS
-            $perPersonRate = $facility->per_person_rate;
+        // Flat-rate pricing model: fixed price for 3 hours + fixed extension per 2-hour block
+        if (isset($facility->base_rate_3hrs) && $facility->base_rate_3hrs > 0) {
+            $baseRate3hrs = $facility->base_rate_3hrs;
             $baseHours = $facility->base_hours ?? 3;
-            $extensionRatePer2Hours = $facility->per_person_extension_rate ?? 0;
+            $extensionRate2hrs = $facility->extension_rate_2hrs ?? 0;
             
-            // Base rate for base hours (e.g., first 3 hours)
-            $baseRate = $perPersonRate * $expectedAttendees;
+            // Base rate is a flat fee (NOT multiplied by attendees)
+            $baseRate = $baseRate3hrs;
             
-            // Extension: FIXED 2-hour blocks (e.g., 4 hours = 2 blocks, 5 hours = 3 blocks)
+            // Extension: FIXED 2-hour blocks
             $extensionHours = max(0, $totalHours - $baseHours);
-            if ($extensionHours > 0 && $extensionRatePer2Hours > 0) {
-                $extensionBlocks = ceil($extensionHours / 2); // Round up to full 2-hour blocks
-                $extensionRate = $extensionBlocks * $extensionRatePer2Hours * $expectedAttendees;
+            if ($extensionHours > 0 && $extensionRate2hrs > 0) {
+                $extensionBlocks = ceil($extensionHours / 2);
+                $extensionRate = $extensionBlocks * $extensionRate2hrs;
             } else {
                 $extensionRate = 0;
                 $extensionBlocks = 0;
             }
             
-            $pricingModel = 'per_person';
+            $pricingModel = 'flat_rate';
         } else if (isset($facility->hourly_rate) && $facility->hourly_rate > 0) {
             // Hourly pricing model (if facility uses this)
             $baseRate = $facility->hourly_rate * $totalHours;
@@ -623,8 +623,8 @@ class BookingController extends Controller
             $extensionBlocks = 0;
             $pricingModel = 'hourly';
         } else {
-            // Fallback to old calculation if no pricing model is set
-            $baseRate = 7000.00; // Default ₱7,000 for 3 hours
+            // Fallback to default flat rate if no pricing model is set
+            $baseRate = 7000.00;
             $extensionRatePerTwoHours = 3000.00;
             $baseHours = 3;
             $extensionHours = max(0, $totalHours - $baseHours);
@@ -657,11 +657,12 @@ class BookingController extends Controller
             'extension_hours' => $extensionHours,
             'extension_blocks' => $extensionBlocks,
             'extension_rate' => $extensionRate,
-            'extension_rate_per_block' => $extensionRatePer2Hours,
+            'extension_rate_per_block' => $extensionRate2hrs,
             'equipment_total' => $equipmentTotal,
             'subtotal' => $subtotal,
             'pricing_model' => $pricingModel,
-            'per_person_rate' => $perPersonRate,
+            'base_rate_3hrs' => $baseRate3hrs,
+            'extension_rate_2hrs' => $extensionRate2hrs,
             'expected_attendees' => $expectedAttendees,
         ];
     }

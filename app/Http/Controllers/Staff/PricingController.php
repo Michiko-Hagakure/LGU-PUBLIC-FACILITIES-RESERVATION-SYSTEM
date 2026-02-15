@@ -24,7 +24,7 @@ class PricingController extends Controller
                 'facilities.name',
                 'facilities.lgu_city_id',
                 'lgu_cities.city_name',
-                'facilities.per_person_rate'
+                'facilities.base_rate_3hrs'
             )
             ->whereNull('facilities.deleted_at')
             ->where('facilities.is_available', 1);

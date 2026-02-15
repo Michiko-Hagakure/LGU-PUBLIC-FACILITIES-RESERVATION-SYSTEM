@@ -68,7 +68,7 @@
                     <tr class="bg-lgu-headline text-white">
                         <th class="px-gr-md py-gr-sm text-left text-small font-semibold uppercase tracking-wider">Facility</th>
                         <th class="px-gr-md py-gr-sm text-left text-small font-semibold uppercase tracking-wider">City</th>
-                        <th class="px-gr-md py-gr-sm text-left text-small font-semibold uppercase tracking-wider">Rate Per Person</th>
+                        <th class="px-gr-md py-gr-sm text-left text-small font-semibold uppercase tracking-wider">Base Rate (3 Hours)</th>
                         <th class="px-gr-md py-gr-sm text-right text-small font-semibold uppercase tracking-wider">Actions</th>
                     </tr>
                 </thead>
@@ -84,14 +84,14 @@
                                 <span class="text-body text-lgu-paragraph">{{ $facility->city_name ?? 'N/A' }}</span>
                             </td>
                             <td class="px-gr-md py-gr-sm">
-                                <div class="view-mode" id="per-person-rate-view-{{ $facility->facility_id }}">
-                                    <p class="font-semibold text-lgu-headline">₱{{ number_format($facility->per_person_rate ?? 0, 2) }}</p>
-                                    <p class="text-xs text-gray-500">per person</p>
+                                <div class="view-mode" id="base-rate-view-{{ $facility->facility_id }}">
+                                    <p class="font-semibold text-lgu-headline">₱{{ number_format($facility->base_rate_3hrs ?? 0, 2) }}</p>
+                                    <p class="text-xs text-gray-500">flat rate / 3 hours</p>
                                 </div>
-                                <div class="edit-mode hidden" id="per-person-rate-edit-{{ $facility->facility_id }}">
-                                    <input type="number" step="0.01" min="0" value="{{ $facility->per_person_rate ?? 0 }}" 
+                                <div class="edit-mode hidden" id="base-rate-edit-{{ $facility->facility_id }}">
+                                    <input type="number" step="0.01" min="0" value="{{ $facility->base_rate_3hrs ?? 0 }}" 
                                         class="w-full px-2 py-1 border border-gray-300 rounded text-small"
-                                        id="per-person-rate-input-{{ $facility->facility_id }}">
+                                        id="base-rate-input-{{ $facility->facility_id }}">
                                 </div>
                             </td>
                             <td class="px-gr-md py-gr-sm text-right">
@@ -211,8 +211,7 @@ const originalValues = {};
 function toggleEditMode(facilityId) {
     // Store original values
     originalValues[facilityId] = {
-        hourly_rate: document.getElementById(`hourly-rate-input-${facilityId}`).value,
-        per_person_rate: document.getElementById(`per-person-rate-input-${facilityId}`).value
+        base_rate_3hrs: document.getElementById(`base-rate-input-${facilityId}`).value
     };
 
     // Hide view mode, show edit mode
@@ -228,8 +227,7 @@ function toggleEditMode(facilityId) {
 function cancelEdit(facilityId) {
     // Restore original values
     if (originalValues[facilityId]) {
-        document.getElementById(`hourly-rate-input-${facilityId}`).value = originalValues[facilityId].hourly_rate;
-        document.getElementById(`per-person-rate-input-${facilityId}`).value = originalValues[facilityId].per_person_rate;
+        document.getElementById(`base-rate-input-${facilityId}`).value = originalValues[facilityId].base_rate_3hrs;
     }
 
     // Hide edit mode, show view mode
@@ -243,7 +241,7 @@ function cancelEdit(facilityId) {
 }
 
 async function savePricing(facilityId) {
-    const perPersonRate = document.getElementById(`per-person-rate-input-${facilityId}`).value;
+    const baseRate3hrs = document.getElementById(`base-rate-input-${facilityId}`).value;
 
     try {
         const response = await fetch(`/admin/pricing/${facilityId}`, {
@@ -253,7 +251,7 @@ async function savePricing(facilityId) {
                 'X-CSRF-TOKEN': '{{ csrf_token() }}'
             },
             body: JSON.stringify({
-                per_person_rate: perPersonRate
+                base_rate_3hrs: baseRate3hrs
             })
         });
 
@@ -261,7 +259,7 @@ async function savePricing(facilityId) {
 
         if (data.success) {
             // Update view mode with new values
-            document.querySelector(`#per-person-rate-view-${facilityId} p:first-child`).textContent = `₱${parseFloat(perPersonRate).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
+            document.querySelector(`#base-rate-view-${facilityId} p:first-child`).textContent = `₱${parseFloat(baseRate3hrs).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
 
             // Exit edit mode
             cancelEdit(facilityId);

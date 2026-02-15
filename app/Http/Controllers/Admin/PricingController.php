@@ -25,7 +25,7 @@ class PricingController extends Controller
                 'facilities.name',
                 'facilities.lgu_city_id',
                 'lgu_cities.city_name',
-                'facilities.per_person_rate'
+                'facilities.base_rate_3hrs'
             )
             ->whereNull('facilities.deleted_at');
 
@@ -64,7 +64,7 @@ class PricingController extends Controller
     public function update(Request $request, $id)
     {
         $validator = Validator::make($request->all(), [
-            'per_person_rate' => 'required|numeric|min:0'
+            'base_rate_3hrs' => 'required|numeric|min:0'
         ]);
 
         if ($validator->fails()) {
@@ -88,11 +88,11 @@ class PricingController extends Controller
                 ], 404);
             }
 
-            // Update pricing (only per-person rate)
+            // Update pricing (flat rate for 3 hours)
             DB::connection('facilities_db')->table('facilities')
                 ->where('facility_id', $id)
                 ->update([
-                    'per_person_rate' => $request->per_person_rate,
+                    'base_rate_3hrs' => $request->base_rate_3hrs,
                     'updated_at' => now()
                 ]);
 
@@ -104,7 +104,7 @@ class PricingController extends Controller
                 'model_id' => $id,
                 'changes' => json_encode([
                     'facility_name' => $facility->name,
-                    'per_person_rate' => $request->per_person_rate
+                    'base_rate_3hrs' => $request->base_rate_3hrs
                 ]),
                 'ip_address' => $request->ip(),
                 'user_agent' => $request->userAgent(),
@@ -165,7 +165,7 @@ class PricingController extends Controller
             $query->update([
                 'base_rate' => DB::raw("ROUND(base_rate * {$multiplier}, 2)"),
                 'extension_rate' => DB::raw("ROUND(extension_rate * {$multiplier}, 2)"),
-                'per_person_rate' => DB::raw("ROUND(per_person_rate * {$multiplier}, 2)"),
+                'base_rate_3hrs' => DB::raw("ROUND(base_rate_3hrs * {$multiplier}, 2)"),
                 'updated_at' => now()
             ]);
 

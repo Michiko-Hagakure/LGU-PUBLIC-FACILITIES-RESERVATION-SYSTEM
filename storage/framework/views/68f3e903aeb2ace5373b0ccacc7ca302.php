@@ -1,15 +1,15 @@
-@extends('layouts.citizen')
 
-@section('title', 'New Booking - Select Date & Time')
-@section('page-title', 'New Booking')
-@section('page-subtitle', 'Step 1 of 3: Select Facility, Date & Time')
 
-@php
+<?php $__env->startSection('title', 'New Booking - Select Date & Time'); ?>
+<?php $__env->startSection('page-title', 'New Booking'); ?>
+<?php $__env->startSection('page-subtitle', 'Step 1 of 3: Select Facility, Date & Time'); ?>
+
+<?php
     // Get session data for form restoration
     $sessionData = session('booking_step1', []);
-@endphp
+?>
 
-@section('page-content')
+<?php $__env->startSection('page-content'); ?>
 <div class="max-w-4xl mx-auto">
     <!-- Progress Steps -->
     <div class="mb-8">
@@ -39,8 +39,8 @@
 
     <!-- Booking Form -->
     <div class="bg-white shadow-lg rounded-lg p-8">
-        <form action="{{ URL::signedRoute('citizen.booking.step2') }}" method="POST" id="bookingStep1Form">
-            @csrf
+        <form action="<?php echo e(URL::signedRoute('citizen.booking.step2')); ?>" method="POST" id="bookingStep1Form">
+            <?php echo csrf_field(); ?>
 
             <!-- Facility Selection -->
             <div class="mb-6">
@@ -57,12 +57,12 @@
                     Select Facility <span class="text-red-500">*</span>
                 </label>
                 
-                @if($facility)
+                <?php if($facility): ?>
                     <!-- Read-only facility display when pre-selected -->
                     <div class="relative">
-                        <input type="text" value="{{ $facility->name }}" disabled
+                        <input type="text" value="<?php echo e($facility->name); ?>" disabled
                                class="block w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-700 cursor-not-allowed">
-                        <input type="hidden" name="facility_id" value="{{ $facility->facility_id }}">
+                        <input type="hidden" name="facility_id" value="<?php echo e($facility->facility_id); ?>">
                         <div class="absolute right-3 top-1/2 transform -translate-y-1/2">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-lock text-gray-400">
                                 <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
@@ -78,21 +78,28 @@
                         </svg>
                         Facility locked. Click "Cancel" below to go back and select a different facility.
                     </p>
-                @else
+                <?php else: ?>
                     <!-- Editable dropdown when no facility pre-selected -->
                     <select name="facility_id" id="facility_id" required
                             class="block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-lgu-button focus:border-lgu-button">
                         <option value="">-- Choose a facility --</option>
-                        @foreach($facilities as $fac)
-                            <option value="{{ $fac->facility_id }}">{{ $fac->name }}</option>
-                        @endforeach
+                        <?php $__currentLoopData = $facilities; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $fac): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                            <option value="<?php echo e($fac->facility_id); ?>"><?php echo e($fac->name); ?></option>
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                     </select>
                     <p class="mt-1 text-xs text-gray-500">Select the facility you want to reserve</p>
-                @endif
+                <?php endif; ?>
                 
-                @error('facility_id')
-                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                @enderror
+                <?php $__errorArgs = ['facility_id'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                    <p class="mt-1 text-sm text-red-600"><?php echo e($message); ?></p>
+                <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
             </div>
 
             <!-- Date Selection -->
@@ -109,9 +116,9 @@
                 <div class="relative">
                     <input type="text" id="booking_date_display" readonly required
                            placeholder="Click to select a date"
-                           value="{{ old('booking_date') ? date('F j, Y', strtotime(old('booking_date'))) : '' }}"
+                           value="<?php echo e(old('booking_date') ? date('F j, Y', strtotime(old('booking_date'))) : ''); ?>"
                            class="block w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg cursor-pointer hover:border-lgu-button focus:ring-lgu-button focus:border-lgu-button bg-white transition">
-                    <input type="hidden" name="booking_date" id="booking_date" value="{{ old('booking_date') }}">
+                    <input type="hidden" name="booking_date" id="booking_date" value="<?php echo e(old('booking_date')); ?>">
                     <div class="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-calendar-days text-gray-400">
                             <path d="M8 2v4"/>
@@ -128,9 +135,16 @@
                     </div>
                 </div>
                 <p class="mt-1 text-xs text-gray-500">Book at least 7 business days in advance</p>
-                @error('booking_date')
-                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                @enderror
+                <?php $__errorArgs = ['booking_date'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                    <p class="mt-1 text-sm text-red-600"><?php echo e($message); ?></p>
+                <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
             </div>
 
             <!-- Calendar Modal -->
@@ -241,10 +255,10 @@
                     <div class="relative">
                         <input type="text" id="start_time_display" readonly required
                                placeholder="Click to select time"
-                               value="{{ old('start_time_display', '08:00 AM') }}"
+                               value="<?php echo e(old('start_time_display', '08:00 AM')); ?>"
                                style="-webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;"
                                class="block w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg cursor-pointer hover:border-lgu-button focus:ring-lgu-button focus:border-lgu-button bg-white transition font-semibold text-gray-700">
-                        <input type="hidden" name="start_time" id="start_time" value="{{ old('start_time', $sessionData['start_time'] ?? '08:00') }}">
+                        <input type="hidden" name="start_time" id="start_time" value="<?php echo e(old('start_time', $sessionData['start_time'] ?? '08:00')); ?>">
                         <div class="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clock text-gray-400">
                                 <circle cx="12" cy="12" r="10"/>
@@ -252,9 +266,16 @@
                             </svg>
                         </div>
                     </div>
-                    @error('start_time')
-                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                    @enderror
+                    <?php $__errorArgs = ['start_time'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                        <p class="mt-1 text-sm text-red-600"><?php echo e($message); ?></p>
+                    <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
                 </div>
 
                 <div>
@@ -268,10 +289,10 @@
                     <div class="relative">
                         <input type="text" id="end_time_display" readonly required
                                placeholder="Click to select time"
-                               value="{{ old('end_time_display', '11:00 AM') }}"
+                               value="<?php echo e(old('end_time_display', '11:00 AM')); ?>"
                                style="-webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;"
                                class="block w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg cursor-pointer hover:border-lgu-button focus:ring-lgu-button focus:border-lgu-button bg-white transition font-semibold text-gray-700">
-                        <input type="hidden" name="end_time" id="end_time" value="{{ old('end_time', $sessionData['end_time'] ?? '11:00') }}">
+                        <input type="hidden" name="end_time" id="end_time" value="<?php echo e(old('end_time', $sessionData['end_time'] ?? '11:00')); ?>">
                         <div class="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clock text-gray-400">
                                 <circle cx="12" cy="12" r="10"/>
@@ -279,9 +300,16 @@
                             </svg>
                         </div>
                     </div>
-                    @error('end_time')
-                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                    @enderror
+                    <?php $__errorArgs = ['end_time'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                        <p class="mt-1 text-sm text-red-600"><?php echo e($message); ?></p>
+                    <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
                 </div>
             </div>
 
@@ -414,9 +442,16 @@
                 <!-- Hidden input to store the final purpose value for form submission -->
                 <input type="hidden" name="purpose" id="purpose" required>
                 
-                @error('purpose')
-                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                @enderror
+                <?php $__errorArgs = ['purpose'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                    <p class="mt-1 text-sm text-red-600"><?php echo e($message); ?></p>
+                <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
             </div>
 
             <!-- Expected Attendees -->
@@ -431,18 +466,25 @@
                     Expected Number of Attendees <span class="text-red-500">*</span>
                 </label>
                 <input type="number" name="expected_attendees" id="expected_attendees" required 
-                       min="{{ $facility->min_capacity ?? 1 }}" 
-                       max="{{ $facility->capacity ?? 1000 }}"
-                       value="{{ old('expected_attendees', session('booking_step1.expected_attendees')) }}"
-                       placeholder="Minimum {{ $facility->min_capacity ?? 1 }} people"
+                       min="<?php echo e($facility->min_capacity ?? 1); ?>" 
+                       max="<?php echo e($facility->capacity ?? 1000); ?>"
+                       value="<?php echo e(old('expected_attendees', session('booking_step1.expected_attendees'))); ?>"
+                       placeholder="Minimum <?php echo e($facility->min_capacity ?? 1); ?> people"
                        class="block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-lgu-button focus:border-lgu-button">
                 <p class="mt-1 text-xs text-gray-500">
-                    <span class="font-semibold text-lgu-headline">Minimum: {{ number_format($facility->min_capacity ?? 1) }} people</span> • 
-                    Maximum: {{ number_format($facility->capacity ?? 1000) }} people
+                    <span class="font-semibold text-lgu-headline">Minimum: <?php echo e(number_format($facility->min_capacity ?? 1)); ?> people</span> • 
+                    Maximum: <?php echo e(number_format($facility->capacity ?? 1000)); ?> people
                 </p>
-                @error('expected_attendees')
-                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                @enderror
+                <?php $__errorArgs = ['expected_attendees'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                    <p class="mt-1 text-sm text-red-600"><?php echo e($message); ?></p>
+                <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
             </div>
 
             <!-- Real-time Pricing Breakdown -->
@@ -518,7 +560,7 @@
 
             <!-- Navigation Buttons -->
             <div class="flex items-center justify-between pt-6 border-t">
-                <a href="{{ URL::signedRoute('citizen.browse-facilities') }}" 
+                <a href="<?php echo e(URL::signedRoute('citizen.browse-facilities')); ?>" 
                    class="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition cursor-pointer">
                     Cancel
                 </a>
@@ -535,7 +577,7 @@
     </div>
 </div>
 
-@push('scripts')
+<?php $__env->startPush('scripts'); ?>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const facilitySelect = document.getElementById('facility_id');
@@ -727,11 +769,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         try {
-            const response = await fetch('{{ route("citizen.booking.check-availability") }}', {
+            const response = await fetch('<?php echo e(route("citizen.booking.check-availability")); ?>', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    'X-CSRF-TOKEN': '<?php echo e(csrf_token()); ?>'
                 },
                 body: JSON.stringify({
                     facility_id: facilityId,
@@ -1360,11 +1402,12 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Facility pricing data (from backend)
     const facilityPricing = {
-        base_rate_3hrs: {{ $facility->base_rate_3hrs ?? 7000 }},
-        extension_rate_2hrs: {{ $facility->extension_rate_2hrs ?? 3000 }},
-        base_hours: {{ $facility->base_hours ?? 3 }},
-        min_capacity: {{ $facility->min_capacity ?? 1 }},
-        max_capacity: {{ $facility->capacity ?? 1000 }}
+        per_person_rate: <?php echo e($facility->per_person_rate ?? 130); ?>,
+        per_person_extension_rate: <?php echo e($facility->per_person_extension_rate ?? 30); ?>,
+        base_hours: <?php echo e($facility->base_hours ?? 3); ?>,
+        min_capacity: <?php echo e($facility->min_capacity ?? 1); ?>,
+        max_capacity: <?php echo e($facility->capacity ?? 1000); ?>
+
     };
     
     // Auto-enforce minimum and maximum capacity (validate on blur, not every keystroke)
@@ -1433,15 +1476,15 @@ document.addEventListener('DOMContentLoaded', function() {
         const baseHours = facilityPricing.base_hours;
         const extensionHours = Math.max(0, totalHours - baseHours);
         const extensionBlocks = Math.ceil(extensionHours / 2); // 2-hour blocks, rounded up
-        const baseRate = facilityPricing.base_rate_3hrs;
-        const extensionRate = extensionHours > 0 ? (facilityPricing.extension_rate_2hrs * extensionBlocks) : 0;
+        const baseRate = facilityPricing.per_person_rate * attendees;
+        const extensionRate = extensionHours > 0 ? (facilityPricing.per_person_extension_rate * attendees * extensionBlocks) : 0;
         const subtotal = baseRate + extensionRate;
         
         // Update display
         document.getElementById('totalDuration').textContent = totalHours.toFixed(1);
         document.getElementById('baseHoursDisplay').textContent = baseHours;
         document.getElementById('baseRateDisplay').textContent = '₱' + baseRate.toLocaleString('en-PH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-        document.getElementById('baseRateDetails').innerHTML = 'Flat rate for first ' + baseHours + ' hours';
+        document.getElementById('baseRateDetails').innerHTML = '₱' + facilityPricing.per_person_rate.toFixed(2) + ' per person × ' + attendees.toLocaleString() + ' people';
         
         // Show/hide extension section
         const extensionSection = document.getElementById('extensionRateSection');
@@ -1449,7 +1492,7 @@ document.addEventListener('DOMContentLoaded', function() {
             extensionSection.style.display = 'block';
             document.getElementById('extensionHoursDisplay').textContent = extensionHours.toFixed(1);
             document.getElementById('extensionRateDisplay').textContent = '₱' + extensionRate.toLocaleString('en-PH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-            document.getElementById('extensionRateDetails').innerHTML = '₱' + facilityPricing.extension_rate_2hrs.toFixed(2) + ' per 2-hour block × ' + extensionBlocks + (extensionBlocks === 1 ? ' block' : ' blocks');
+            document.getElementById('extensionRateDetails').innerHTML = '₱' + facilityPricing.per_person_extension_rate.toFixed(2) + ' per person per 2-hour block × ' + attendees.toLocaleString() + ' people × ' + extensionBlocks + (extensionBlocks === 1 ? ' block' : ' blocks');
         } else {
             extensionSection.style.display = 'none';
         }
@@ -1517,6 +1560,8 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
-@endpush
-@endsection
+<?php $__env->stopPush(); ?>
+<?php $__env->stopSection(); ?>
 
+
+<?php echo $__env->make('layouts.citizen', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\laragon\www\local-government-unit-1-ph.com\resources\views/citizen/booking/step1-select-datetime.blade.php ENDPATH**/ ?>

@@ -62,7 +62,7 @@
                     <tr class="bg-lgu-headline text-white">
                         <th class="px-gr-md py-gr-sm text-left text-small font-semibold uppercase tracking-wider">Facility</th>
                         <th class="px-gr-md py-gr-sm text-left text-small font-semibold uppercase tracking-wider">City</th>
-                        <th class="px-gr-md py-gr-sm text-left text-small font-semibold uppercase tracking-wider">Rate Per Person</th>
+                        <th class="px-gr-md py-gr-sm text-left text-small font-semibold uppercase tracking-wider">Base Rate (3 Hrs)</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-200">
@@ -77,8 +77,8 @@
                                 <span class="text-body text-lgu-paragraph">{{ $facility->city_name ?? 'N/A' }}</span>
                             </td>
                             <td class="px-gr-md py-gr-sm">
-                                <p class="font-semibold text-lgu-headline">₱{{ number_format($facility->per_person_rate ?? 0, 2) }}</p>
-                                <p class="text-xs text-gray-500">per person</p>
+                                <p class="font-semibold text-lgu-headline">₱{{ number_format($facility->base_rate_3hrs ?? 0, 2) }}</p>
+                                <p class="text-xs text-gray-500">flat rate / 3 hours</p>
                             </td>
                         </tr>
                     @empty

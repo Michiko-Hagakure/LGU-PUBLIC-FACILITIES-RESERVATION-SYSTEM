@@ -1,10 +1,10 @@
-@extends('layouts.citizen')
 
-@section('title', 'Browse Facilities')
-@section('page-title', 'Browse Facilities')
-@section('page-subtitle', 'Discover and book public facilities')
 
-@section('page-content')
+<?php $__env->startSection('title', 'Browse Facilities'); ?>
+<?php $__env->startSection('page-title', 'Browse Facilities'); ?>
+<?php $__env->startSection('page-subtitle', 'Discover and book public facilities'); ?>
+
+<?php $__env->startSection('page-content'); ?>
 <div class="space-y-gr-lg" id="facilitiesContainer">
     <!-- View Toggle -->
     <div class="flex justify-end mb-gr-md">
@@ -20,18 +20,18 @@
         </div>
     </div>
 
-    @if($sharedFavorites ?? false)
+    <?php if($sharedFavorites ?? false): ?>
     <!-- Shared Favorites Banner -->
     <div class="bg-lgu-tertiary/10 border border-lgu-tertiary rounded-xl p-gr-md flex items-center gap-3">
         <i data-lucide="heart" class="w-5 h-5 text-lgu-tertiary"></i>
         <span class="text-lgu-headline font-medium">You're viewing someone's shared favorite facilities</span>
-        <a href="{{ URL::signedRoute('citizen.browse-facilities') }}" class="ml-auto text-sm text-lgu-highlight hover:underline">View All Facilities</a>
+        <a href="<?php echo e(URL::signedRoute('citizen.browse-facilities')); ?>" class="ml-auto text-sm text-lgu-highlight hover:underline">View All Facilities</a>
     </div>
-    @endif
+    <?php endif; ?>
 
     <!-- Search and Filters -->
     <div class="bg-white shadow rounded-xl p-gr-lg transition-all duration-300 hover:shadow-lg">
-        <form method="GET" action="{{ URL::signedRoute('citizen.browse-facilities') }}" class="space-y-gr-md" id="filterForm">
+        <form method="GET" action="<?php echo e(URL::signedRoute('citizen.browse-facilities')); ?>" class="space-y-gr-md" id="filterForm">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-gr-md">
                 <!-- Search -->
                 <div class="md:col-span-3 lg:col-span-2">
@@ -42,9 +42,9 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                             </svg>
                         </div>
-                        <input type="text" name="search" id="search" value="{{ request('search') }}" 
+                        <input type="text" name="search" id="search" value="<?php echo e(request('search')); ?>" 
                                placeholder="Search by name, location, or description..." 
-                               class="block w-full pl-10 pr-gr-sm py-gr-sm border-2 border-lgu-stroke rounded-lg focus:ring-2 focus:ring-lgu-highlight focus:border-lgu-highlight transition-all duration-200 text-sm {{ request('search') ? 'border-lgu-highlight bg-lgu-bg' : '' }}">
+                               class="block w-full pl-10 pr-gr-sm py-gr-sm border-2 border-lgu-stroke rounded-lg focus:ring-2 focus:ring-lgu-highlight focus:border-lgu-highlight transition-all duration-200 text-sm <?php echo e(request('search') ? 'border-lgu-highlight bg-lgu-bg' : ''); ?>">
                     </div>
                 </div>
 
@@ -54,11 +54,11 @@
                         City/Municipality
                     </label>
                     <select name="city" id="city" 
-                            class="block w-full px-gr-sm py-gr-sm border-2 border-lgu-stroke rounded-lg focus:ring-2 focus:ring-lgu-highlight focus:border-lgu-highlight transition-all duration-200 text-sm {{ request('city') ? 'border-lgu-highlight bg-lgu-bg font-medium' : '' }}">
+                            class="block w-full px-gr-sm py-gr-sm border-2 border-lgu-stroke rounded-lg focus:ring-2 focus:ring-lgu-highlight focus:border-lgu-highlight transition-all duration-200 text-sm <?php echo e(request('city') ? 'border-lgu-highlight bg-lgu-bg font-medium' : ''); ?>">
                         <option value="">All Cities</option>
-                        @foreach($cities as $city)
-                            <option value="{{ $city }}" {{ request('city') == $city ? 'selected' : '' }}>{{ $city }}</option>
-                        @endforeach
+                        <?php $__currentLoopData = $cities; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $city): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                            <option value="<?php echo e($city); ?>" <?php echo e(request('city') == $city ? 'selected' : ''); ?>><?php echo e($city); ?></option>
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                     </select>
                 </div>
 
@@ -67,9 +67,9 @@
                     <label for="capacity" class="block text-small font-medium text-gray-700 mb-gr-xs">
                         Min. Capacity
                     </label>
-                    <input type="number" name="capacity" id="capacity" value="{{ request('capacity') }}" 
+                    <input type="number" name="capacity" id="capacity" value="<?php echo e(request('capacity')); ?>" 
                            placeholder="e.g., 50" min="0"
-                           class="block w-full px-gr-sm py-gr-sm border-2 border-lgu-stroke rounded-lg focus:ring-2 focus:ring-lgu-highlight focus:border-lgu-highlight transition-all duration-200 text-sm {{ request('capacity') ? 'border-lgu-highlight bg-lgu-bg font-medium' : '' }}">
+                           class="block w-full px-gr-sm py-gr-sm border-2 border-lgu-stroke rounded-lg focus:ring-2 focus:ring-lgu-highlight focus:border-lgu-highlight transition-all duration-200 text-sm <?php echo e(request('capacity') ? 'border-lgu-highlight bg-lgu-bg font-medium' : ''); ?>">
                 </div>
             </div>
 
@@ -88,14 +88,14 @@
                             <label for="min_price" class="block text-small font-medium text-gray-700 mb-gr-xs">
                                 Min. Price
                             </label>
-                            <input type="number" name="min_price" id="min_price" value="{{ request('min_price') }}" 
+                            <input type="number" name="min_price" id="min_price" value="<?php echo e(request('min_price')); ?>" 
                                    placeholder="Min" class="w-full border-lgu-stroke rounded-lg px-gr-sm py-gr-xs">
                         </div>
                         <div>
                             <label for="max_price" class="block text-small font-medium text-gray-700 mb-gr-xs">
                                 Max. Price
                             </label>
-                            <input type="number" name="max_price" id="max_price" value="{{ request('max_price') }}" 
+                            <input type="number" name="max_price" id="max_price" value="<?php echo e(request('max_price')); ?>" 
                                    placeholder="₱10,000" min="0" step="100"
                                    class="block w-full px-gr-sm py-gr-sm border-2 border-lgu-stroke rounded-lg focus:ring-2 focus:ring-lgu-highlight focus:border-lgu-highlight transition-all duration-200 text-sm">
                         </div>
@@ -108,8 +108,8 @@
                             <select name="availability" id="availability" 
                                     class="block w-full px-gr-sm py-gr-sm border-2 border-lgu-stroke rounded-lg focus:ring-2 focus:ring-lgu-highlight focus:border-lgu-highlight transition-all duration-200 text-sm">
                                 <option value="">All Facilities</option>
-                                <option value="available" {{ request('availability') == 'available' ? 'selected' : '' }}>Available Now</option>
-                                <option value="coming_soon" {{ request('availability') == 'coming_soon' ? 'selected' : '' }}>Coming Soon</option>
+                                <option value="available" <?php echo e(request('availability') == 'available' ? 'selected' : ''); ?>>Available Now</option>
+                                <option value="coming_soon" <?php echo e(request('availability') == 'coming_soon' ? 'selected' : ''); ?>>Coming Soon</option>
                             </select>
                         </div>
                     </div>
@@ -120,14 +120,15 @@
                             Amenities
                         </label>
                         <div class="grid grid-cols-2 md:grid-cols-5 gap-gr-sm">
-                            @foreach($availableAmenities as $key => $label)
+                            <?php $__currentLoopData = $availableAmenities; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $key => $label): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                 <label class="flex items-center gap-2 text-sm text-gray-700 hover:text-lgu-headline cursor-pointer">
-                                    <input type="checkbox" name="amenities[]" value="{{ $key }}" 
-                                           {{ in_array($key, (array)request('amenities', [])) ? 'checked' : '' }}
+                                    <input type="checkbox" name="amenities[]" value="<?php echo e($key); ?>" 
+                                           <?php echo e(in_array($key, (array)request('amenities', [])) ? 'checked' : ''); ?>
+
                                            class="rounded border-lgu-stroke text-lgu-button focus:ring-lgu-highlight">
-                                    <span>{{ $label }}</span>
+                                    <span><?php echo e($label); ?></span>
                                 </label>
-                            @endforeach
+                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                         </div>
                     </div>
                 </div>
@@ -136,7 +137,8 @@
             <div class="flex items-center justify-between pt-gr-sm border-t-2 border-lgu-stroke">
                 <div class="flex items-center gap-gr-md">
                     <div class="text-sm text-lgu-paragraph">
-                        Showing <span class="font-semibold text-lgu-headline">{{ $facilities->total() }}</span> {{ $facilities->total() == 1 ? 'facility' : 'facilities' }}
+                        Showing <span class="font-semibold text-lgu-headline"><?php echo e($facilities->total()); ?></span> <?php echo e($facilities->total() == 1 ? 'facility' : 'facilities'); ?>
+
                     </div>
                     
                     <!-- Sort Dropdown -->
@@ -146,19 +148,19 @@
                         </label>
                         <select name="sort" id="sort" onchange="this.form.submit()" 
                                 class="px-gr-sm py-1 border-2 border-lgu-stroke rounded-lg focus:ring-2 focus:ring-lgu-highlight focus:border-lgu-highlight transition-all duration-200 text-sm">
-                            <option value="favorites" {{ request('sort') == 'favorites' ? 'selected' : '' }}>My Favorites First</option>
-                            <option value="name" {{ request('sort') == 'name' ? 'selected' : '' }}>Name (A-Z)</option>
-                            <option value="popularity" {{ request('sort') == 'popularity' ? 'selected' : '' }}>Most Popular</option>
-                            <option value="rating" {{ request('sort') == 'rating' ? 'selected' : '' }}>Highest Rated</option>
-                            <option value="price_low" {{ request('sort') == 'price_low' ? 'selected' : '' }}>Price: Low to High</option>
-                            <option value="price_high" {{ request('sort') == 'price_high' ? 'selected' : '' }}>Price: High to Low</option>
-                            <option value="capacity_high" {{ request('sort') == 'capacity_high' ? 'selected' : '' }}>Capacity: High to Low</option>
-                            <option value="capacity_low" {{ request('sort') == 'capacity_low' ? 'selected' : '' }}>Capacity: Low to High</option>
+                            <option value="favorites" <?php echo e(request('sort') == 'favorites' ? 'selected' : ''); ?>>My Favorites First</option>
+                            <option value="name" <?php echo e(request('sort') == 'name' ? 'selected' : ''); ?>>Name (A-Z)</option>
+                            <option value="popularity" <?php echo e(request('sort') == 'popularity' ? 'selected' : ''); ?>>Most Popular</option>
+                            <option value="rating" <?php echo e(request('sort') == 'rating' ? 'selected' : ''); ?>>Highest Rated</option>
+                            <option value="price_low" <?php echo e(request('sort') == 'price_low' ? 'selected' : ''); ?>>Price: Low to High</option>
+                            <option value="price_high" <?php echo e(request('sort') == 'price_high' ? 'selected' : ''); ?>>Price: High to Low</option>
+                            <option value="capacity_high" <?php echo e(request('sort') == 'capacity_high' ? 'selected' : ''); ?>>Capacity: High to Low</option>
+                            <option value="capacity_low" <?php echo e(request('sort') == 'capacity_low' ? 'selected' : ''); ?>>Capacity: Low to High</option>
                         </select>
                     </div>
                 </div>
                 <div class="flex gap-gr-sm">
-                    <a href="{{ URL::signedRoute('citizen.browse-facilities') }}" 
+                    <a href="<?php echo e(URL::signedRoute('citizen.browse-facilities')); ?>" 
                        class="px-gr-md py-gr-sm border-2 border-lgu-stroke text-lgu-headline rounded-lg hover:bg-lgu-bg transition-colors text-sm font-semibold">
                         Clear Filters
                     </a>
@@ -179,12 +181,12 @@
                 Facility Locations
             </h3>
             <div class="text-sm text-lgu-paragraph">
-                <span class="font-semibold">{{ $facilitiesWithCoords->count() }}</span> facilities with location data
+                <span class="font-semibold"><?php echo e($facilitiesWithCoords->count()); ?></span> facilities with location data
             </div>
         </div>
         
         <!-- Map Placeholder (shown only if Google Maps fails to load) -->
-        <div id="mapPlaceholder" class="{{ config('services.google_maps.api_key') ? 'hidden' : '' }} w-full h-[600px] rounded-lg border-2 border-lgu-stroke bg-lgu-bg flex items-center justify-center">
+        <div id="mapPlaceholder" class="<?php echo e(config('services.google_maps.api_key') ? 'hidden' : ''); ?> w-full h-[600px] rounded-lg border-2 border-lgu-stroke bg-lgu-bg flex items-center justify-center">
             <div class="text-center p-gr-lg">
                 <svg class="w-24 h-24 text-gray-300 mx-auto mb-gr-md" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg>
                 <h4 class="text-xl font-bold text-lgu-headline mb-gr-sm">Map View Coming Soon</h4>
@@ -198,9 +200,9 @@
             </div>
         </div>
         <!-- Actual Google Map -->
-        @if(config('services.google_maps.api_key'))
+        <?php if(config('services.google_maps.api_key')): ?>
             <div id="map" class="w-full rounded-lg border-2 border-lgu-stroke" style="height: 500px; min-height: 500px; background: #e5e7eb;"></div>
-        @endif
+        <?php endif; ?>
         
         <!-- Map Controls -->
         <div class="mt-gr-md flex items-center justify-between flex-wrap gap-gr-sm">
@@ -243,7 +245,7 @@
         </div>
     </div>
 
-    @push('scripts')
+    <?php $__env->startPush('scripts'); ?>
     <!-- Google Maps Initialization - must be defined before API loads -->
     <script>
     // Define initMap globally BEFORE Google Maps API loads
@@ -252,8 +254,8 @@
     let mapInitialized = false;
     let userMarker = null;
     let userLocation = null;
-    const favoritedIds = @json($favoritedIds);
-    const facilitiesData = @json($facilitiesWithCoords);
+    const favoritedIds = <?php echo json_encode($favoritedIds, 15, 512) ?>;
+    const facilitiesData = <?php echo json_encode($facilitiesWithCoords, 15, 512) ?>;
 
     // Show full image in SweetAlert2 modal
     function showFullImage(imageUrl, facilityName) {
@@ -594,22 +596,22 @@
     </script>
     
     <!-- Google Maps API -->
-    @if(config('services.google_maps.api_key'))
+    <?php if(config('services.google_maps.api_key')): ?>
         <script>
             // Track if Google Maps script loads
             window.googleMapsLoaded = false;
             window.googleMapsError = false;
         </script>
-        <script src="https://maps.googleapis.com/maps/api/js?key={{ config('services.google_maps.api_key') }}&callback=initMap" 
+        <script src="https://maps.googleapis.com/maps/api/js?key=<?php echo e(config('services.google_maps.api_key')); ?>&callback=initMap" 
                 async defer
                 onerror="window.googleMapsError = true; console.error('Failed to load Google Maps API script');">
         </script>
-    @else
+    <?php else: ?>
         <script>
             console.warn('Google Maps API key not configured');
             window.googleMapsError = true;
         </script>
-    @endif
+    <?php endif; ?>
     <style>
         /* Fade-in animation for facility cards */
         @keyframes fadeIn {
@@ -726,18 +728,18 @@
         }
 
         // Show advanced filters if any advanced filter is active
-        const hasAdvancedFilters = {{ request()->filled('min_price') || request()->filled('max_price') || request()->filled('availability') || request()->filled('amenities') ? 'true' : 'false' }};
+        const hasAdvancedFilters = <?php echo e(request()->filled('min_price') || request()->filled('max_price') || request()->filled('availability') || request()->filled('amenities') ? 'true' : 'false'); ?>;
         if (hasAdvancedFilters) {
             toggleAdvancedFilters();
         }
     });
 
     </script>
-    @endpush
+    <?php $__env->stopPush(); ?>
 
     <!-- Facilities Grid Container -->
     <div id="gridViewContainer">
-        @if($facilities->isEmpty())
+        <?php if($facilities->isEmpty()): ?>
             <div class="bg-white shadow rounded-xl p-gr-3xl text-center">
                 <div class="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-gr-md">
                     <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -746,48 +748,48 @@
                 </div>
                 <h3 class="text-h3 text-gray-900 mb-gr-sm">No facilities found</h3>
                 <p class="text-body text-gray-600 mb-gr-lg">Try adjusting your search or filters</p>
-                <a href="{{ URL::signedRoute('citizen.browse-facilities') }}" 
+                <a href="<?php echo e(URL::signedRoute('citizen.browse-facilities')); ?>" 
                    class="inline-flex items-center px-gr-md py-gr-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-small font-medium">
                     View All Facilities
                 </a>
             </div>
-        @else
+        <?php else: ?>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gr-lg" id="facilitiesGrid">
-            @foreach($facilities as $facility)
-                <div class="facility-card bg-white shadow-sm rounded-xl overflow-hidden hover:shadow-md transition-all duration-300 transform hover:-translate-y-1 opacity-0 animate-fade-in" style="animation-delay: {{ $loop->index * 0.1 }}s">
+            <?php $__currentLoopData = $facilities; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $facility): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                <div class="facility-card bg-white shadow-sm rounded-xl overflow-hidden hover:shadow-md transition-all duration-300 transform hover:-translate-y-1 opacity-0 animate-fade-in" style="animation-delay: <?php echo e($loop->index * 0.1); ?>s">
                     <!-- Facility Image -->
                     <div class="relative h-48 bg-gray-200">
-                        @if($facility->image_path)
-                        <img src="{{ url('/files/' . $facility->image_path) }}" 
-                             alt="{{ $facility->name }}" 
+                        <?php if($facility->image_path): ?>
+                        <img src="<?php echo e(url('/files/' . $facility->image_path)); ?>" 
+                             alt="<?php echo e($facility->name); ?>" 
                              class="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                             onclick="showFullImage('{{ url('/files/' . $facility->image_path) }}', '{{ $facility->name }}')">
-                        @else
+                             onclick="showFullImage('<?php echo e(url('/files/' . $facility->image_path)); ?>', '<?php echo e($facility->name); ?>')">
+                        <?php else: ?>
                         <div class="w-full h-full flex items-center justify-center bg-primary-100">
                             <svg class="w-16 h-16 text-primary-400" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm3 1h6v4H7V5zm6 6H7v2h6v-2z" clip-rule="evenodd"/>
                             </svg>
                         </div>
-                        @endif
+                        <?php endif; ?>
                         
                         <!-- Favorite Button -->
-                        <button onclick="toggleFavorite({{ $facility->facility_id ?? $facility->getKey() }})" 
+                        <button onclick="toggleFavorite(<?php echo e($facility->facility_id ?? $facility->getKey()); ?>)" 
                                 class="favorite-btn absolute top-3 left-3 bg-white rounded-full p-2 shadow-md hover:bg-lgu-highlight transition-all z-10"
-                                data-facility-id="{{ $facility->facility_id ?? $facility->getKey() }}">
-                            @if(in_array($facility->facility_id ?? $facility->getKey(), $favoritedIds ?? []))
+                                data-facility-id="<?php echo e($facility->facility_id ?? $facility->getKey()); ?>">
+                            <?php if(in_array($facility->facility_id ?? $facility->getKey(), $favoritedIds ?? [])): ?>
                                 <svg class="w-5 h-5 fill-lgu-tertiary text-lgu-tertiary" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
-                            @else
+                            <?php else: ?>
                                 <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
-                            @endif
+                            <?php endif; ?>
                         </button>
                         
                         <!-- Status Badge -->
                         <div class="absolute top-3 right-3">
-                            @if(!$facility->is_available)
+                            <?php if(!$facility->is_available): ?>
                                 <span class="px-gr-sm py-1 bg-lgu-button text-lgu-button-text text-caption font-semibold rounded-full shadow-md">Coming Soon</span>
-                            @else
+                            <?php else: ?>
                                 <span class="px-gr-sm py-1 bg-green-500 text-white text-caption font-semibold rounded-full">Available</span>
-                            @endif
+                            <?php endif; ?>
                         </div>
                         
                     </div>
@@ -795,16 +797,17 @@
                     <!-- Facility Info -->
                     <div class="p-gr-md">
                         <div class="mb-gr-sm">
-                            <h3 class="text-h3 text-gray-900 mb-1">{{ $facility->name }}</h3>
-                            @if($facility->lguCity)
+                            <h3 class="text-h3 text-gray-900 mb-1"><?php echo e($facility->name); ?></h3>
+                            <?php if($facility->lguCity): ?>
                                 <p class="text-small text-gray-600 flex items-center gap-1">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4">
                                         <path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/>
                                         <circle cx="12" cy="10" r="3"/>
                                     </svg>
-                                    {{ $facility->lguCity->city_name }}
+                                    <?php echo e($facility->lguCity->city_name); ?>
+
                                 </p>
-                            @endif
+                            <?php endif; ?>
                         </div>
 
                         <!-- Details -->
@@ -819,58 +822,59 @@
                                     </svg>
                                     Capacity
                                 </span>
-                                <span class="font-semibold text-gray-900">{{ number_format($facility->capacity) }} people</span>
+                                <span class="font-semibold text-gray-900"><?php echo e(number_format($facility->capacity)); ?> people</span>
                             </div>
 
                         </div>
 
                         <!-- Price & Action -->
                         <div class="border-t border-gray-200 pt-gr-md">
-                            @if($facility->base_rate_3hrs)
+                            <?php if($facility->per_person_rate): ?>
                                 <div class="mb-gr-sm">
-                                    <div class="text-h2 font-bold text-primary-600">₱{{ number_format($facility->base_rate_3hrs, 2) }}</div>
-                                    <div class="text-caption text-gray-500">Base rate / 3 hours</div>
+                                    <div class="text-h2 font-bold text-primary-600">₱<?php echo e(number_format($facility->per_person_rate, 2)); ?></div>
+                                    <div class="text-caption text-gray-500">Per person rate</div>
                                 </div>
-                            @elseif($facility->hourly_rate)
+                            <?php elseif($facility->hourly_rate): ?>
                                 <div class="mb-gr-sm">
-                                    <div class="text-h2 font-bold text-primary-600">₱{{ number_format($facility->hourly_rate, 2) }}</div>
+                                    <div class="text-h2 font-bold text-primary-600">₱<?php echo e(number_format($facility->hourly_rate, 2)); ?></div>
                                     <div class="text-caption text-gray-500">Per hour rate</div>
                                 </div>
-                            @else
+                            <?php else: ?>
                                 <div class="mb-gr-sm">
                                     <div class="text-body-lg font-bold text-gray-900">Contact for pricing</div>
                                     <div class="text-caption text-gray-500">Rates vary</div>
                                 </div>
-                            @endif
+                            <?php endif; ?>
                             
                             <div class="grid grid-cols-2 gap-gr-sm">
-                                <a href="{{ URL::signedRoute('citizen.facility-details', ['id' => $facility->facility_id ?? $facility->getKey()]) }}" 
+                                <a href="<?php echo e(URL::signedRoute('citizen.facility-details', ['id' => $facility->facility_id ?? $facility->getKey()])); ?>" 
                                    class="px-gr-sm py-gr-sm border-2 border-lgu-stroke text-lgu-headline font-semibold rounded-lg hover:bg-lgu-bg transition-colors text-center text-sm">
                                     Details
                                 </a>
-                                @if($facility->is_available)
-                                    <a href="{{ URL::signedRoute('citizen.booking.create', $facility->facility_id ?? $facility->getKey()) }}" 
+                                <?php if($facility->is_available): ?>
+                                    <a href="<?php echo e(URL::signedRoute('citizen.booking.create', $facility->facility_id ?? $facility->getKey())); ?>" 
                                        class="px-gr-sm py-gr-sm bg-lgu-button text-lgu-button-text font-semibold rounded-lg hover:opacity-90 transition-all shadow-sm text-center text-sm">
                                         Book Now
                                     </a>
-                                @else
+                                <?php else: ?>
                                     <button disabled 
                                             class="px-gr-sm py-gr-sm bg-gray-300 text-gray-500 font-semibold rounded-lg cursor-not-allowed text-center text-sm">
                                         Coming Soon
                                     </button>
-                                @endif
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>
                 </div>
-            @endforeach
+            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
         </div>
 
             <!-- Pagination -->
             <div class="mt-gr-lg">
-                {{ $facilities->links() }}
+                <?php echo e($facilities->links()); ?>
+
             </div>
-        @endif
+        <?php endif; ?>
     </div>
     <!-- End Grid View Container -->
 
@@ -915,4 +919,6 @@
     </div>
 </div>
 
-@endsection
+<?php $__env->stopSection(); ?>
+
+<?php echo $__env->make('layouts.citizen', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\laragon\www\local-government-unit-1-ph.com\resources\views/citizen/browse-facilities.blade.php ENDPATH**/ ?>

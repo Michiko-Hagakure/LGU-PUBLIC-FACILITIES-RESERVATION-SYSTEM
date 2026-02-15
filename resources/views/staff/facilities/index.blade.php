@@ -125,7 +125,7 @@
                         </div>
                         <div class="flex items-center text-gray-600">
                             <i data-lucide="tag" class="w-4 h-4 mr-1"></i>
-                            <span>₱{{ number_format($facility->per_person_rate ?? 0, 2) }}/person</span>
+                            <span>₱{{ number_format($facility->base_rate_3hrs ?? 0, 2) }} / 3 hrs</span>
                         </div>
                     </div>
 

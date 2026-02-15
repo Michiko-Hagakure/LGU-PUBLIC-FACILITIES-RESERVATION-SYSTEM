@@ -144,7 +144,7 @@
                         <th class="px-gr-md py-gr-sm text-left text-small font-semibold uppercase tracking-wider">City</th>
                         <th class="px-gr-md py-gr-sm text-left text-small font-semibold uppercase tracking-wider">Type</th>
                         <th class="px-gr-md py-gr-sm text-left text-small font-semibold uppercase tracking-wider">Capacity</th>
-                        <th class="px-gr-md py-gr-sm text-left text-small font-semibold uppercase tracking-wider">Rate Per Person</th>
+                        <th class="px-gr-md py-gr-sm text-left text-small font-semibold uppercase tracking-wider">Base Rate (3 Hrs)</th>
                         <th class="px-gr-md py-gr-sm text-left text-small font-semibold uppercase tracking-wider">Status</th>
                         <th class="px-gr-md py-gr-sm text-right text-small font-semibold uppercase tracking-wider">Actions</th>
                     </tr>
@@ -178,7 +178,7 @@
                                 <span class="text-body text-lgu-paragraph">{{ number_format($facility->capacity) }} pax</span>
                             </td>
                             <td class="px-gr-md py-gr-sm">
-                                <span class="font-semibold text-lgu-headline">₱{{ number_format($facility->per_person_rate ?? 0, 2) }}</span>
+                                <span class="font-semibold text-lgu-headline">₱{{ number_format($facility->base_rate_3hrs ?? 0, 2) }}</span>
                             </td>
                             <td class="px-gr-md py-gr-sm">
                                 @if($facility->deleted_at)

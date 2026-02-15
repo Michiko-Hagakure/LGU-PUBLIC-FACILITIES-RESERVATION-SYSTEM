@@ -146,10 +146,10 @@
                                     <i data-lucide="users" class="w-4 h-4 mr-2 flex-shrink-0"></i>
                                     <span>Capacity: {{ number_format($facility->capacity) }} people</span>
                                 </div>
-                                @if($facility->per_person_rate)
+                                @if($facility->base_rate_3hrs)
                                     <div class="flex items-center text-sm text-lgu-paragraph">
                                         <i data-lucide="banknote" class="w-4 h-4 mr-2 flex-shrink-0"></i>
-                                        <span>₱{{ number_format($facility->per_person_rate, 2) }}/person</span>
+                                        <span>₱{{ number_format($facility->base_rate_3hrs, 2) }} / 3 hrs</span>
                                     </div>
                                 @elseif($facility->hourly_rate)
                                     <div class="flex items-center text-sm text-lgu-paragraph">

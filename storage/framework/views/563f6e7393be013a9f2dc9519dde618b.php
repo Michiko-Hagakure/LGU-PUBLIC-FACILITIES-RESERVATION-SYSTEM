@@ -1,10 +1,10 @@
-@extends('layouts.citizen')
 
-@section('title', 'New Booking - Review & Submit')
-@section('page-title', 'New Booking')
-@section('page-subtitle', 'Step 3 of 3: Review & Submit')
 
-@section('page-content')
+<?php $__env->startSection('title', 'New Booking - Review & Submit'); ?>
+<?php $__env->startSection('page-title', 'New Booking'); ?>
+<?php $__env->startSection('page-subtitle', 'Step 3 of 3: Review & Submit'); ?>
+
+<?php $__env->startSection('page-content'); ?>
 <div class="max-w-6xl mx-auto">
     <!-- Progress Steps -->
     <div class="mb-8">
@@ -36,8 +36,8 @@
         </div>
     </div>
 
-    <form action="{{ URL::signedRoute('citizen.booking.store') }}" method="POST" enctype="multipart/form-data" id="bookingSubmitForm">
-        @csrf
+    <form action="<?php echo e(URL::signedRoute('citizen.booking.store')); ?>" method="POST" enctype="multipart/form-data" id="bookingSubmitForm">
+        <?php echo csrf_field(); ?>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <!-- Main Content -->
@@ -58,11 +58,11 @@
                                 <path d="M10 18h4"/>
                             </svg>
                             <div>
-                                <p class="font-medium text-gray-900">{{ $facility->name }}</p>
-                                <p class="text-sm text-gray-600">{{ $facility->address }}</p>
-                                @if($facility->city_name)
-                                    <p class="text-sm text-gray-600">{{ $facility->city_name }}</p>
-                                @endif
+                                <p class="font-medium text-gray-900"><?php echo e($facility->name); ?></p>
+                                <p class="text-sm text-gray-600"><?php echo e($facility->address); ?></p>
+                                <?php if($facility->city_name): ?>
+                                    <p class="text-sm text-gray-600"><?php echo e($facility->city_name); ?></p>
+                                <?php endif; ?>
                             </div>
                         </div>
 
@@ -74,10 +74,11 @@
                                 <path d="M3 10h18"/>
                             </svg>
                             <div>
-                                <p class="font-medium text-gray-900">{{ \Carbon\Carbon::parse($step1Data['booking_date'])->format('l, F j, Y') }}</p>
+                                <p class="font-medium text-gray-900"><?php echo e(\Carbon\Carbon::parse($step1Data['booking_date'])->format('l, F j, Y')); ?></p>
                                 <p class="text-sm text-gray-600">
-                                    {{ \Carbon\Carbon::parse($step1Data['start_time'])->format('h:i A') }} - 
-                                    {{ \Carbon\Carbon::parse($step1Data['end_time'])->format('h:i A') }}
+                                    <?php echo e(\Carbon\Carbon::parse($step1Data['start_time'])->format('h:i A')); ?> - 
+                                    <?php echo e(\Carbon\Carbon::parse($step1Data['end_time'])->format('h:i A')); ?>
+
                                 </p>
                             </div>
                         </div>
@@ -92,7 +93,7 @@
                             </svg>
                             <div>
                                 <p class="font-medium text-gray-900">Purpose</p>
-                                <p class="text-sm text-gray-600">{{ $step1Data['purpose'] }}</p>
+                                <p class="text-sm text-gray-600"><?php echo e($step1Data['purpose']); ?></p>
                             </div>
                         </div>
 
@@ -105,30 +106,30 @@
                             </svg>
                             <div>
                                 <p class="font-medium text-gray-900">Expected Attendees</p>
-                                <p class="text-sm text-gray-600">{{ number_format($step1Data['expected_attendees']) }} people</p>
+                                <p class="text-sm text-gray-600"><?php echo e(number_format($step1Data['expected_attendees'])); ?> people</p>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Equipment Summary -->
-                @if(!empty($equipmentDetails))
+                <?php if(!empty($equipmentDetails)): ?>
                     <div class="bg-white shadow-lg rounded-lg p-6">
                         <h2 class="text-xl font-bold text-gray-900 mb-4">Selected Equipment</h2>
 
                         <div class="space-y-3">
-                            @foreach($equipmentDetails as $detail)
+                            <?php $__currentLoopData = $equipmentDetails; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $detail): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                 <div class="flex items-center justify-between border-b border-gray-200 pb-3">
                                     <div class="flex-1">
-                                        <p class="font-medium text-gray-900">{{ $detail['item']->name }}</p>
-                                        <p class="text-sm text-gray-600">{{ $detail['quantity'] }} x ₱{{ number_format($detail['item']->price_per_unit, 2) }}</p>
+                                        <p class="font-medium text-gray-900"><?php echo e($detail['item']->name); ?></p>
+                                        <p class="text-sm text-gray-600"><?php echo e($detail['quantity']); ?> x ₱<?php echo e(number_format($detail['item']->price_per_unit, 2)); ?></p>
                                     </div>
-                                    <p class="font-medium text-gray-900">₱{{ number_format($detail['subtotal'], 2) }}</p>
+                                    <p class="font-medium text-gray-900">₱<?php echo e(number_format($detail['subtotal'], 2)); ?></p>
                                 </div>
-                            @endforeach
+                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                         </div>
                     </div>
-                @endif
+                <?php endif; ?>
 
                 <!-- Discount Application -->
                 <div class="bg-white shadow-lg rounded-lg p-6">
@@ -145,9 +146,9 @@
                                 City of Residence
                             </label>
                             <div class="relative">
-                                <input type="text" value="{{ $user->city_name ?? 'Not specified' }}" disabled
+                                <input type="text" value="<?php echo e($user->city_name ?? 'Not specified'); ?>" disabled
                                        class="block w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-700 cursor-not-allowed font-semibold">
-                                <input type="hidden" name="city_of_residence" value="{{ $user->city_name ?? '' }}">
+                                <input type="hidden" name="city_of_residence" value="<?php echo e($user->city_name ?? ''); ?>">
                                 <div class="absolute right-3 top-1/2 transform -translate-y-1/2">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-lock text-gray-400">
                                         <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
@@ -162,9 +163,9 @@
                                     <path d="M12 8h.01"/>
                                 </svg>
                                 Automatically filled from your registration.
-                                @if($user->city_name && $facility->city_name && $user->city_name === $facility->city_name)
+                                <?php if($user->city_name && $facility->city_name && $user->city_name === $facility->city_name): ?>
                                     <span class="ml-1 text-green-600 font-semibold">30% resident discount will be applied!</span>
-                                @endif
+                                <?php endif; ?>
                             </p>
                         </div>
 
@@ -271,9 +272,16 @@
                             <p class="mt-1 text-xs text-blue-600 bg-blue-50 p-2 rounded">
                                 <strong>Note:</strong> You already selected a discount-eligible ID above. Please upload it again here for verification purposes, or upload a different document if you have multiple qualifying IDs.
                             </p>
-                            @error('special_discount_id')
-                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                            @enderror
+                            <?php $__errorArgs = ['special_discount_id'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                                <p class="mt-1 text-sm text-red-600"><?php echo e($message); ?></p>
+                            <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
                         </div>
 
                         <!-- Valid ID Upload (Required) -->
@@ -303,9 +311,16 @@
                                 <div id="preview_id_front" class="mt-2 hidden">
                                     <img src="" alt="ID Front Preview" class="w-full max-w-md h-48 object-cover rounded-lg border-2 border-lgu-button">
                                 </div>
-                                @error('valid_id_front')
-                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                                @enderror
+                                <?php $__errorArgs = ['valid_id_front'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                                    <p class="mt-1 text-sm text-red-600"><?php echo e($message); ?></p>
+                                <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
                             </div>
 
                             <!-- Back of ID -->
@@ -323,9 +338,16 @@
                                 <div id="preview_id_back" class="mt-2 hidden">
                                     <img src="" alt="ID Back Preview" class="w-full max-w-md h-48 object-cover rounded-lg border-2 border-lgu-button">
                                 </div>
-                                @error('valid_id_back')
-                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                                @enderror
+                                <?php $__errorArgs = ['valid_id_back'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                                    <p class="mt-1 text-sm text-red-600"><?php echo e($message); ?></p>
+                                <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
                             </div>
 
                             <!-- Selfie with ID -->
@@ -345,9 +367,16 @@
                                     <img src="" alt="Selfie Preview" class="w-full max-w-md h-48 object-cover rounded-lg border-2 border-lgu-button">
                                 </div>
                                 <p class="mt-1 text-xs text-gray-500">Take a photo of yourself holding your ID next to your face</p>
-                                @error('valid_id_selfie')
-                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                                @enderror
+                                <?php $__errorArgs = ['valid_id_selfie'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                                    <p class="mt-1 text-sm text-red-600"><?php echo e($message); ?></p>
+                                <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
                             </div>
                         </div>
 
@@ -361,10 +390,17 @@
                             </label>
                             <textarea name="special_requests" id="special_requests" rows="3"
                                       placeholder="Any special requirements or requests..."
-                                      class="block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-lgu-button focus:border-lgu-button">{{ old('special_requests') }}</textarea>
-                            @error('special_requests')
-                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                            @enderror
+                                      class="block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-lgu-button focus:border-lgu-button"><?php echo e(old('special_requests')); ?></textarea>
+                            <?php $__errorArgs = ['special_requests'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                                <p class="mt-1 text-sm text-red-600"><?php echo e($message); ?></p>
+                            <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
                         </div>
                     </div>
                 </div>
@@ -431,9 +467,16 @@
                                     </p>
                                 </div>
                             </div>
-                            @error('payment_tier')
-                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                            @enderror
+                            <?php $__errorArgs = ['payment_tier'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                                <p class="mt-1 text-sm text-red-600"><?php echo e($message); ?></p>
+                            <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
                         </div>
 
                         <!-- Payment Method -->
@@ -489,9 +532,16 @@
                                     </div>
                                 </div>
                             </div>
-                            @error('payment_method')
-                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                            @enderror
+                            <?php $__errorArgs = ['payment_method'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                                <p class="mt-1 text-sm text-red-600"><?php echo e($message); ?></p>
+                            <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
                         </div>
                     </div>
                 </div>
@@ -511,7 +561,7 @@
 
                 <!-- Mobile Back Button (visible on mobile only) -->
                 <div class="lg:hidden">
-                    <a href="{{ url()->previous() }}" 
+                    <a href="<?php echo e(url()->previous()); ?>" 
                        class="block w-full px-6 py-3 border-2 border-lgu-stroke rounded-lg text-lgu-headline font-medium hover:bg-lgu-bg transition text-center">
                         ← Back to Equipment
                     </a>
@@ -526,41 +576,42 @@
                     <div class="space-y-3 mb-4 pb-4 border-b">
                         <div class="text-sm">
                             <div class="flex justify-between">
-                                <span class="text-gray-600">Base Rate ({{ $pricing['base_hours'] }} hours)</span>
-                                <span>₱{{ number_format($pricing['base_rate'], 2) }}</span>
+                                <span class="text-gray-600">Base Rate (<?php echo e($pricing['base_hours']); ?> hours)</span>
+                                <span>₱<?php echo e(number_format($pricing['base_rate'], 2)); ?></span>
                             </div>
-                            @if(isset($pricing['pricing_model']) && $pricing['pricing_model'] === 'flat_rate')
+                            <?php if(isset($pricing['pricing_model']) && $pricing['pricing_model'] === 'per_person'): ?>
                                 <div class="text-xs text-gray-500 mt-1">
-                                    Flat rate for first {{ $pricing['base_hours'] }} hours
+                                    ₱<?php echo e(number_format($pricing['per_person_rate'], 2)); ?> per person × <?php echo e(number_format($pricing['expected_attendees'])); ?> people
                                 </div>
-                            @endif
+                            <?php endif; ?>
                         </div>
 
-                        @if($pricing['extension_rate'] > 0 && isset($pricing['extension_hours']) && $pricing['extension_hours'] > 0)
+                        <?php if($pricing['extension_rate'] > 0 && isset($pricing['extension_hours']) && $pricing['extension_hours'] > 0): ?>
                             <div class="text-sm">
                                 <div class="flex justify-between">
-                                    <span class="text-gray-600">Time Extension ({{ $pricing['extension_hours'] }} {{ $pricing['extension_hours'] == 1 ? 'hour' : 'hours' }})</span>
-                                    <span>₱{{ number_format($pricing['extension_rate'], 2) }}</span>
+                                    <span class="text-gray-600">Time Extension (<?php echo e($pricing['extension_hours']); ?> <?php echo e($pricing['extension_hours'] == 1 ? 'hour' : 'hours'); ?>)</span>
+                                    <span>₱<?php echo e(number_format($pricing['extension_rate'], 2)); ?></span>
                                 </div>
-                                @if(isset($pricing['pricing_model']) && $pricing['pricing_model'] === 'flat_rate' && isset($pricing['extension_rate_per_block']))
+                                <?php if(isset($pricing['pricing_model']) && $pricing['pricing_model'] === 'per_person' && isset($pricing['extension_rate_per_block'])): ?>
                                     <div class="text-xs text-gray-500 mt-1">
-                                        ₱{{ number_format($pricing['extension_rate_per_block'], 2) }} per 2-hour block × {{ $pricing['extension_blocks'] }} {{ $pricing['extension_blocks'] == 1 ? 'block' : 'blocks' }}
-                                    </div>
-                                @endif
-                            </div>
-                        @endif
+                                        ₱<?php echo e(number_format($pricing['extension_rate_per_block'], 2)); ?> per person per 2-hour block × <?php echo e(number_format($pricing['expected_attendees'])); ?> people × <?php echo e($pricing['extension_blocks']); ?> <?php echo e($pricing['extension_blocks'] == 1 ? 'block' : 'blocks'); ?>
 
-                        @if($pricing['equipment_total'] > 0)
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        <?php endif; ?>
+
+                        <?php if($pricing['equipment_total'] > 0): ?>
                             <div class="flex justify-between text-sm">
                                 <span class="text-gray-600">Equipment</span>
-                                <span>₱{{ number_format($pricing['equipment_total'], 2) }}</span>
+                                <span>₱<?php echo e(number_format($pricing['equipment_total'], 2)); ?></span>
                             </div>
-                        @endif
+                        <?php endif; ?>
                     </div>
 
                     <div class="flex justify-between font-medium text-gray-900 mb-4 pb-4 border-b">
                         <span>Subtotal</span>
-                        <span id="displaySubtotal">₱{{ number_format($pricing['subtotal'], 2) }}</span>
+                        <span id="displaySubtotal">₱<?php echo e(number_format($pricing['subtotal'], 2)); ?></span>
                     </div>
 
                     <div class="space-y-2 mb-4 pb-4 border-b">
@@ -577,7 +628,7 @@
 
                     <div class="flex justify-between text-xl font-bold text-lgu-button mb-4">
                         <span>Total Amount</span>
-                        <span id="displayTotal">₱{{ number_format($pricing['subtotal'], 2) }}</span>
+                        <span id="displayTotal">₱<?php echo e(number_format($pricing['subtotal'], 2)); ?></span>
                     </div>
 
                     <!-- Down Payment Display (shown when tier is selected) -->
@@ -600,7 +651,7 @@
                                 class="w-full px-6 py-3 bg-lgu-button text-lgu-button-text font-semibold rounded-lg hover:bg-lgu-highlight transition shadow-lg cursor-pointer">
                             Submit Booking
                         </button>
-                        <a href="{{ url()->previous() }}" 
+                        <a href="<?php echo e(url()->previous()); ?>" 
                            class="block w-full px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition text-center cursor-pointer">
                             Back to Equipment
                         </a>
@@ -611,7 +662,7 @@
     </form>
 </div>
 
-@push('scripts')
+<?php $__env->startPush('scripts'); ?>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const validIdTypeSelect = document.getElementById('valid_id_type');
@@ -620,8 +671,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const specialDiscountIdSection = document.getElementById('specialDiscountIdSection');
     const specialDiscountIdInput = document.getElementById('special_discount_id');
     
-    const subtotal = {{ $pricing['subtotal'] }};
-    const facilityCity = '{{ $facility->city_name ?? "" }}';
+    const subtotal = <?php echo e($pricing['subtotal']); ?>;
+    const facilityCity = '<?php echo e($facility->city_name ?? ""); ?>';
 
     // Auto-apply discount based on Valid ID Type
     let isAutoApplied = false;
@@ -685,7 +736,7 @@ document.addEventListener('DOMContentLoaded', function() {
     calculateTotal();
 
     function calculateTotal() {
-        const selectedCity = '{{ $user->city_name ?? "" }}';
+        const selectedCity = '<?php echo e($user->city_name ?? ""); ?>';
         const specialDiscountType = specialDiscountSelect.value;
 
         let residentDiscount = 0;
@@ -745,7 +796,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function updateSelectedTierInfo(tier, total) {
         if (!total) {
             // Recalculate total
-            const selectedCity = '{{ $user->city_name ?? "" }}';
+            const selectedCity = '<?php echo e($user->city_name ?? ""); ?>';
             const specialDiscountType = document.getElementById('special_discount_type').value;
             let residentDiscount = 0;
             let specialDiscount = 0;
@@ -1111,7 +1162,7 @@ function clearAllBookingData() {
                 timer: 1500,
                 showConfirmButton: false
             }).then(() => {
-                window.location.href = '{{ route("citizen.booking.create") }}';
+                window.location.href = '<?php echo e(route("citizen.booking.create")); ?>';
             });
         }
     });
@@ -1120,6 +1171,8 @@ function clearAllBookingData() {
 // Show notification if data was restored
 addClearDataOption();
 </script>
-@endpush
-@endsection
+<?php $__env->stopPush(); ?>
+<?php $__env->stopSection(); ?>
 
+
+<?php echo $__env->make('layouts.citizen', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\laragon\www\local-government-unit-1-ph.com\resources\views/citizen/booking/step3-review-submit.blade.php ENDPATH**/ ?>

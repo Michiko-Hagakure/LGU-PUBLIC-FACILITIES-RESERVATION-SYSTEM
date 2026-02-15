@@ -450,8 +450,8 @@ class FacilityReservationApiController extends Controller
                 'facilities.address',
                 'facilities.capacity',
                 'facilities.min_capacity',
-                'facilities.per_person_rate',
-                'facilities.per_person_extension_rate',
+                'facilities.base_rate_3hrs',
+                'facilities.extension_rate_2hrs',
                 'facilities.base_hours',
                 'lgu_cities.city_name'
             )
@@ -802,18 +802,18 @@ class FacilityReservationApiController extends Controller
         $baseRate = 0;
         $extensionRate = 0;
 
-        if (isset($facility->per_person_rate) && $facility->per_person_rate > 0) {
-            // Per-person pricing
-            $perPersonRate = $facility->per_person_rate;
+        if (isset($facility->base_rate_3hrs) && $facility->base_rate_3hrs > 0) {
+            // Flat rate pricing
+            $baseRate3hrs = $facility->base_rate_3hrs;
             $baseHours = $facility->base_hours ?? 3;
-            $extensionRatePer2Hours = $facility->per_person_extension_rate ?? 0;
+            $extensionRate2hrs = $facility->extension_rate_2hrs ?? 0;
 
-            $baseRate = $perPersonRate * $expectedAttendees;
+            $baseRate = $baseRate3hrs;
 
             $extensionHours = max(0, $totalHours - $baseHours);
-            if ($extensionHours > 0 && $extensionRatePer2Hours > 0) {
+            if ($extensionHours > 0 && $extensionRate2hrs > 0) {
                 $extensionBlocks = ceil($extensionHours / 2);
-                $extensionRate = $extensionBlocks * $extensionRatePer2Hours * $expectedAttendees;
+                $extensionRate = $extensionBlocks * $extensionRate2hrs;
             }
         } else {
             // Default pricing
