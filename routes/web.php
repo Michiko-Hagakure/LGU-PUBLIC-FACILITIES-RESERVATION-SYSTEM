@@ -1509,6 +1509,8 @@ Route::middleware(['auth', 'role:Admin', 'auto.expire'])->group(function () {
     Route::post('/admin/bookings/{id}/confirm-payment', [\App\Http\Controllers\Admin\PaymentVerificationController::class, 'confirmPayment'])->name('admin.bookings.confirm-payment');
     Route::post('/admin/bookings/{id}/reject-payment', [\App\Http\Controllers\Admin\PaymentVerificationController::class, 'rejectPayment'])->name('admin.bookings.reject-payment');
     Route::post('/admin/bookings/{id}/reject-booking', [\App\Http\Controllers\Admin\PaymentVerificationController::class, 'rejectBooking'])->name('admin.bookings.reject-booking');
+    Route::post('/admin/bookings/{id}/verify-documents', [\App\Http\Controllers\Admin\BookingManagementController::class, 'verifyDocuments'])->name('admin.bookings.verify-documents');
+    Route::post('/admin/bookings/{id}/reject-documents', [\App\Http\Controllers\Admin\BookingManagementController::class, 'rejectDocuments'])->name('admin.bookings.reject-documents');
     Route::post('/admin/bookings/{id}/final-confirm', [\App\Http\Controllers\Admin\BookingManagementController::class, 'finalConfirm'])->name('admin.bookings.final-confirm');
     Route::get('/admin/calendar', [\App\Http\Controllers\Admin\CalendarController::class, 'index'])->name('admin.calendar');
     Route::get('/admin/calendar/events', [\App\Http\Controllers\Admin\CalendarController::class, 'getEvents'])->name('admin.calendar.events');
@@ -2021,6 +2023,8 @@ Route::middleware(['auth', 'role:admin', 'auto.expire'])->prefix('admin')->name(
     Route::post('/bookings/{id}/confirm-payment', [\App\Http\Controllers\Admin\PaymentVerificationController::class, 'confirmPayment'])->name('bookings.confirm-payment');
     Route::post('/bookings/{id}/reject-payment', [\App\Http\Controllers\Admin\PaymentVerificationController::class, 'rejectPayment'])->name('bookings.reject-payment');
     Route::post('/bookings/{id}/reject-booking', [\App\Http\Controllers\Admin\PaymentVerificationController::class, 'rejectBooking'])->name('bookings.reject-booking');
+    Route::post('/bookings/{id}/verify-documents', [\App\Http\Controllers\Admin\BookingManagementController::class, 'verifyDocuments'])->name('bookings.verify-documents');
+    Route::post('/bookings/{id}/reject-documents', [\App\Http\Controllers\Admin\BookingManagementController::class, 'rejectDocuments'])->name('bookings.reject-documents');
     Route::post('/bookings/{id}/final-confirm', [\App\Http\Controllers\Admin\BookingManagementController::class, 'finalConfirm'])->name('bookings.final-confirm');
     Route::get('/bookings/{id}', [\App\Http\Controllers\Admin\BookingManagementController::class, 'show'])->name('bookings.show');
 

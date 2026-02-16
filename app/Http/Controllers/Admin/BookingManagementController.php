@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\FacilityDb;
+use App\Models\PaymentSlip;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -298,6 +299,182 @@ class BookingManagementController extends Controller
             'paymentDeadline',
             'hoursRemaining'
         ));
+    }
+
+    /**
+     * Verify documents for a pending booking (admin acts as reviewer)
+     * Same logic as staff verification — moves to staff_verified or paid
+     */
+    public function verifyDocuments(Request $request, $bookingId)
+    {
+        $userId = session('user_id');
+
+        if (!$userId) {
+            return redirect()->route('login')->with('error', 'Please login to continue.');
+        }
+
+        $validated = $request->validate([
+            'admin_notes' => 'nullable|string|max:1000'
+        ]);
+
+        try {
+            $booking = Booking::findOrFail($bookingId);
+
+            if ($booking->status !== 'pending') {
+                return back()->with('error', 'Only pending bookings can be verified.');
+            }
+
+            // Auto-fix: ensure amount_remaining is properly calculated
+            $amountPaid = $booking->amount_paid ?? 0;
+            $totalAmount = $booking->total_amount ?? 0;
+            if (is_null($booking->amount_remaining) && $totalAmount > 0) {
+                $booking->update([
+                    'amount_remaining' => max(0, $totalAmount - $amountPaid),
+                ]);
+                $booking->refresh();
+            }
+
+            // If fully paid (100% tier), go straight to 'paid' for final confirmation
+            // Otherwise go to 'staff_verified' for treasurer to collect remaining balance
+            $newStatus = $booking->isFullyPaid() ? 'paid' : 'staff_verified';
+
+            $booking->update([
+                'status' => $newStatus,
+                'staff_verified_by' => $userId,
+                'staff_verified_at' => now(),
+                'staff_notes' => $validated['admin_notes'] ?? null,
+            ]);
+
+            // Retrieve existing paid slip for notification
+            $paymentSlip = PaymentSlip::where('booking_id', $bookingId)
+                ->where('status', 'paid')
+                ->orderBy('paid_at', 'desc')
+                ->first();
+
+            // Check if an unpaid slip already exists
+            $hasUnpaidSlip = PaymentSlip::where('booking_id', $bookingId)
+                ->where('status', 'unpaid')
+                ->exists();
+
+            // If booking has remaining balance, create a remaining balance slip for the treasurer
+            if (!$hasUnpaidSlip && $booking->hasRemainingBalance()) {
+                PaymentSlip::create([
+                    'slip_number' => PaymentSlip::generateSlipNumber(),
+                    'booking_id' => $bookingId,
+                    'amount_due' => $booking->amount_remaining,
+                    'payment_deadline' => now()->addDays(7),
+                    'status' => 'unpaid',
+                    'payment_method' => $booking->payment_method ?? 'cash',
+                    'paid_at' => null,
+                    'notes' => 'Remaining balance (' . (100 - ($booking->payment_tier ?? 0)) . '%) to collect.' . ($booking->down_payment_amount > 0 ? ' Down payment of ₱' . number_format($booking->down_payment_amount, 2) . ' already received.' : ''),
+                ]);
+            }
+            // PF/API bookings: no payment was made yet, create a payment slip for the full amount
+            elseif (!$hasUnpaidSlip && !$booking->payment_tier && ($booking->amount_paid ?? 0) == 0 && $booking->total_amount > 0) {
+                $booking->update([
+                    'payment_method' => 'cash',
+                    'payment_tier' => 25,
+                    'down_payment_amount' => $booking->total_amount * 0.25,
+                    'amount_paid' => 0,
+                    'amount_remaining' => $booking->total_amount,
+                ]);
+
+                PaymentSlip::create([
+                    'slip_number' => PaymentSlip::generateSlipNumber(),
+                    'booking_id' => $bookingId,
+                    'amount_due' => $booking->total_amount * 0.25,
+                    'payment_deadline' => now()->addDays(3),
+                    'status' => 'unpaid',
+                    'payment_method' => 'cash',
+                    'paid_at' => null,
+                    'notes' => "Down payment (25%) — pay at City Treasurer's Office. Verified by Admin.",
+                ]);
+            }
+
+            // Send notification to citizen
+            try {
+                $user = User::find($booking->user_id);
+                $bookingWithFacility = DB::connection('facilities_db')
+                    ->table('bookings')
+                    ->join('facilities', 'bookings.facility_id', '=', 'facilities.facility_id')
+                    ->where('bookings.id', $bookingId)
+                    ->selectRaw('bookings.*, facilities.name as facility_name, CONCAT("BK", LPAD(bookings.id, 6, "0")) as booking_reference')
+                    ->first();
+
+                if ($user && $bookingWithFacility) {
+                    $user->notify(new \App\Notifications\StaffVerified($bookingWithFacility, $paymentSlip));
+                }
+            } catch (\Exception $e) {
+                \Log::error('Failed to send admin verification notification: ' . $e->getMessage());
+            }
+
+            $successMsg = $booking->isFullyPaid()
+                ? 'Documents verified & booking fully paid. Ready for final confirmation.'
+                : 'Documents verified. Remaining balance of ₱' . number_format($booking->amount_remaining, 2) . ' to be collected by the Treasurer.';
+
+            return redirect()
+                ->route('admin.bookings.review', $bookingId)
+                ->with('success', $successMsg);
+
+        } catch (\Exception $e) {
+            return back()->with('error', 'Failed to verify documents: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Reject a pending booking (admin acts as reviewer)
+     * Supports partial rejection with specific field issues
+     */
+    public function rejectDocuments(Request $request, $bookingId)
+    {
+        $userId = session('user_id');
+
+        if (!$userId) {
+            return redirect()->route('login')->with('error', 'Please login to continue.');
+        }
+
+        $validated = $request->validate([
+            'rejection_reason' => 'required|string|max:1000',
+            'rejection_type' => 'nullable|in:id_issue,facility_issue,document_issue,info_issue',
+            'rejection_fields' => 'nullable|array',
+            'rejection_fields.*' => 'string',
+        ]);
+
+        try {
+            $booking = Booking::findOrFail($bookingId);
+
+            if ($booking->status !== 'pending') {
+                return back()->with('error', 'Only pending bookings can be rejected.');
+            }
+
+            $booking->update([
+                'status' => 'rejected',
+                'staff_verified_by' => $userId,
+                'staff_verified_at' => now(),
+                'rejected_reason' => $validated['rejection_reason'],
+                'rejection_type' => $validated['rejection_type'] ?? null,
+                'rejection_fields' => $validated['rejection_fields'] ?? null,
+            ]);
+
+            // Send rejection notification to citizen
+            try {
+                $user = User::find($booking->user_id);
+                $booking->booking_reference = 'BK' . str_pad($booking->id, 6, '0', STR_PAD_LEFT);
+
+                if ($user && $booking) {
+                    $user->notify(new \App\Notifications\BookingRejected($booking, $validated['rejection_reason']));
+                }
+            } catch (\Exception $e) {
+                \Log::error('Failed to send admin rejection notification: ' . $e->getMessage());
+            }
+
+            return redirect()
+                ->route('admin.bookings.index')
+                ->with('success', 'Booking rejected. Citizen has been notified.');
+
+        } catch (\Exception $e) {
+            return back()->with('error', 'Failed to reject booking: ' . $e->getMessage());
+        }
     }
 
     /**
