@@ -81,7 +81,7 @@ class FacilitySeeder extends Seeder
             'facility_name' => 'Buena Park Sports Complex',
             'facility_type' => 'sports_complex',
             'description' => 'A multi-purpose sports complex ideal for sports events, tournaments, and large gatherings. Features outdoor courts and ample space for various activities.',
-            'capacity' => 350,
+            'capacity' => 800,
             'hourly_rate' => null,
             'base_rate_3hrs' => 5000.00,
             'extension_rate_2hrs' => 2000.00,
