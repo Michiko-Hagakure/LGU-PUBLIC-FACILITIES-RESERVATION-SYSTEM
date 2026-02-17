@@ -207,10 +207,10 @@
                                     <span class="text-body font-bold text-primary-600">₱{{ number_format($facility->hourly_rate, 2) }}</span>
                                 </div>
                             @endif
-                            @if($facility->per_person_rate)
+                            @if($facility->base_rate_3hrs)
                                 <div class="flex items-center justify-between">
-                                    <span class="text-small text-gray-600">Per Person Rate</span>
-                                    <span class="text-body font-bold text-primary-600">₱{{ number_format($facility->per_person_rate, 2) }}</span>
+                                    <span class="text-small text-gray-600">Base Rate (3 Hours)</span>
+                                    <span class="text-body font-bold text-primary-600">₱{{ number_format($facility->base_rate_3hrs, 2) }}</span>
                                 </div>
                             @endif
                             @if($facility->deposit_amount)

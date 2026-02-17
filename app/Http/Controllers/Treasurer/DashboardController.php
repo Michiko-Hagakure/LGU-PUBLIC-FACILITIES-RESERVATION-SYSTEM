@@ -44,11 +44,13 @@ class DashboardController extends Controller
             ->where('status', 'paid')
             ->sum('amount_due') ?? 0;
         
-        // Pending payments (awaiting verification)
+        // Pending payments (awaiting verification) — exclude slips for already paid/confirmed/expired bookings
         $pendingPayments = DB::connection('facilities_db')
             ->table('payment_slips')
-            ->where('status', 'unpaid')
-            ->where('payment_deadline', '>=', Carbon::now())
+            ->join('bookings', 'payment_slips.booking_id', '=', 'bookings.id')
+            ->where('payment_slips.status', 'unpaid')
+            ->where('payment_slips.payment_deadline', '>=', Carbon::now())
+            ->whereNotIn('bookings.status', ['paid', 'confirmed', 'completed', 'expired', 'cancelled'])
             ->count();
         
         // Payments verified today

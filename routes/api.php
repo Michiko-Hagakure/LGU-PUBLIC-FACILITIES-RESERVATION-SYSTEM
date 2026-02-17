@@ -90,11 +90,17 @@ Route::prefix('facility-reservation')->group(function () {
     // GET https://facilities.local-government-unit-1-ph.com/api/facility-reservation/status/{reference}
     Route::get('/status/{reference}', [\App\Http\Controllers\Api\FacilityReservationApiController::class, 'checkStatus']);
     
+    // GET https://facilities.local-government-unit-1-ph.com/api/facility-reservation/payment-history/{reference}
+    Route::get('/payment-history/{reference}', [\App\Http\Controllers\Api\FacilityReservationApiController::class, 'paymentHistory']);
+    
     // POST https://facilities.local-government-unit-1-ph.com/api/facility-reservation
     Route::post('/', [\App\Http\Controllers\Api\FacilityReservationApiController::class, 'store']);
     
     // POST https://facilities.local-government-unit-1-ph.com/api/facility-reservation/payment-complete
     Route::post('/payment-complete', [\App\Http\Controllers\Api\FacilityReservationApiController::class, 'paymentComplete']);
+    
+    // POST https://facilities.local-government-unit-1-ph.com/api/facility-reservation/promote-after-payment
+    Route::post('/promote-after-payment', [\App\Http\Controllers\Api\FacilityReservationApiController::class, 'promoteAfterPayment']);
     
     // POST https://facilities.local-government-unit-1-ph.com/api/facility-reservation/submit-cashless-payment
     Route::post('/submit-cashless-payment', [\App\Http\Controllers\Api\FacilityReservationApiController::class, 'submitCashlessPayment']);
@@ -133,13 +139,39 @@ Route::prefix('housing-resettlement')->group(function () {
 |--------------------------------------------------------------------------
 | Energy Efficiency and Conservation Management API
 |--------------------------------------------------------------------------
-| API endpoint for Energy Efficiency system to submit fund requests
-| for facility-related expenses (seminars, orientations, etc.)
+| API endpoints for Energy Efficiency system to request facilities
+| for seminars, orientations, trainings, workshops, etc.
 |
-| Base URL: https://local-government-unit-1-ph.com/api/energy-efficiency
+| Base URL: https://facilities.local-government-unit-1-ph.com/api/energy-efficiency
+|
+| Available Endpoints:
+| POST /api/energy-efficiency/facility-request          - Submit a new facility request
+| GET  /api/energy-efficiency/facility-request          - List all requests (filter: ?seminar_id=&status=&user_id=)
+| GET  /api/energy-efficiency/facility-request/{id}     - Get specific request details & status
+| GET  /api/energy-efficiency/facilities                - List available facilities
+|
+| Legacy Endpoints (backward compatible):
+| POST /api/energy-efficiency/receive-funds             - Submit fund request (old format)
+| GET  /api/energy-efficiency/status/{id}               - Check fund request status (old format)
 */
 Route::prefix('energy-efficiency')->group(function () {
-    // POST - Receive fund request from Energy Efficiency system
+    // === New Facility Request Endpoints ===
+    
+    // POST - Submit a new facility request
+    Route::post('/facility-request', [\App\Http\Controllers\Api\EnergyFacilityRequestApiController::class, 'store']);
+    
+    // GET - List all facility requests (filter by seminar_id, status, user_id)
+    Route::get('/facility-request', [\App\Http\Controllers\Api\EnergyFacilityRequestApiController::class, 'index']);
+    
+    // GET - Get specific facility request details & status
+    Route::get('/facility-request/{id}', [\App\Http\Controllers\Api\EnergyFacilityRequestApiController::class, 'show']);
+    
+    // GET - List available facilities
+    Route::get('/facilities', [\App\Http\Controllers\Api\EnergyFacilityRequestApiController::class, 'listFacilities']);
+
+    // === Legacy Fund Request Endpoints (backward compatible) ===
+    
+    // POST - Receive fund request from Energy Efficiency system (old format)
     Route::post('/receive-funds', function (Request $request) {
         $newRequest = \App\Models\FundRequest::create([
             'requester_name' => $request->requester_name,
@@ -163,7 +195,7 @@ Route::prefix('energy-efficiency')->group(function () {
         return response()->json(['status' => 'error', 'message' => 'Failed to create fund request'], 500);
     });
 
-    // GET - Check fund request status
+    // GET - Check fund request status (old format)
     Route::get('/status/{id}', function ($id) {
         $request = \App\Models\FundRequest::find($id);
 
@@ -278,6 +310,60 @@ Route::prefix('road-assistance')->group(function () {
 
 /*
 |--------------------------------------------------------------------------
+| Super Admin Analytics API
+|--------------------------------------------------------------------------
+| API endpoints for Super Admin analytics data.
+| All database code data is exposed via these endpoints.
+|
+| Base URL: https://facilities.local-government-unit-1-ph.com/api/super-admin/analytics
+|
+| Available GET Endpoints:
+| GET  /api/super-admin/analytics/overview              - Analytics hub overview (revenue, bookings, citizens, utilization)
+| GET  /api/super-admin/analytics/booking-statistics    - Booking statistics (status, trends, popular facilities, peak hours)
+| GET  /api/super-admin/analytics/facility-utilization  - Facility utilization report (AI training data, underutilized/high-performing)
+| GET  /api/super-admin/analytics/revenue               - Revenue report (by facility, payment method, monthly trend)
+| GET  /api/super-admin/analytics/citizen               - Citizen analytics (new, repeat, top citizens, growth trend)
+| GET  /api/super-admin/analytics/operational-metrics   - Operational metrics (processing times, staff performance, bottlenecks)
+| GET  /api/super-admin/analytics/payments              - Payment analytics (method breakdown, daily revenue, success rate)
+| GET  /api/super-admin/analytics/all                   - All analytics data in a single response
+|
+| Available POST Endpoints:
+| POST /api/super-admin/analytics/filter                - Filter any analytics type with date range via POST body
+|
+| Query Parameters (GET): ?start_date=YYYY-MM-DD&end_date=YYYY-MM-DD
+| POST Body: { "type": "overview|booking-statistics|...", "start_date": "...", "end_date": "..." }
+*/
+Route::prefix('super-admin/analytics')->group(function () {
+    // GET - Analytics hub overview
+    Route::get('/overview', [\App\Http\Controllers\Api\AnalyticsApiController::class, 'overview']);
+
+    // GET - Booking statistics
+    Route::get('/booking-statistics', [\App\Http\Controllers\Api\AnalyticsApiController::class, 'bookingStatistics']);
+
+    // GET - Facility utilization report
+    Route::get('/facility-utilization', [\App\Http\Controllers\Api\AnalyticsApiController::class, 'facilityUtilization']);
+
+    // GET - Revenue report
+    Route::get('/revenue', [\App\Http\Controllers\Api\AnalyticsApiController::class, 'revenueReport']);
+
+    // GET - Citizen analytics
+    Route::get('/citizen', [\App\Http\Controllers\Api\AnalyticsApiController::class, 'citizenAnalytics']);
+
+    // GET - Operational metrics
+    Route::get('/operational-metrics', [\App\Http\Controllers\Api\AnalyticsApiController::class, 'operationalMetrics']);
+
+    // GET - Payment analytics
+    Route::get('/payments', [\App\Http\Controllers\Api\AnalyticsApiController::class, 'paymentAnalytics']);
+
+    // GET - All analytics data in a single response
+    Route::get('/all', [\App\Http\Controllers\Api\AnalyticsApiController::class, 'all']);
+
+    // POST - Filter analytics by type and date range
+    Route::post('/filter', [\App\Http\Controllers\Api\AnalyticsApiController::class, 'filter']);
+});
+
+/*
+|--------------------------------------------------------------------------
 | PayMongo Webhook
 |--------------------------------------------------------------------------
 | Endpoint for PayMongo to send payment event notifications.
@@ -290,3 +376,37 @@ Route::prefix('road-assistance')->group(function () {
 */
 Route::post('/paymongo/webhook', [\App\Http\Controllers\Api\PayMongoWebhookController::class, 'handle'])
     ->name('paymongo.webhook');
+
+/*
+|--------------------------------------------------------------------------
+| Road & Transportation Infrastructure Monitoring - Webhook
+|--------------------------------------------------------------------------
+| Endpoint for the Road & Transportation system to send status notifications
+| (approved/rejected) for traffic event requests we submitted.
+|
+| POST https://your-domain.com/api/road-transport/webhook
+|
+| Expected JSON payload:
+|   request_id  - External request ID from their system
+|   status      - approved | rejected
+|   remarks     - Admin remarks / feedback
+|   event_type  - (optional) Event type
+|   location    - (optional) Location
+|   timestamp   - (optional) When the status changed
+*/
+Route::post('/road-transport/webhook', [\App\Http\Controllers\Api\RoadTransportWebhookController::class, 'handle'])
+    ->name('road-transport.webhook');
+
+/*
+|--------------------------------------------------------------------------
+| Database Sync API
+|--------------------------------------------------------------------------
+| Bidirectional sync endpoint used by the SyncDataToCloud job.
+| Localhost pushes local changes to the cloud and pulls cloud changes.
+| Secured via X-Sync-Key header (must match SYNC_API_KEY in .env).
+|
+| POST /api/sync-data  { action: "upload",   table: "...", data: [...] }
+| GET  /api/sync-data  ?action=download&table=...
+*/
+Route::match(['get', 'post'], '/sync-data', [\App\Http\Controllers\Api\SyncDataController::class, 'handle'])
+    ->name('sync-data');

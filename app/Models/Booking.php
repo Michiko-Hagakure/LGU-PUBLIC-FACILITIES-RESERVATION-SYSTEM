@@ -490,6 +490,70 @@ class Booking extends Model
     }
 
     /**
+     * Cancel all overlapping unpaid bookings for the same facility/date/time.
+     * Called when a booking's payment is confirmed — whoever pays first gets the slot.
+     *
+     * @return int Number of bookings cancelled
+     */
+    public static function cancelOverlappingUnpaidBookings(Booking $paidBooking): int
+    {
+        $overlapping = self::where('facility_id', $paidBooking->facility_id)
+            ->where('id', '!=', $paidBooking->id)
+            ->where('status', 'awaiting_payment')
+            ->where('start_time', '<', $paidBooking->end_time)
+            ->where('end_time', '>', $paidBooking->start_time)
+            ->get();
+
+        $count = 0;
+        $paidRef = 'BK' . str_pad($paidBooking->id, 6, '0', STR_PAD_LEFT);
+
+        foreach ($overlapping as $booking) {
+            $booking->update([
+                'status' => 'cancelled',
+                'canceled_at' => now(),
+                'canceled_reason' => "Auto-cancelled: Another citizen ({$paidRef}) completed payment first for the same time slot.",
+            ]);
+
+            // Expire unpaid payment slips for this booking
+            PaymentSlip::where('booking_id', $booking->id)
+                ->where('status', 'unpaid')
+                ->update(['status' => 'expired']);
+
+            // Notify the citizen whose booking was cancelled
+            try {
+                $user = \App\Models\User::find($booking->user_id);
+                if ($user) {
+                    $bookingWithFacility = \Illuminate\Support\Facades\DB::connection('facilities_db')
+                        ->table('bookings')
+                        ->join('facilities', 'bookings.facility_id', '=', 'facilities.facility_id')
+                        ->where('bookings.id', $booking->id)
+                        ->selectRaw('bookings.*, facilities.name as facility_name, CONCAT("BK", LPAD(bookings.id, 6, "0")) as booking_reference')
+                        ->first();
+
+                    if ($bookingWithFacility) {
+                        $user->notify(new \App\Notifications\BookingCancelled($bookingWithFacility, "Another citizen completed payment first for the same time slot. You may browse other available times or facilities."));
+                    }
+                }
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('Failed to notify citizen of auto-cancelled booking: ' . $e->getMessage());
+            }
+
+            $count++;
+        }
+
+        if ($count > 0) {
+            \Illuminate\Support\Facades\Log::info("AUTO_CANCEL_OVERLAPPING: {$count} unpaid booking(s) cancelled because {$paidRef} paid first.", [
+                'paid_booking_id' => $paidBooking->id,
+                'facility_id' => $paidBooking->facility_id,
+                'start_time' => $paidBooking->start_time,
+                'end_time' => $paidBooking->end_time,
+            ]);
+        }
+
+        return $count;
+    }
+
+    /**
      * Format remaining time for display
      * 
      * @return string

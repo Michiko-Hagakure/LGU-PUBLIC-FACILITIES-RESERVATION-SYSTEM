@@ -497,7 +497,7 @@
                 </div>
 
                 <!-- Terms and Conditions -->
-                <div class="bg-white shadow-lg rounded-lg p-6">
+                <div class="bg-white shadow-lg rounded-lg p-6 space-y-4">
                     <div class="flex items-start">
                         <input type="checkbox" id="terms" name="terms" required
                                class="mt-1 h-4 w-4 text-lgu-button focus:ring-lgu-button border-gray-300 rounded cursor-pointer">
@@ -506,6 +506,18 @@
                             and confirm that all information provided is accurate. I understand that my booking is subject 
                             to staff verification and approval. <strong>I also understand that I may cancel my reservation, but all payments are non-refundable.</strong>
                         </label>
+                    </div>
+
+                    <div class="border-t border-gray-200 pt-4">
+                        <div class="flex items-start">
+                            <input type="checkbox" id="general_terms" name="general_terms" required
+                                   class="mt-1 h-4 w-4 text-lgu-button focus:ring-lgu-button border-gray-300 rounded cursor-pointer">
+                            <label for="general_terms" class="ml-3 text-sm text-gray-700 cursor-pointer">
+                                I agree to the <span class="text-lgu-button font-semibold">Terms of Service & Privacy Policy</span> 
+                                and consent to the collection and processing of my personal information in accordance with the 
+                                <strong>Data Privacy Act of 2012 (RA 10173)</strong>.
+                            </label>
+                        </div>
                     </div>
                 </div>
 
@@ -529,9 +541,9 @@
                                 <span class="text-gray-600">Base Rate ({{ $pricing['base_hours'] }} hours)</span>
                                 <span>₱{{ number_format($pricing['base_rate'], 2) }}</span>
                             </div>
-                            @if(isset($pricing['pricing_model']) && $pricing['pricing_model'] === 'per_person')
+                            @if(isset($pricing['pricing_model']) && $pricing['pricing_model'] === 'flat_rate')
                                 <div class="text-xs text-gray-500 mt-1">
-                                    ₱{{ number_format($pricing['per_person_rate'], 2) }} per person × {{ number_format($pricing['expected_attendees']) }} people
+                                    Flat rate for first {{ $pricing['base_hours'] }} hours
                                 </div>
                             @endif
                         </div>
@@ -542,9 +554,9 @@
                                     <span class="text-gray-600">Time Extension ({{ $pricing['extension_hours'] }} {{ $pricing['extension_hours'] == 1 ? 'hour' : 'hours' }})</span>
                                     <span>₱{{ number_format($pricing['extension_rate'], 2) }}</span>
                                 </div>
-                                @if(isset($pricing['pricing_model']) && $pricing['pricing_model'] === 'per_person' && isset($pricing['extension_rate_per_block']))
+                                @if(isset($pricing['pricing_model']) && $pricing['pricing_model'] === 'flat_rate' && isset($pricing['extension_rate_per_block']))
                                     <div class="text-xs text-gray-500 mt-1">
-                                        ₱{{ number_format($pricing['extension_rate_per_block'], 2) }} per person per 2-hour block × {{ number_format($pricing['expected_attendees']) }} people × {{ $pricing['extension_blocks'] }} {{ $pricing['extension_blocks'] == 1 ? 'block' : 'blocks' }}
+                                        ₱{{ number_format($pricing['extension_rate_per_block'], 2) }} per 2-hour block × {{ $pricing['extension_blocks'] }} {{ $pricing['extension_blocks'] == 1 ? 'block' : 'blocks' }}
                                     </div>
                                 @endif
                             </div>
@@ -986,6 +998,153 @@ function showTermsModal() {
     });
 }
 
+// General Terms of Service & Privacy Policy Modal with Timer
+const generalTermsCheckbox = document.getElementById('general_terms');
+let generalTermsAccepted = false;
+
+generalTermsCheckbox.addEventListener('click', function(e) {
+    if (generalTermsAccepted) {
+        return;
+    }
+    
+    e.preventDefault();
+    showGeneralTermsModal();
+});
+
+function showGeneralTermsModal() {
+    const timerDuration = 5;
+    let timerInterval;
+    
+    Swal.fire({
+        title: '<div style="color: #0F5257;"><svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle; margin-right: 10px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Terms of Service & Privacy Policy</div>',
+        html: `
+            <div style="text-align: left; max-height: 60vh; overflow-y: auto; padding: 20px; font-size: 14px; line-height: 1.6;">
+                <div style="background: #E8F4F5; border-left: 4px solid #0F5257; padding: 15px; margin-bottom: 20px; border-radius: 4px;">
+                    <p style="margin: 0; color: #0F5257; font-weight: 600;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle; margin-right: 5px;">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="12" x2="12" y1="8" y2="12"/>
+                            <line x1="12" x2="12.01" y1="16" y2="16"/>
+                        </svg>
+                        Please read and understand the following Terms of Service and Privacy Policy before using our system.
+                    </p>
+                </div>
+
+                <h3 style="color: #0F5257; font-weight: 600; margin-top: 20px; margin-bottom: 10px; font-size: 16px;">1. Acceptance of Terms</h3>
+                <ul style="margin-left: 20px; color: #374151;">
+                    <li style="margin-bottom: 8px;">By accessing and using the LGU Facility Reservation System, you agree to be bound by these Terms of Service and all applicable laws and regulations.</li>
+                    <li style="margin-bottom: 8px;">If you do not agree with any of these terms, you are prohibited from using this system.</li>
+                    <li style="margin-bottom: 8px;">We reserve the right to modify these terms at any time. Continued use of the system constitutes acceptance of updated terms.</li>
+                </ul>
+
+                <h3 style="color: #0F5257; font-weight: 600; margin-top: 20px; margin-bottom: 10px; font-size: 16px;">2. User Account & Responsibilities</h3>
+                <ul style="margin-left: 20px; color: #374151;">
+                    <li style="margin-bottom: 8px;">You are responsible for maintaining the <strong>confidentiality of your account credentials</strong> and for all activities that occur under your account.</li>
+                    <li style="margin-bottom: 8px;">You agree to provide <strong>accurate, current, and complete information</strong> during registration and booking.</li>
+                    <li style="margin-bottom: 8px;">You must immediately notify the administrator of any unauthorized use of your account.</li>
+                    <li style="margin-bottom: 8px;">Misuse of the system, including fraudulent bookings or false information, may result in <strong>account suspension or termination</strong>.</li>
+                </ul>
+
+                <h3 style="color: #0F5257; font-weight: 600; margin-top: 20px; margin-bottom: 10px; font-size: 16px;">3. Privacy & Data Collection</h3>
+                <div style="background: #EFF6FF; border-left: 4px solid #3B82F6; padding: 15px; margin-bottom: 15px; border-radius: 4px;">
+                    <p style="margin: 0; color: #1E40AF; font-weight: 600;">
+                        In compliance with the Data Privacy Act of 2012 (Republic Act No. 10173):
+                    </p>
+                </div>
+                <ul style="margin-left: 20px; color: #374151;">
+                    <li style="margin-bottom: 8px;">We collect personal information such as your <strong>name, email address, contact number, government-issued ID, and address</strong> solely for the purpose of processing and managing facility reservations.</li>
+                    <li style="margin-bottom: 8px;">Your personal data will be stored securely and will <strong>not be shared with third parties</strong> without your explicit consent, except as required by law.</li>
+                    <li style="margin-bottom: 8px;">You have the right to <strong>access, correct, and request deletion</strong> of your personal data at any time by contacting the system administrator.</li>
+                    <li style="margin-bottom: 8px;">We implement appropriate technical and organizational security measures to protect your data against unauthorized access, alteration, or destruction.</li>
+                </ul>
+
+                <h3 style="color: #0F5257; font-weight: 600; margin-top: 20px; margin-bottom: 10px; font-size: 16px;">4. Use of Cookies & System Logs</h3>
+                <ul style="margin-left: 20px; color: #374151;">
+                    <li style="margin-bottom: 8px;">This system uses cookies and local storage to improve your experience, such as saving form progress and session management.</li>
+                    <li style="margin-bottom: 8px;">System logs (e.g., login activity, booking actions) are recorded for security and auditing purposes.</li>
+                </ul>
+
+                <h3 style="color: #0F5257; font-weight: 600; margin-top: 20px; margin-bottom: 10px; font-size: 16px;">5. Intellectual Property</h3>
+                <ul style="margin-left: 20px; color: #374151;">
+                    <li style="margin-bottom: 8px;">All content, design, and functionality of this system are the property of the Local Government Unit and are protected by applicable intellectual property laws.</li>
+                    <li style="margin-bottom: 8px;">You may not reproduce, distribute, or create derivative works from any part of this system without prior written consent.</li>
+                </ul>
+
+                <h3 style="color: #0F5257; font-weight: 600; margin-top: 20px; margin-bottom: 10px; font-size: 16px;">6. Limitation of Liability</h3>
+                <ul style="margin-left: 20px; color: #374151;">
+                    <li style="margin-bottom: 8px;">The system is provided on an <strong>"as is"</strong> and <strong>"as available"</strong> basis without warranties of any kind.</li>
+                    <li style="margin-bottom: 8px;">The LGU shall not be liable for any indirect, incidental, or consequential damages arising from the use of this system.</li>
+                    <li style="margin-bottom: 8px;">We do not guarantee uninterrupted or error-free operation of the system and are not liable for any losses due to system downtime or technical issues.</li>
+                </ul>
+
+                <h3 style="color: #0F5257; font-weight: 600; margin-top: 20px; margin-bottom: 10px; font-size: 16px;">7. Governing Law</h3>
+                <ul style="margin-left: 20px; color: #374151;">
+                    <li style="margin-bottom: 8px;">These terms shall be governed by and construed in accordance with the <strong>laws of the Republic of the Philippines</strong>.</li>
+                    <li style="margin-bottom: 8px;">Any disputes arising from the use of this system shall be settled in the appropriate courts of the Philippines.</li>
+                </ul>
+
+                <div style="background: #E8F4F5; border: 2px solid #0F5257; padding: 15px; margin-top: 25px; border-radius: 8px; text-align: center;">
+                    <p style="margin: 0; color: #0F5257; font-weight: 600; font-size: 15px;">
+                        By clicking "I Agree", you acknowledge that you have read, understood, and agree to comply with the Terms of Service and Privacy Policy stated above.
+                    </p>
+                </div>
+            </div>
+        `,
+        width: '700px',
+        showCancelButton: true,
+        confirmButtonText: '<span id="general-agree-timer">Please read (5s)</span>',
+        cancelButtonText: 'Cancel',
+        confirmButtonColor: '#0F5257',
+        cancelButtonColor: '#6B7280',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        didOpen: () => {
+            const confirmButton = Swal.getConfirmButton();
+            confirmButton.disabled = true;
+            confirmButton.style.opacity = '0.5';
+            confirmButton.style.cursor = 'not-allowed';
+            
+            let timeLeft = timerDuration;
+            
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                
+                if (timeLeft > 0) {
+                    document.getElementById('general-agree-timer').textContent = `Please read (${timeLeft}s)`;
+                } else {
+                    clearInterval(timerInterval);
+                    confirmButton.disabled = false;
+                    confirmButton.style.opacity = '1';
+                    confirmButton.style.cursor = 'pointer';
+                    document.getElementById('general-agree-timer').innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle; margin-right: 5px;"><polyline points="20 6 9 17 4 12"/></svg>I Agree';
+                }
+            }, 1000);
+        },
+        willClose: () => {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+            }
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            generalTermsAccepted = true;
+            generalTermsCheckbox.checked = true;
+            
+            Swal.fire({
+                icon: 'success',
+                title: 'Terms Accepted',
+                text: 'Thank you for reviewing the Terms of Service and Privacy Policy.',
+                timer: 2000,
+                showConfirmButton: false,
+                iconColor: '#0F5257'
+            });
+        } else {
+            generalTermsCheckbox.checked = false;
+            generalTermsAccepted = false;
+        }
+    });
+}
+
 // Auto-save Step 3 form data to localStorage
 const bookingForm = document.getElementById('bookingSubmitForm');
 
@@ -1037,8 +1196,8 @@ restoreStep3Data();
 
 // Clear ALL saved booking data when form is successfully submitted
 bookingForm.addEventListener('submit', function(e) {
-    // Only clear if terms are accepted (form will actually submit)
-    if (termsAccepted) {
+    // Only clear if both terms are accepted (form will actually submit)
+    if (termsAccepted && generalTermsAccepted) {
         // Clear all booking data from localStorage
         localStorage.removeItem('booking_step1_data');
         localStorage.removeItem('booking_step2_data');

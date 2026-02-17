@@ -4,7 +4,7 @@
 @section('page-subtitle', 'Manage road assistance requests from Road and Transportation Infrastructure Monitoring')
 
 @push('styles')
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.14.5/sweetalert2.min.css">
 <style>
     .swal2-popup {
         font-family: inherit;
@@ -150,11 +150,29 @@
     {{-- Outgoing Requests Sent to Road & Transportation --}}
     @if(isset($outgoingRequests) && count($outgoingRequests) > 0)
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div class="bg-gradient-to-r from-green-600 to-green-700 px-gr-md py-gr-sm">
+        <div class="bg-gradient-to-r from-green-600 to-green-700 px-gr-md py-gr-sm flex items-center justify-between">
             <h3 class="text-white font-semibold flex items-center gap-2">
                 <i data-lucide="send" class="w-5 h-5"></i>
                 Outgoing Requests (Sent to Road & Transportation)
             </h3>
+            <div class="flex items-center gap-2">
+                <form action="{{ route('admin.road-assistance.sync-statuses') }}" method="POST" class="inline">
+                    @csrf
+                    <button type="submit" class="px-3 py-1.5 bg-white text-green-700 text-small font-semibold rounded-lg hover:bg-green-50 transition-colors flex items-center gap-1">
+                        <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                        Sync Statuses
+                    </button>
+                </form>
+                @if($outgoingRequests->where('status', 'pending_sync')->count() > 0)
+                <form action="{{ route('admin.road-assistance.retry-sync') }}" method="POST" class="inline">
+                    @csrf
+                    <button type="submit" class="px-3 py-1.5 bg-yellow-100 text-yellow-800 text-small font-semibold rounded-lg hover:bg-yellow-200 transition-colors flex items-center gap-1">
+                        <i data-lucide="upload" class="w-4 h-4"></i>
+                        Retry Sync ({{ $outgoingRequests->where('status', 'pending_sync')->count() }})
+                    </button>
+                </form>
+                @endif
+            </div>
         </div>
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200">
@@ -406,7 +424,7 @@
 @endsection
 
 @push('scripts')
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.14.5/sweetalert2.all.min.js"></script>
 <script>
     const requestsData = @json($requests->keyBy('id'));
     const assistanceTypesData = @json($assistanceTypes);

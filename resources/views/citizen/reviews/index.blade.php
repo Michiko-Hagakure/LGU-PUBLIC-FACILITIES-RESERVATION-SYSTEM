@@ -47,7 +47,7 @@
                     <div class="flex items-start gap-gr-md">
                         {{-- Facility Image --}}
                         @if($review->facility_image)
-                            <img src="{{ Storage::url($review->facility_image) }}" alt="{{ $review->facility_name }}" 
+                            <img src="{{ url('/files/' . $review->facility_image) }}" alt="{{ $review->facility_name }}" 
                                 class="w-24 h-24 object-cover rounded-lg flex-shrink-0">
                         @else
                             <div class="w-24 h-24 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -140,7 +140,7 @@
 </form>
 
 @push('scripts')
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.14.5/sweetalert2.all.min.js"></script>
 <script>
 // Initialize Lucide icons
 if (typeof lucide !== 'undefined') {

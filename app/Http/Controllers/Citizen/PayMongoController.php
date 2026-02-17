@@ -46,14 +46,21 @@ class PayMongoController extends Controller
                 $isPaid = $paymongo->isPaymentSuccessful($checkoutSessionId);
 
                 if ($isPaid) {
+                    $wasAwaitingPayment = $booking->status === 'awaiting_payment';
+
                     // Update booking with payment confirmation and promote to pending
                     $booking->update([
-                        'status' => $booking->status === 'awaiting_payment' ? 'pending' : $booking->status,
+                        'status' => $wasAwaitingPayment ? 'pending' : $booking->status,
                         'amount_paid' => $booking->down_payment_amount,
                         'amount_remaining' => $booking->total_amount - $booking->down_payment_amount,
                         'down_payment_paid_at' => Carbon::now(),
                         'paymongo_payment_id' => $paymentDetails['payment_id'] ?? null,
                     ]);
+
+                    // Auto-cancel overlapping unpaid bookings — whoever pays first gets the slot
+                    if ($wasAwaitingPayment) {
+                        Booking::cancelOverlappingUnpaidBookings($booking);
+                    }
 
                     Log::info("PayMongo payment confirmed for booking #{$bookingId}", [
                         'amount' => $booking->down_payment_amount,

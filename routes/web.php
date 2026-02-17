@@ -42,6 +42,11 @@ Route::get('/files/{path}', function ($path) {
     return response()->file($fullPath);
 })->where('path', '.*')->name('storage.serve');
 
+// Offline Fallback Page (PWA)
+Route::get('/offline', function () {
+    return view('offline');
+})->name('offline');
+
 // CSRF Token Refresh Endpoint - For preventing stale token issues
 Route::get('/csrf-token', function () {
     return response()->json([
@@ -877,6 +882,14 @@ Route::post('/register', function () {
         return back()->withErrors($validator)->withInput();
     }
 
+    // Age validation - must be at least 18 years old
+    $birthdate = new \DateTime(request('birthdate'));
+    $today = new \DateTime();
+    $age = $today->diff($birthdate)->y;
+    if ($age < 18) {
+        return back()->withErrors(['birthdate' => 'You must be at least 18 years old to register. Your age based on the birthdate provided is ' . $age . ' years old.'])->withInput();
+    }
+
     // Note: Email uniqueness is checked upfront via AJAX in Step 1
     // But we still validate as a safety net on the backend
 
@@ -1496,6 +1509,8 @@ Route::middleware(['auth', 'role:Admin', 'auto.expire'])->group(function () {
     Route::post('/admin/bookings/{id}/confirm-payment', [\App\Http\Controllers\Admin\PaymentVerificationController::class, 'confirmPayment'])->name('admin.bookings.confirm-payment');
     Route::post('/admin/bookings/{id}/reject-payment', [\App\Http\Controllers\Admin\PaymentVerificationController::class, 'rejectPayment'])->name('admin.bookings.reject-payment');
     Route::post('/admin/bookings/{id}/reject-booking', [\App\Http\Controllers\Admin\PaymentVerificationController::class, 'rejectBooking'])->name('admin.bookings.reject-booking');
+    Route::post('/admin/bookings/{id}/verify-documents', [\App\Http\Controllers\Admin\BookingManagementController::class, 'verifyDocuments'])->name('admin.bookings.verify-documents');
+    Route::post('/admin/bookings/{id}/reject-documents', [\App\Http\Controllers\Admin\BookingManagementController::class, 'rejectDocuments'])->name('admin.bookings.reject-documents');
     Route::post('/admin/bookings/{id}/final-confirm', [\App\Http\Controllers\Admin\BookingManagementController::class, 'finalConfirm'])->name('admin.bookings.final-confirm');
     Route::get('/admin/calendar', [\App\Http\Controllers\Admin\CalendarController::class, 'index'])->name('admin.calendar');
     Route::get('/admin/calendar/events', [\App\Http\Controllers\Admin\CalendarController::class, 'getEvents'])->name('admin.calendar.events');
@@ -1882,11 +1897,6 @@ Route::middleware(['auth', 'role:citizen', \App\Http\Middleware\CheckSessionTime
     Route::get('/citizen/booking-conflicts/{id}', [\App\Http\Controllers\Citizen\BookingConflictController::class, 'show'])->name('citizen.conflicts.show');
     Route::post('/citizen/booking-conflicts/{id}/resolve', [\App\Http\Controllers\Citizen\BookingConflictController::class, 'resolveConflict'])->name('citizen.conflicts.resolve');
 
-    // Road Assistance Requests (Integration with Road & Transportation)
-    Route::get('/citizen/road-assistance', [\App\Http\Controllers\Citizen\RoadAssistanceController::class, 'index'])->name('citizen.road-assistance.index');
-    Route::post('/citizen/road-assistance', [\App\Http\Controllers\Citizen\RoadAssistanceController::class, 'store'])->name('citizen.road-assistance.store');
-    Route::get('/citizen/road-assistance/json', [\App\Http\Controllers\Citizen\RoadAssistanceController::class, 'getRequestsJson'])->name('citizen.road-assistance.json');
-
     // Payments
     Route::get('/citizen/payments', [\App\Http\Controllers\Citizen\PaymentController::class, 'index'])->name('citizen.payment-slips');
     Route::get('/citizen/payments/{id}', [\App\Http\Controllers\Citizen\PaymentController::class, 'show'])->name('citizen.payment-slips.show');
@@ -2013,6 +2023,8 @@ Route::middleware(['auth', 'role:admin', 'auto.expire'])->prefix('admin')->name(
     Route::post('/bookings/{id}/confirm-payment', [\App\Http\Controllers\Admin\PaymentVerificationController::class, 'confirmPayment'])->name('bookings.confirm-payment');
     Route::post('/bookings/{id}/reject-payment', [\App\Http\Controllers\Admin\PaymentVerificationController::class, 'rejectPayment'])->name('bookings.reject-payment');
     Route::post('/bookings/{id}/reject-booking', [\App\Http\Controllers\Admin\PaymentVerificationController::class, 'rejectBooking'])->name('bookings.reject-booking');
+    Route::post('/bookings/{id}/verify-documents', [\App\Http\Controllers\Admin\BookingManagementController::class, 'verifyDocuments'])->name('bookings.verify-documents');
+    Route::post('/bookings/{id}/reject-documents', [\App\Http\Controllers\Admin\BookingManagementController::class, 'rejectDocuments'])->name('bookings.reject-documents');
     Route::post('/bookings/{id}/final-confirm', [\App\Http\Controllers\Admin\BookingManagementController::class, 'finalConfirm'])->name('bookings.final-confirm');
     Route::get('/bookings/{id}', [\App\Http\Controllers\Admin\BookingManagementController::class, 'show'])->name('bookings.show');
 
@@ -2054,10 +2066,11 @@ Route::middleware(['auth', 'role:admin', 'auto.expire'])->prefix('admin')->name(
     Route::get('/community-maintenance/reports', [\App\Http\Controllers\Admin\CommunityMaintenanceController::class, 'index'])->name('community-maintenance.index');
     Route::get('/community-maintenance/json', [\App\Http\Controllers\Admin\CommunityMaintenanceController::class, 'getRequestsJson'])->name('community-maintenance.json');
 
-    // Facility Site Selection Integration (Urban Planning)
+    // Facility Site Selection / Zoning Maps Integration (Urban Planning)
     Route::get('/facility-site-selection', [\App\Http\Controllers\Admin\FacilitySiteSelectionController::class, 'index'])->name('facility-site-selection.index');
-    Route::post('/facility-site-selection/search', [\App\Http\Controllers\Admin\FacilitySiteSelectionController::class, 'search'])->name('facility-site-selection.search');
-    Route::post('/facility-site-selection/check-suitability', [\App\Http\Controllers\Admin\FacilitySiteSelectionController::class, 'checkSuitability'])->name('facility-site-selection.check-suitability');
+    Route::get('/facility-site-selection/zoning/barangays', [\App\Http\Controllers\Admin\FacilitySiteSelectionController::class, 'getZoningBarangays'])->name('facility-site-selection.zoning-barangays');
+    Route::get('/facility-site-selection/zoning/legend', [\App\Http\Controllers\Admin\FacilitySiteSelectionController::class, 'getZoningLegend'])->name('facility-site-selection.zoning-legend');
+    Route::get('/facility-site-selection/zoning/data', [\App\Http\Controllers\Admin\FacilitySiteSelectionController::class, 'getZoningData'])->name('facility-site-selection.zoning-data');
 
     // Inquiry Management
     Route::get('/inquiries', [\App\Http\Controllers\Admin\InquiryManagementController::class, 'index'])->name('inquiries.index');
@@ -2110,6 +2123,23 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
 
 /*
 |--------------------------------------------------------------------------
+| Energy Efficiency - Facility Requests Management
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth', 'signed'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/energy-facility-requests', [\App\Http\Controllers\Admin\EnergyFacilityRequestController::class, 'index'])
+        ->name('energy-facility-requests.index');
+});
+
+Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/energy-facility-requests/json', [\App\Http\Controllers\Admin\EnergyFacilityRequestController::class, 'getRequestsJson'])
+        ->name('energy-facility-requests.json');
+    Route::post('/energy-facility-requests/{id}/status', [\App\Http\Controllers\Admin\EnergyFacilityRequestController::class, 'updateStatus'])
+        ->name('energy-facility-requests.update-status');
+});
+
+/*
+|--------------------------------------------------------------------------
 | Housing and Resettlement Management - Facility Requests
 |--------------------------------------------------------------------------
 */
@@ -2138,4 +2168,28 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
         ->name('road-assistance.update-status');
     Route::post('/road-assistance/send', [\App\Http\Controllers\Admin\RoadAssistanceController::class, 'sendRequest'])
         ->name('road-assistance.send');
+    Route::post('/road-assistance/retry-sync', [\App\Http\Controllers\Admin\RoadAssistanceController::class, 'retrySync'])
+        ->name('road-assistance.retry-sync');
+    Route::post('/road-assistance/sync-statuses', [\App\Http\Controllers\Admin\RoadAssistanceController::class, 'syncStatuses'])
+        ->name('road-assistance.sync-statuses');
+});
+
+/*
+|--------------------------------------------------------------------------
+| Utility Billing & Management - Water Connection Requests
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/water-connection', [\App\Http\Controllers\Admin\WaterConnectionController::class, 'index'])
+        ->name('water-connection.index');
+    Route::get('/water-connection/create', [\App\Http\Controllers\Admin\WaterConnectionController::class, 'create'])
+        ->name('water-connection.create');
+    Route::post('/water-connection', [\App\Http\Controllers\Admin\WaterConnectionController::class, 'store'])
+        ->name('water-connection.store');
+    Route::get('/water-connection/json', [\App\Http\Controllers\Admin\WaterConnectionController::class, 'getRequestsJson'])
+        ->name('water-connection.json');
+    Route::post('/water-connection/sync-statuses', [\App\Http\Controllers\Admin\WaterConnectionController::class, 'syncStatuses'])
+        ->name('water-connection.sync-statuses');
+    Route::post('/water-connection/retry-sync', [\App\Http\Controllers\Admin\WaterConnectionController::class, 'retrySync'])
+        ->name('water-connection.retry-sync');
 });

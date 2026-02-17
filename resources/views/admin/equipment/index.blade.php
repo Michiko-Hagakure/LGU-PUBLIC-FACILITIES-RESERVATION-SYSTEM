@@ -138,7 +138,7 @@
                             <td class="px-gr-md py-gr-sm">
                                 <div class="flex items-center gap-gr-sm">
                                     @if($item->image_path)
-                                        <img src="{{ Storage::url($item->image_path) }}" alt="{{ $item->name }}" 
+                                        <img src="{{ url('/files/' . $item->image_path) }}" alt="{{ $item->name }}" 
                                             class="w-12 h-12 object-cover rounded-lg">
                                     @else
                                         <div class="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">

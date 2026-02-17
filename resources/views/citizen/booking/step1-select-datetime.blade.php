@@ -1360,8 +1360,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Facility pricing data (from backend)
     const facilityPricing = {
-        per_person_rate: {{ $facility->per_person_rate ?? 130 }},
-        per_person_extension_rate: {{ $facility->per_person_extension_rate ?? 30 }},
+        base_rate_3hrs: {{ $facility->base_rate_3hrs ?? 7000 }},
+        extension_rate_2hrs: {{ $facility->extension_rate_2hrs ?? 3000 }},
         base_hours: {{ $facility->base_hours ?? 3 }},
         min_capacity: {{ $facility->min_capacity ?? 1 }},
         max_capacity: {{ $facility->capacity ?? 1000 }}
@@ -1433,15 +1433,15 @@ document.addEventListener('DOMContentLoaded', function() {
         const baseHours = facilityPricing.base_hours;
         const extensionHours = Math.max(0, totalHours - baseHours);
         const extensionBlocks = Math.ceil(extensionHours / 2); // 2-hour blocks, rounded up
-        const baseRate = facilityPricing.per_person_rate * attendees;
-        const extensionRate = extensionHours > 0 ? (facilityPricing.per_person_extension_rate * attendees * extensionBlocks) : 0;
+        const baseRate = facilityPricing.base_rate_3hrs;
+        const extensionRate = extensionHours > 0 ? (facilityPricing.extension_rate_2hrs * extensionBlocks) : 0;
         const subtotal = baseRate + extensionRate;
         
         // Update display
         document.getElementById('totalDuration').textContent = totalHours.toFixed(1);
         document.getElementById('baseHoursDisplay').textContent = baseHours;
         document.getElementById('baseRateDisplay').textContent = '₱' + baseRate.toLocaleString('en-PH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-        document.getElementById('baseRateDetails').innerHTML = '₱' + facilityPricing.per_person_rate.toFixed(2) + ' per person × ' + attendees.toLocaleString() + ' people';
+        document.getElementById('baseRateDetails').innerHTML = 'Flat rate for first ' + baseHours + ' hours';
         
         // Show/hide extension section
         const extensionSection = document.getElementById('extensionRateSection');
@@ -1449,7 +1449,7 @@ document.addEventListener('DOMContentLoaded', function() {
             extensionSection.style.display = 'block';
             document.getElementById('extensionHoursDisplay').textContent = extensionHours.toFixed(1);
             document.getElementById('extensionRateDisplay').textContent = '₱' + extensionRate.toLocaleString('en-PH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-            document.getElementById('extensionRateDetails').innerHTML = '₱' + facilityPricing.per_person_extension_rate.toFixed(2) + ' per person per 2-hour block × ' + attendees.toLocaleString() + ' people × ' + extensionBlocks + (extensionBlocks === 1 ? ' block' : ' blocks');
+            document.getElementById('extensionRateDetails').innerHTML = '₱' + facilityPricing.extension_rate_2hrs.toFixed(2) + ' per 2-hour block × ' + extensionBlocks + (extensionBlocks === 1 ? ' block' : ' blocks');
         } else {
             extensionSection.style.display = 'none';
         }

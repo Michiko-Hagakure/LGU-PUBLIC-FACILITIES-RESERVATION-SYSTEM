@@ -76,7 +76,11 @@
         <div class="flex items-center gap-gr-xs">
             @php
                 $statusCounts = [
-                    'unpaid' => DB::connection('facilities_db')->table('payment_slips')->where('status', 'unpaid')->count(),
+                    'unpaid' => DB::connection('facilities_db')->table('payment_slips')
+                        ->join('bookings', 'payment_slips.booking_id', '=', 'bookings.id')
+                        ->where('payment_slips.status', 'unpaid')
+                        ->whereNotIn('bookings.status', ['paid', 'confirmed', 'completed', 'expired', 'cancelled'])
+                        ->count(),
                     'paid' => DB::connection('facilities_db')->table('payment_slips')->where('status', 'paid')->count(),
                 ];
             @endphp

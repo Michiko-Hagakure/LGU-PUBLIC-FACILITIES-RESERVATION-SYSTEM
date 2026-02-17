@@ -88,7 +88,7 @@
     <!-- Quick Actions -->
     <div class="bg-white rounded-xl shadow-sm border border-lgu-stroke p-gr-lg">
         <h2 class="text-h3 font-bold text-lgu-headline mb-gr-md">Quick Actions</h2>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-gr-md">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-gr-md">
             <!-- View Verification Queue -->
             <a href="{{ URL::signedRoute('staff.verification-queue') }}" class="flex items-center gap-gr-sm p-gr-md rounded-xl border-2 border-gray-200 hover:border-lgu-button hover:bg-amber-50 transition-all group">
                 <div class="w-16 h-16 bg-lgu-button rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform shadow-sm">
@@ -125,22 +125,6 @@
                     <p class="text-small text-lgu-paragraph leading-tight">Check booking schedule</p>
                 </div>
             </a>
-
-            <!-- Reports -->
-            <div class="flex items-center gap-gr-sm p-gr-md rounded-xl border-2 border-gray-200 bg-gray-50 opacity-60 cursor-not-allowed">
-                <div class="w-16 h-16 bg-gray-400 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-bar-chart-3 text-white">
-                        <path d="M3 3v18h18"/>
-                        <path d="M18 17V9"/>
-                        <path d="M13 17V5"/>
-                        <path d="M8 17v-3"/>
-                    </svg>
-                </div>
-                <div class="flex-1 min-w-0">
-                    <h3 class="text-body font-bold text-gray-600 mb-0.5 leading-tight">Reports</h3>
-                    <p class="text-small text-gray-500 leading-tight">Coming soon</p>
-                </div>
-            </div>
         </div>
     </div>
 

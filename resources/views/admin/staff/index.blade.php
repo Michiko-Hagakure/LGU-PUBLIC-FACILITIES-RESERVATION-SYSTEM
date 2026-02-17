@@ -158,7 +158,7 @@
 </div>
 
 @push('scripts')
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.14.5/sweetalert2.all.min.js"></script>
 <script>
 function toggleStatus(staffId, currentStatus) {
     const action = currentStatus === 'active' ? 'deactivate' : 'activate';

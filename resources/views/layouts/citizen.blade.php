@@ -288,6 +288,9 @@
                     forceLogout();
                 }
                 return response;
+            }).catch(function(err) {
+                // Re-throw so callers can still catch, but prevent unhandled rejections from the interceptor chain
+                throw err;
             });
         };
     });

@@ -904,16 +904,45 @@
 
 @push('scripts')
 <!-- SweetAlert2 -->
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.14.5/sweetalert2.all.min.js"></script>
+<!-- SweetAlert2 fallback when CDN is unavailable -->
+<script>
+if (typeof Swal === 'undefined') {
+    console.warn('SweetAlert2 CDN unavailable, using native fallback');
+    window.Swal = {
+        fire: function(options) {
+            if (typeof options === 'string') {
+                alert(options);
+                return Promise.resolve({ isConfirmed: true });
+            }
+            var title = options.title || '';
+            var text = options.text || '';
+            var html = options.html || '';
+            var msg = title + (text ? '\n' + text : '') + (html ? '\n' + html.replace(/<[^>]*>/g, '') : '');
+            if (options.icon === 'error' || options.icon === 'warning') {
+                alert(msg);
+            } else if (options.showConfirmButton === false && options.timer) {
+                // Auto-close toast - just show briefly
+                alert(msg);
+            } else {
+                alert(msg);
+            }
+            return Promise.resolve({ isConfirmed: true });
+        },
+        showLoading: function() {},
+        close: function() {}
+    };
+}
+</script>
 
 <!-- TensorFlow.js -->
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.11.0"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tensorflow/4.11.0/tf.min.js"></script>
 
 <!-- Face-API.js - Official library -->
-<script defer src="https://cdn.jsdelivr.net/npm/face-api.js/dist/face-api.min.js"></script>
+<script defer src="https://unpkg.com/face-api.js/dist/face-api.min.js"></script>
 
 <!-- Google Teachable Machine -->
-<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8.6/dist/teachablemachine-image.min.js"></script>
+<script src="https://unpkg.com/@teachablemachine/image@0.8.6/dist/teachablemachine-image.min.js"></script>
 
 <!-- Our AI Script -->
 <script src="{{ asset('js/azure-ai-verification.js') }}"></script>
@@ -1039,6 +1068,31 @@
             },
             
             async checkMobileAndProceed() {
+                // Age validation - must be at least 18 years old
+                const birthdateInput = document.getElementById('birthdate');
+                if (birthdateInput && birthdateInput.value) {
+                    const birthDate = new Date(birthdateInput.value);
+                    const today = new Date();
+                    let age = today.getFullYear() - birthDate.getFullYear();
+                    const monthDiff = today.getMonth() - birthDate.getMonth();
+                    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+                        age--;
+                    }
+                    if (age < 18) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Age Requirement Not Met',
+                            html: `<p>You must be at least <strong>18 years old</strong> to register for LGU1 services.</p><p>Your current age based on the birthdate provided is <strong>${age} years old</strong>.</p><p>If you believe this is an error, please verify your birthdate.</p>`,
+                            confirmButtonColor: '#00473e'
+                        });
+                        birthdateInput.classList.add('is-invalid');
+                        birthdateInput.focus();
+                        return;
+                    } else {
+                        birthdateInput.classList.remove('is-invalid');
+                    }
+                }
+
                 const mobileInput = document.getElementById('mobile_number');
                 const mobile = mobileInput.value.trim();
                 const mobileError = document.getElementById('mobileError');

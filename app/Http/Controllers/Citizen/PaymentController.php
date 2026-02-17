@@ -582,15 +582,29 @@ class PaymentController extends Controller
             $newAmountPaid = $booking->amount_paid + $paymentSlip->amount_due;
             $newAmountRemaining = max(0, $booking->total_amount - $newAmountPaid);
 
+            // Determine new status based on current status and payment completeness
+            $newStatus = $booking->status;
+            $updateData = [
+                'amount_paid' => $newAmountPaid,
+                'amount_remaining' => $newAmountRemaining,
+                'updated_at' => Carbon::now(),
+            ];
+
+            if ($booking->status === 'awaiting_payment') {
+                // Down payment just paid — promote to pending for staff review (NOT paid/confirmed)
+                $newStatus = 'pending';
+                $updateData['down_payment_paid_at'] = Carbon::now();
+            } elseif ($newAmountRemaining <= 0) {
+                // Fully paid (remaining balance) — mark as paid
+                $newStatus = 'paid';
+            }
+
+            $updateData['status'] = $newStatus;
+
             DB::connection('facilities_db')
                 ->table('bookings')
                 ->where('id', $paymentSlip->booking_id)
-                ->update([
-                    'status' => 'paid',
-                    'amount_paid' => $newAmountPaid,
-                    'amount_remaining' => $newAmountRemaining,
-                    'updated_at' => Carbon::now(),
-                ]);
+                ->update($updateData);
         }
 
         // Send notification

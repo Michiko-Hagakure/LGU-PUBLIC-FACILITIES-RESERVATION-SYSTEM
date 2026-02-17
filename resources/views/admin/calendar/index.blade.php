@@ -40,6 +40,8 @@
                         <option value="staff_verified">Awaiting Payment</option>
                         <option value="paid">Payment Verified</option>
                         <option value="confirmed">Confirmed</option>
+                        <option value="completed">Completed</option>
+                        <option value="expired">Expired</option>
                         <option value="rejected">Rejected</option>
                         <option value="cancelled">Cancelled</option>
                     </select>
@@ -48,11 +50,13 @@
                 <!-- Legend -->
                 <div class="flex flex-wrap items-center gap-gr-sm text-caption text-white">
                     <span class="font-semibold text-white">Legend:</span>
-                    <span class="flex items-center gap-1"><span class="w-3 h-3 bg-yellow-500 rounded"></span> <span class="text-white">Pending</span></span>
-                    <span class="flex items-center gap-1"><span class="w-3 h-3 bg-blue-500 rounded"></span> <span class="text-white">Awaiting Payment</span></span>
-                    <span class="flex items-center gap-1"><span class="w-3 h-3 bg-green-500 rounded"></span> <span class="text-white">Paid</span></span>
-                    <span class="flex items-center gap-1"><span class="w-3 h-3 bg-purple-500 rounded"></span> <span class="text-white">Confirmed</span></span>
-                    <span class="flex items-center gap-1"><span class="w-3 h-3 bg-red-500 rounded"></span> <span class="text-white">Rejected/Cancelled</span></span>
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded" style="background-color:#fbbf24"></span> <span class="text-white">Pending</span></span>
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded" style="background-color:#34d399"></span> <span class="text-white">Awaiting Payment</span></span>
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded" style="background-color:#60a5fa"></span> <span class="text-white">Paid</span></span>
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded" style="background-color:#a78bfa"></span> <span class="text-white">Confirmed</span></span>
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded" style="background-color:#22c55e"></span> <span class="text-white">Completed</span></span>
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded" style="background-color:#ea580c"></span> <span class="text-white">Expired</span></span>
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded" style="background-color:#f87171"></span> <span class="text-white">Rejected/Cancelled</span></span>
                 </div>
             </div>
         </div>
@@ -84,14 +88,11 @@
     </div>
 </div>
 
-@push('styles')
-<!-- FullCalendar CSS -->
-<link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css' rel='stylesheet' />
-@endpush
+@endsection
 
 @push('scripts')
 <!-- FullCalendar JS -->
-<script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
+<script src="{{ asset('assets/js/fullcalendar.min.js') }}"></script>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -203,8 +204,13 @@ document.addEventListener('DOMContentLoaded', function() {
             'staff_verified': { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Awaiting Payment' },
             'paid': { bg: 'bg-green-100', text: 'text-green-800', label: 'Payment Verified' },
             'confirmed': { bg: 'bg-purple-100', text: 'text-purple-800', label: 'Confirmed' },
+            'completed': { bg: 'bg-green-100', text: 'text-green-800', label: 'Completed' },
             'rejected': { bg: 'bg-red-100', text: 'text-red-800', label: 'Rejected' },
-            'cancelled': { bg: 'bg-gray-100', text: 'text-gray-800', label: 'Cancelled' }
+            'admin_rejected': { bg: 'bg-red-100', text: 'text-red-800', label: 'Admin Rejected' },
+            'cancelled': { bg: 'bg-gray-100', text: 'text-gray-800', label: 'Cancelled' },
+            'canceled': { bg: 'bg-gray-100', text: 'text-gray-800', label: 'Cancelled' },
+            'expired': { bg: 'bg-orange-100', text: 'text-orange-800', label: 'Expired' },
+            'refunded': { bg: 'bg-indigo-100', text: 'text-indigo-800', label: 'Refunded' }
         };
         
         const status = statusConfig[booking.status] || statusConfig['pending'];
@@ -361,6 +367,3 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 </style>
 @endpush
-
-@endsection
-

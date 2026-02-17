@@ -7,7 +7,6 @@ use App\Models\RoadAssistanceRequest;
 use App\Services\RoadTransportApiService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
@@ -64,7 +63,20 @@ class RoadAssistanceController extends Controller
             )
             ->orderBy('bookings.start_time')
             ->limit(20)
-            ->get();
+            ->get()
+            ->map(function ($booking) {
+                // Resolve display name: applicant_name → user_name → auth_db lookup
+                if (empty($booking->applicant_name)) {
+                    if (!empty($booking->user_name)) {
+                        $booking->applicant_name = $booking->user_name;
+                    } elseif (!empty($booking->user_id)) {
+                        $user = DB::connection('auth_db')->table('users')
+                            ->where('id', $booking->user_id)->first();
+                        $booking->applicant_name = $user->full_name ?? null;
+                    }
+                }
+                return $booking;
+            });
 
         // Get outgoing requests sent to Road & Transportation
         $outgoingRequests = DB::connection('facilities_db')
@@ -136,7 +148,28 @@ class RoadAssistanceController extends Controller
         }
 
         return redirect()->route('admin.road-assistance.index')
-            ->with('warning', 'Request saved locally but could not sync with Road & Transportation system. It will be synced when their system is available.');
+            ->with('warning', 'Request saved locally but could not sync with Road and Transportation system. It will be synced when their system is available.');
+    }
+
+    /**
+     * Retry syncing pending_sync records to the Road & Transportation system
+     */
+    public function retrySync()
+    {
+        $result = $this->roadApi->retrySyncPending();
+
+        if ($result['total'] === 0) {
+            return redirect()->route('admin.road-assistance.index')
+                ->with('success', 'No pending sync records to retry.');
+        }
+
+        if ($result['synced'] > 0) {
+            return redirect()->route('admin.road-assistance.index')
+                ->with('success', "Successfully synced {$result['synced']} out of {$result['total']} pending requests.");
+        }
+
+        return redirect()->route('admin.road-assistance.index')
+            ->with('error', "Failed to sync {$result['failed']} pending requests. The Road & Transportation system may still be unavailable.");
     }
 
     /**
@@ -199,60 +232,28 @@ class RoadAssistanceController extends Controller
         
         $roadRequest->save();
 
-        // Send approval/rejection data to Road and Transportation system
-        $this->notifyRoadTransportSystem($roadRequest, $validated);
-
         return redirect()->route('admin.road-assistance.index')
             ->with('success', 'Road assistance request has been ' . strtolower($validated['status']) . '.');
     }
 
     /**
-     * Send approval/rejection notification to Road and Transportation system
+     * Sync statuses of pending outgoing requests from the Road & Transportation system
      */
-    private function notifyRoadTransportSystem(RoadAssistanceRequest $roadRequest, array $validated)
+    public function syncStatuses()
     {
-        try {
-            $apiUrl = config('services.road_transport.url');
-            
-            if (empty($apiUrl)) {
-                Log::warning('Road and Transportation API URL not configured');
-                return;
-            }
+        $result = $this->roadApi->syncStatuses();
 
-            $payload = [
-                'receive_approval' => '1',
-                'road_request_id' => $roadRequest->id,
-                'status' => $validated['status'],
-                'feedback' => $validated['feedback'] ?? null,
-                'assigned_personnel' => $validated['assigned_personnel'] ?? null,
-                'assigned_equipment' => $validated['assigned_equipment'] ?? null,
-                'traffic_plan' => $validated['traffic_plan'] ?? null,
-                'deployment_date' => $validated['deployment_date'] ?? null,
-                'deployment_start_time' => $validated['deployment_start_time'] ?? null,
-                'deployment_end_time' => $validated['deployment_end_time'] ?? null,
-                'admin_notes' => $validated['admin_notes'] ?? null,
-            ];
-
-            $response = Http::timeout(10)
-                ->asForm()
-                ->post("{$apiUrl}/request_road_assistance.php", $payload);
-
-            if ($response->successful()) {
-                Log::info('Road and Transportation system notified successfully', [
-                    'road_request_id' => $roadRequest->id,
-                    'status' => $validated['status']
-                ]);
-            } else {
-                Log::error('Failed to notify Road and Transportation system', [
-                    'road_request_id' => $roadRequest->id,
-                    'response' => $response->body()
-                ]);
-            }
-        } catch (\Exception $e) {
-            Log::error('Exception notifying Road and Transportation system', [
-                'road_request_id' => $roadRequest->id,
-                'error' => $e->getMessage()
-            ]);
+        if ($result['total'] === 0) {
+            return redirect()->route('admin.road-assistance.index')
+                ->with('success', 'No pending requests to check.');
         }
+
+        if ($result['updated'] > 0) {
+            return redirect()->route('admin.road-assistance.index')
+                ->with('success', "Updated {$result['updated']} out of {$result['total']} pending requests.");
+        }
+
+        return redirect()->route('admin.road-assistance.index')
+            ->with('info', "Checked {$result['total']} pending requests. No status changes yet.");
     }
 }

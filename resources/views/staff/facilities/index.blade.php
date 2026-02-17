@@ -86,7 +86,7 @@
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200">
                 {{-- Facility Image --}}
                 @if($facility->image_path)
-                    <img src="{{ Storage::url($facility->image_path) }}" alt="{{ $facility->name }}" 
+                    <img src="{{ url('/files/' . $facility->image_path) }}" alt="{{ $facility->name }}" 
                         class="w-full h-48 object-cover">
                 @else
                     <div class="w-full h-48 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
@@ -125,7 +125,7 @@
                         </div>
                         <div class="flex items-center text-gray-600">
                             <i data-lucide="tag" class="w-4 h-4 mr-1"></i>
-                            <span>₱{{ number_format($facility->per_person_rate ?? 0, 2) }}/person</span>
+                            <span>₱{{ number_format($facility->base_rate_3hrs ?? 0, 2) }} / 3 hrs</span>
                         </div>
                     </div>
 

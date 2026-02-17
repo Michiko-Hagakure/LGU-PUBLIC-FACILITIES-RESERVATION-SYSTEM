@@ -407,6 +407,7 @@ class InfrastructureProjectController extends Controller
                 'estimated_budget' => $project['estimated_budget'] ?? $project['budget'] ?? null,
                 'priority_level' => strtolower($project['priority_level'] ?? $project['priority'] ?? 'medium'),
                 'status' => $this->mapApiStatus($project['status'] ?? $project['overall_status'] ?? 'submitted'),
+                'bid_status' => $project['bid_status'] ?? null,
                 'submitted_by_user_id' => session('user_id'),
                 'created_at' => $project['created_at'] ?? $project['date_submitted'] ?? now(),
                 'updated_at' => now(),
@@ -464,8 +465,8 @@ class InfrastructureProjectController extends Controller
                         if ($apiStatus) {
                             $newStatus = $this->mapApiStatus($apiStatus);
                             
-                            // Get bid status from API response
-                            $bidStatus = $statusData['data']['bid_information']['bid_status'] ?? null;
+                            // Get bid status from API response (top-level field)
+                            $bidStatus = $statusData['data']['bid_status'] ?? null;
                             
                             DB::connection('facilities_db')
                                 ->table('infrastructure_project_requests')
@@ -571,7 +572,7 @@ class InfrastructureProjectController extends Controller
                             ?? $statusData['data']['project_status'] 
                             ?? null;
                         
-                        $bidStatus = $statusData['data']['bid_information']['bid_status'] ?? null;
+                        $bidStatus = $statusData['data']['bid_status'] ?? null;
                         
                         if ($apiStatus) {
                             $newStatus = $this->mapApiStatus($apiStatus);
@@ -753,13 +754,21 @@ class InfrastructureProjectController extends Controller
             // Only update if new status is same or higher priority (don't downgrade)
             // Exception: rejected can override anything
             if ($newStatus === 'rejected' || $newPriority >= $currentPriority) {
+                $updateData = [
+                    'status' => $newStatus,
+                    'updated_at' => now(),
+                ];
+
+                // Also update bid_status if available
+                $bidStatus = $statusData['bid_status'] ?? null;
+                if ($bidStatus) {
+                    $updateData['bid_status'] = $bidStatus;
+                }
+
                 DB::connection('facilities_db')
                     ->table('infrastructure_project_requests')
                     ->where('external_project_id', $externalProjectId)
-                    ->update([
-                        'status' => $newStatus,
-                        'updated_at' => now(),
-                    ]);
+                    ->update($updateData);
             }
 
         } catch (\Exception $e) {

@@ -151,17 +151,34 @@
             </h2>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-gr-md">
-                {{-- Per Person Rate --}}
+                {{-- Base Rate (3 Hours) --}}
                 <div>
-                    <label for="per_person_rate" class="block text-small font-semibold text-lgu-headline mb-gr-xs">
-                        Per Person Rate <span class="text-red-500">*</span>
+                    <label for="base_rate_3hrs" class="block text-small font-semibold text-lgu-headline mb-gr-xs">
+                        Base Rate (3 Hours) <span class="text-red-500">*</span>
                     </label>
                     <div class="relative">
                         <span class="absolute left-3 top-1/2 -translate-y-1/2 text-lgu-paragraph font-semibold">₱</span>
-                        <input type="number" id="per_person_rate" name="per_person_rate" value="{{ old('per_person_rate', $facility->per_person_rate) }}" min="0" step="0.01" required
-                            class="w-full pl-8 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-lgu-highlight focus:border-transparent @error('per_person_rate') border-red-500 @enderror">
+                        <input type="number" id="base_rate_3hrs" name="base_rate_3hrs" value="{{ old('base_rate_3hrs', $facility->base_rate_3hrs) }}" min="0" step="0.01" required
+                            class="w-full pl-8 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-lgu-highlight focus:border-transparent @error('base_rate_3hrs') border-red-500 @enderror">
                     </div>
-                    @error('per_person_rate')
+                    <p class="mt-1 text-xs text-gray-500">Flat rate for first 3 hours of reservation</p>
+                    @error('base_rate_3hrs')
+                        <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                {{-- Extension Rate (+2 Hours) --}}
+                <div>
+                    <label for="extension_rate_2hrs" class="block text-small font-semibold text-lgu-headline mb-gr-xs">
+                        Extension Rate (+2 Hours)
+                    </label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-lgu-paragraph font-semibold">₱</span>
+                        <input type="number" id="extension_rate_2hrs" name="extension_rate_2hrs" value="{{ old('extension_rate_2hrs', $facility->extension_rate_2hrs) }}" min="0" step="0.01"
+                            class="w-full pl-8 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-lgu-highlight focus:border-transparent @error('extension_rate_2hrs') border-red-500 @enderror">
+                    </div>
+                    <p class="mt-1 text-xs text-gray-500">Flat rate for each 2-hour extension block</p>
+                    @error('extension_rate_2hrs')
                         <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
                     @enderror
                 </div>
@@ -184,9 +201,9 @@
                     @if($facility->image_path)
                         <div class="flex items-start gap-3" id="primary-photo-container">
                             <div class="relative inline-block">
-                                <img src="{{ Storage::url($facility->image_path) }}" alt="{{ $facility->name }}" 
+                                <img src="{{ url('/files/' . $facility->image_path) }}" alt="{{ $facility->name }}" 
                                     class="w-48 h-32 object-cover rounded-lg border border-gray-200 cursor-pointer hover:opacity-90 transition"
-                                    onclick="showFullImage('{{ Storage::url($facility->image_path) }}', '{{ $facility->name }}')">
+                                    onclick="showFullImage('{{ url('/files/' . $facility->image_path) }}', '{{ $facility->name }}')">
                                 <span class="absolute top-2 left-2 bg-lgu-green text-white text-xs px-2 py-1 rounded">Primary</span>
                             </div>
                             <button type="button" 
@@ -222,9 +239,9 @@
                         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                             @foreach($facilityImages as $image)
                                 <div class="relative group" id="image-{{ $image->id }}">
-                                    <img src="{{ Storage::url($image->image_path) }}" alt="Facility image" 
+                                    <img src="{{ url('/files/' . $image->image_path) }}" alt="Facility image" 
                                         class="w-full h-24 object-cover rounded-lg border border-gray-200 cursor-pointer hover:opacity-90 transition"
-                                        onclick="showFullImage('{{ Storage::url($image->image_path) }}', 'Facility Image')">
+                                        onclick="showFullImage('{{ url('/files/' . $image->image_path) }}', 'Facility Image')">
                                     <button type="button" 
                                         onclick="deleteImage({{ $facility->facility_id }}, {{ $image->id }})"
                                         class="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"

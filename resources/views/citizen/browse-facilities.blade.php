@@ -826,10 +826,10 @@
 
                         <!-- Price & Action -->
                         <div class="border-t border-gray-200 pt-gr-md">
-                            @if($facility->per_person_rate)
+                            @if($facility->base_rate_3hrs)
                                 <div class="mb-gr-sm">
-                                    <div class="text-h2 font-bold text-primary-600">₱{{ number_format($facility->per_person_rate, 2) }}</div>
-                                    <div class="text-caption text-gray-500">Per person rate</div>
+                                    <div class="text-h2 font-bold text-primary-600">₱{{ number_format($facility->base_rate_3hrs, 2) }}</div>
+                                    <div class="text-caption text-gray-500">Base rate / 3 hours</div>
                                 </div>
                             @elseif($facility->hourly_rate)
                                 <div class="mb-gr-sm">

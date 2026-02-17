@@ -28,12 +28,6 @@
                     </div>
                 </div>
             </div>
-            <div class="text-right space-y-gr-sm">
-                <div class="bg-white/10 backdrop-blur-sm rounded-xl px-gr-lg py-gr-md border border-white/20">
-                    <p class="text-body text-gray-200 font-medium mb-gr-xs" id="current-date">{{ now()->format('l, F j, Y') }}</p>
-                    <p class="text-h2 font-bold text-lgu-highlight" id="current-time-main">{{ now()->format('g:i A') }}</p>
-                </div>
-            </div>
         </div>
     </div>
 
@@ -329,36 +323,6 @@ document.addEventListener('DOMContentLoaded', function() {
         lucide.createIcons();
     }
     
-    // Real-time clock functionality
-    function updateDateTime() {
-        const now = new Date();
-        const dateElement = document.getElementById('current-date');
-        const timeElement = document.getElementById('current-time-main');
-        
-        if (dateElement) {
-            const dateString = now.toLocaleDateString('en-US', { 
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            });
-            dateElement.textContent = dateString;
-        }
-        
-        if (timeElement) {
-            const timeString = now.toLocaleTimeString('en-US', { 
-                hour12: true,
-                hour: 'numeric',
-                minute: '2-digit'
-            });
-            timeElement.textContent = timeString;
-        }
-    }
-
-    // Update date/time immediately and then every second
-    updateDateTime();
-    setInterval(updateDateTime, 1000);
-
     // Revenue Chart using ApexCharts (per ARCHITECTURE.md)
     // Wait for ApexCharts to load
     if (typeof ApexCharts !== 'undefined') {

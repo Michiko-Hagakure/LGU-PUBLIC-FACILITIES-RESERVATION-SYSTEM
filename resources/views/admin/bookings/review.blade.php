@@ -346,7 +346,35 @@
 
                 <!-- Action Buttons -->
                 <div class="mt-gr-lg space-y-gr-sm">
-                    @if($booking->status === 'staff_verified')
+                    @if($booking->status === 'pending')
+                        <!-- Document Verification (Admin acting as reviewer) -->
+                        <div class="bg-yellow-50 border-2 border-yellow-200 rounded-lg p-gr-md mb-gr-sm">
+                            <div class="flex items-center gap-2 mb-2">
+                                <i data-lucide="file-search" class="w-5 h-5 text-yellow-600"></i>
+                                <p class="text-body font-bold text-yellow-900">Document Review Required</p>
+                            </div>
+                            <p class="text-small text-yellow-700">Review the citizen's submitted documents and information before approving.</p>
+                        </div>
+
+                        <!-- Verify Documents Form -->
+                        <form method="POST" action="{{ route('admin.bookings.verify-documents', $booking->id) }}" id="verifyDocumentsForm">
+                            @csrf
+                            <div class="mb-gr-sm">
+                                <label class="block text-small font-medium text-lgu-paragraph mb-gr-xs">Notes (optional)</label>
+                                <textarea name="admin_notes" rows="2" class="w-full px-gr-md py-gr-sm border border-lgu-stroke rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-small" placeholder="Add verification notes..."></textarea>
+                            </div>
+                            <button type="button" onclick="confirmVerifyDocuments()" class="w-full px-gr-lg py-gr-md bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg transition-colors flex items-center justify-center gap-2">
+                                <i data-lucide="check-circle" class="w-5 h-5"></i>
+                                Verify & Approve Documents
+                            </button>
+                        </form>
+
+                        <button onclick="openRejectDocumentsModal()" class="w-full px-gr-lg py-gr-md bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-colors flex items-center justify-center gap-2">
+                            <i data-lucide="x-circle" class="w-5 h-5"></i>
+                            Reject Documents
+                        </button>
+
+                    @elseif($booking->status === 'staff_verified')
                         <!-- Waiting for Treasurer -->
                         <div class="bg-amber-50 border-2 border-amber-200 rounded-lg p-gr-md text-center">
                             <i data-lucide="clock" class="w-12 h-12 text-amber-500 mx-auto mb-2"></i>
@@ -461,6 +489,47 @@
     </div>
 </div>
 
+<!-- Reject Documents Modal (Admin acting as reviewer for pending bookings) -->
+<div id="rejectDocumentsModal" class="hidden fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-gr-lg">
+        <h3 class="text-h3 font-bold text-red-600 mb-gr-sm flex items-center gap-2">
+            <i data-lucide="file-x" class="w-6 h-6"></i>
+            Reject Documents
+        </h3>
+        <div class="bg-orange-50 border border-orange-200 rounded-lg p-gr-sm mb-gr-md">
+            <p class="text-small text-orange-800">
+                <i data-lucide="info" class="w-4 h-4 inline-block mr-1"></i>
+                The citizen will be notified and may resubmit corrected documents.
+            </p>
+        </div>
+        <form method="POST" action="{{ route('admin.bookings.reject-documents', $booking->id) }}">
+            @csrf
+            <div class="mb-gr-md">
+                <label class="block text-small font-medium text-lgu-paragraph mb-gr-xs">Issue Type</label>
+                <select name="rejection_type" class="w-full px-gr-md py-gr-sm border border-lgu-stroke rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-small">
+                    <option value="">Select issue type...</option>
+                    <option value="id_issue">ID Issue (invalid, expired, or unreadable)</option>
+                    <option value="document_issue">Document Issue (missing or incomplete)</option>
+                    <option value="info_issue">Information Issue (incorrect details)</option>
+                    <option value="facility_issue">Facility Issue (unavailable or conflict)</option>
+                </select>
+            </div>
+            <div class="mb-gr-md">
+                <label class="block text-small font-medium text-lgu-paragraph mb-gr-xs">Rejection Reason <span class="text-red-500">*</span></label>
+                <textarea name="rejection_reason" rows="4" required class="w-full px-gr-md py-gr-sm border border-lgu-stroke rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-small" placeholder="Explain what needs to be corrected..."></textarea>
+            </div>
+            <div class="flex gap-gr-sm">
+                <button type="button" onclick="closeRejectDocumentsModal()" class="flex-1 px-gr-lg py-gr-sm bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold rounded-lg transition-colors">
+                    Cancel
+                </button>
+                <button type="submit" class="flex-1 px-gr-lg py-gr-sm bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-colors">
+                    Reject
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 @push('scripts')
 <script>
 function confirmPayment() {
@@ -525,12 +594,39 @@ function closeRejectBookingModal() {
     document.getElementById('rejectBookingModal').classList.add('hidden');
 }
 
+function confirmVerifyDocuments() {
+    Swal.fire({
+        title: 'Verify & Approve Documents',
+        html: '<p>Confirm that you have reviewed the citizen\'s documents and information?</p><p class="text-sm text-gray-500 mt-2">This will move the booking to <strong>awaiting payment</strong> status.</p>',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#16a34a',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Yes, Approve Documents',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            document.getElementById('verifyDocumentsForm').submit();
+        }
+    });
+}
+
+function openRejectDocumentsModal() {
+    document.getElementById('rejectDocumentsModal').classList.remove('hidden');
+    lucide.createIcons();
+}
+
+function closeRejectDocumentsModal() {
+    document.getElementById('rejectDocumentsModal').classList.add('hidden');
+}
+
 // Close modals on escape key
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
         closeDocumentModal();
         closeRejectModal();
         closeRejectBookingModal();
+        closeRejectDocumentsModal();
     }
 });
 

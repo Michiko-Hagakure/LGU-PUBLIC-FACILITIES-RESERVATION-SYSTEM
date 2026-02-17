@@ -147,18 +147,6 @@
     </ul>
 </div>
 
-<!-- ENERGY EFFICIENCY INTEGRATION SUBMODULE -->
-<div class="px-gr-md mb-gr-lg">
-    <h4 class="text-gray-400 text-caption font-semibold uppercase tracking-wider mb-gr-xs">Energy Efficiency</h4>
-    <ul class="space-y-gr-xs">
-        <li>
-            <a href="{{ URL::signedRoute('admin.fund-requests.index') }}" class="sidebar-link flex items-center px-gr-sm py-gr-xs text-small font-medium rounded-lg transition-colors duration-200 {{ request()->routeIs('admin.fund-requests.*') ? 'active' : '' }}">
-                <i data-lucide="banknote" class="w-5 h-5 mr-gr-xs flex-shrink-0"></i>
-                <span>Fund Requests</span>
-            </a>
-        </li>
-    </ul>
-</div>
 
 <!-- HOUSING AND RESETTLEMENT INTEGRATION SUBMODULE -->
 <div class="px-gr-md mb-gr-lg">
@@ -181,6 +169,38 @@
             <a href="{{ route('admin.road-assistance.index') }}" class="sidebar-link flex items-center px-gr-sm py-gr-xs text-small font-medium rounded-lg transition-colors duration-200 {{ request()->routeIs('admin.road-assistance.*') ? 'active' : '' }}">
                 <i data-lucide="truck" class="w-5 h-5 mr-gr-xs flex-shrink-0"></i>
                 <span>Road Assistance</span>
+            </a>
+        </li>
+    </ul>
+</div>
+
+<!-- ENERGY EFFICIENCY INTEGRATION SUBMODULE -->
+<div class="px-gr-md mb-gr-lg">
+    <h4 class="text-gray-400 text-caption font-semibold uppercase tracking-wider mb-gr-xs">Energy Efficiency</h4>
+    <ul class="space-y-gr-xs">
+        <li>
+            <a href="{{ URL::signedRoute('admin.energy-facility-requests.index') }}" class="sidebar-link flex items-center px-gr-sm py-gr-xs text-small font-medium rounded-lg transition-colors duration-200 {{ request()->routeIs('admin.energy-facility-requests.*') ? 'active' : '' }}">
+                <i data-lucide="zap" class="w-5 h-5 mr-gr-xs flex-shrink-0"></i>
+                <span>Facility Requests</span>
+            </a>
+        </li>
+    </ul>
+</div>
+
+<!-- UTILITY BILLING & MANAGEMENT INTEGRATION SUBMODULE -->
+<div class="px-gr-md mb-gr-lg">
+    <h4 class="text-gray-400 text-caption font-semibold uppercase tracking-wider mb-gr-xs">Utility Billing</h4>
+    <ul class="space-y-gr-xs">
+        <li>
+            <a href="{{ route('admin.water-connection.create') }}" class="sidebar-link flex items-center px-gr-sm py-gr-xs text-small font-medium rounded-lg transition-colors duration-200 {{ request()->routeIs('admin.water-connection.create') ? 'active' : '' }}">
+                <i data-lucide="droplets" class="w-5 h-5 mr-gr-xs flex-shrink-0"></i>
+                <span>Request Connection</span>
+            </a>
+        </li>
+        <li>
+            <a href="{{ route('admin.water-connection.index') }}" class="sidebar-link flex items-center px-gr-sm py-gr-xs text-small font-medium rounded-lg transition-colors duration-200 {{ request()->routeIs('admin.water-connection.index') ? 'active' : '' }}">
+                <i data-lucide="list" class="w-5 h-5 mr-gr-xs flex-shrink-0"></i>
+                <span>My Requests</span>
             </a>
         </li>
     </ul>

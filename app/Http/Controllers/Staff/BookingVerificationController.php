@@ -65,6 +65,10 @@ class BookingVerificationController extends Controller
             return redirect()->route('login')->with('error', 'Please login to continue.');
         }
 
+        // Auto-expire: pending bookings with no payment after 24 hours
+        // Safety net in case the scheduled command isn't running
+        $this->autoExpireOverdueBookings();
+
         // Build query for pending bookings using Eloquent
         // Note: Not eager loading 'user' because it's in a different database (auth_db vs facilities_db)
         $query = Booking::with(['facility.lguCity'])
@@ -424,6 +428,65 @@ class BookingVerificationController extends Controller
             ->get();
 
         return view('staff.bookings.index', compact('bookings', 'facilities'));
+    }
+
+    /**
+     * Auto-expire overdue bookings as a safety net.
+     * Handles: pending with no payment after 24h, staff_verified with remaining balance after 7 days.
+     */
+    private function autoExpireOverdueBookings(): void
+    {
+        try {
+            $now = Carbon::now();
+
+            // 1. Pending bookings with no payment after 24 hours
+            $overdueBookings = Booking::where('status', 'pending')
+                ->where(function ($q) {
+                    $q->where('amount_paid', '<=', 0)->orWhereNull('amount_paid');
+                })
+                ->where('created_at', '<', $now->copy()->subHours(24))
+                ->get();
+
+            foreach ($overdueBookings as $booking) {
+                $booking->update([
+                    'status' => 'expired',
+                    'expired_at' => $now,
+                    'canceled_reason' => 'No down payment made within 24 hours (auto-expired)',
+                ]);
+
+                PaymentSlip::where('booking_id', $booking->id)
+                    ->where('status', 'unpaid')
+                    ->update(['status' => 'expired']);
+            }
+
+            // 2. Staff_verified bookings with remaining balance after 7 days
+            $overdueVerified = Booking::where('status', 'staff_verified')
+                ->where('amount_remaining', '>', 0)
+                ->whereNotNull('staff_verified_at')
+                ->where('staff_verified_at', '<', $now->copy()->subDays(7))
+                ->get();
+
+            foreach ($overdueVerified as $booking) {
+                $booking->update([
+                    'status' => 'expired',
+                    'expired_at' => $now,
+                    'canceled_reason' => 'Remaining balance not settled within 7 days of staff verification (auto-expired)',
+                ]);
+
+                PaymentSlip::where('booking_id', $booking->id)
+                    ->where('status', 'unpaid')
+                    ->update(['status' => 'expired']);
+            }
+            // 3. Clean up orphaned payment slips — booking already expired/cancelled but slip still unpaid
+            DB::connection('facilities_db')
+                ->table('payment_slips')
+                ->join('bookings', 'payment_slips.booking_id', '=', 'bookings.id')
+                ->where('payment_slips.status', 'unpaid')
+                ->whereIn('bookings.status', ['expired', 'cancelled'])
+                ->update(['payment_slips.status' => 'expired', 'payment_slips.updated_at' => $now]);
+        } catch (\Exception $e) {
+            \Log::error('Auto-expire bookings failed: ' . $e->getMessage());
+        }
     }
 
     /**

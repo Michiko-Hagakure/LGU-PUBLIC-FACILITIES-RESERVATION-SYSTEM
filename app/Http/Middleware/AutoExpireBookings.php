@@ -23,7 +23,7 @@ class AutoExpireBookings
         if ($request->isMethod('get')) {
             // Throttle: only check once every 15 minutes
             // Version key ensures new deployments run fresh
-            $cacheKey = 'auto_expire_bookings_v3';
+            $cacheKey = 'auto_expire_bookings_v4';
             
             if (!Cache::has($cacheKey)) {
                 try {

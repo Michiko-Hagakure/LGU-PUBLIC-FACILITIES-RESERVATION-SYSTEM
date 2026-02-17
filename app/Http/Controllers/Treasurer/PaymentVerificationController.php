@@ -17,6 +17,9 @@ class PaymentVerificationController extends Controller
      */
     public function index(Request $request)
     {
+        // Auto-expire overdue bookings before loading the queue
+        $this->autoExpireOverdueBookings();
+
         // Auto-fix: Create payment slips for staff_verified bookings that need them
         try {
             $stuckBookings = Booking::where('status', 'staff_verified')
@@ -100,6 +103,11 @@ class PaymentVerificationController extends Controller
                 $query->where('payment_slips.status', $status);
             }
             
+            // Exclude payment slips for bookings that are already fully paid, confirmed, expired, or cancelled
+            if ($status === 'unpaid') {
+                $query->whereNotIn('bookings.status', ['paid', 'confirmed', 'completed', 'expired', 'cancelled']);
+            }
+            
             // Search functionality
             if ($request->filled('search')) {
                 $search = $request->get('search');
@@ -170,6 +178,11 @@ class PaymentVerificationController extends Controller
             $query->where('payment_slips.status', $status);
         }
 
+        // Exclude payment slips for bookings that are already fully paid, confirmed, expired, or cancelled
+        if ($status === 'unpaid') {
+            $query->whereNotIn('bookings.status', ['paid', 'confirmed', 'completed', 'expired', 'cancelled']);
+        }
+
         if ($request->filled('search')) {
             $search = $request->get('search');
             $query->where(function($q) use ($search) {
@@ -194,7 +207,11 @@ class PaymentVerificationController extends Controller
         }
 
         $stats = [
-            'unpaid' => DB::connection('facilities_db')->table('payment_slips')->where('status', 'unpaid')->count(),
+            'unpaid' => DB::connection('facilities_db')->table('payment_slips')
+                ->join('bookings', 'payment_slips.booking_id', '=', 'bookings.id')
+                ->where('payment_slips.status', 'unpaid')
+                ->whereNotIn('bookings.status', ['paid', 'confirmed', 'completed', 'expired', 'cancelled'])
+                ->count(),
             'paid' => DB::connection('facilities_db')->table('payment_slips')->where('status', 'paid')->count(),
             'expired' => DB::connection('facilities_db')->table('payment_slips')->where('status', 'expired')->count(),
         ];
@@ -325,6 +342,11 @@ class PaymentVerificationController extends Controller
                 }
                 
                 $booking->save();
+
+                // Auto-cancel overlapping unpaid bookings — whoever pays first gets the slot
+                if ($wasAwaitingPayment) {
+                    Booking::cancelOverlappingUnpaidBookings($booking);
+                }
             }
             
             // Send notifications
@@ -405,7 +427,12 @@ class PaymentVerificationController extends Controller
                     'bookings.end_time',
                     'facilities.name as facility_name'
                 )
-                ->where('payment_slips.status', 'paid'); // Only verified payments
+                ->whereIn('payment_slips.status', ['paid', 'expired']);
+            
+            // Filter by slip status (paid or expired)
+            if ($request->filled('slip_status') && $request->slip_status !== 'all') {
+                $query->where('payment_slips.status', $request->slip_status);
+            }
             
             // Search functionality
             if ($request->filled('search')) {
@@ -431,8 +458,8 @@ class PaymentVerificationController extends Controller
                 $query->whereDate('payment_slips.paid_at', '<=', $request->date_to);
             }
             
-            // Sort by payment date (most recent first)
-            $paymentSlips = $query->orderBy('payment_slips.paid_at', 'desc')->paginate(15);
+            // Sort by payment date (most recent first), with fallback for expired slips that have no paid_at
+            $paymentSlips = $query->orderByRaw('COALESCE(payment_slips.paid_at, payment_slips.updated_at, payment_slips.created_at) DESC')->paginate(15);
             
             // Fetch user data for bookings without applicant_name
             $userIds = $paymentSlips->filter(function($slip) {
@@ -478,6 +505,14 @@ class PaymentVerificationController extends Controller
                     ->where('status', 'paid')
                     ->whereDate('paid_at', today())
                     ->sum('amount_due'),
+                'total_expired' => DB::connection('facilities_db')
+                    ->table('payment_slips')
+                    ->where('status', 'expired')
+                    ->count(),
+                'expired_amount' => DB::connection('facilities_db')
+                    ->table('payment_slips')
+                    ->where('status', 'expired')
+                    ->sum('amount_due'),
             ];
             
         } catch (\Exception $e) {
@@ -497,12 +532,73 @@ class PaymentVerificationController extends Controller
                 'total_amount' => 0,
                 'today_verified' => 0,
                 'today_amount' => 0,
+                'total_expired' => 0,
+                'expired_amount' => 0,
             ];
         }
         
         return view('treasurer.payment-history.index', compact('paymentSlips', 'stats'));
     }
     
+    /**
+     * Auto-expire overdue bookings as a safety net.
+     * Handles: pending with no payment after 24h, staff_verified with remaining balance after 7 days.
+     */
+    private function autoExpireOverdueBookings(): void
+    {
+        try {
+            $now = Carbon::now();
+
+            // 1. Pending bookings with no payment after 24 hours
+            $overdueBookings = Booking::where('status', 'pending')
+                ->where(function ($q) {
+                    $q->where('amount_paid', '<=', 0)->orWhereNull('amount_paid');
+                })
+                ->where('created_at', '<', $now->copy()->subHours(24))
+                ->get();
+
+            foreach ($overdueBookings as $booking) {
+                $booking->update([
+                    'status' => 'expired',
+                    'expired_at' => $now,
+                    'canceled_reason' => 'No down payment made within 24 hours (auto-expired)',
+                ]);
+
+                PaymentSlip::where('booking_id', $booking->id)
+                    ->where('status', 'unpaid')
+                    ->update(['status' => 'expired']);
+            }
+
+            // 2. Staff_verified bookings with remaining balance after 7 days
+            $overdueVerified = Booking::where('status', 'staff_verified')
+                ->where('amount_remaining', '>', 0)
+                ->whereNotNull('staff_verified_at')
+                ->where('staff_verified_at', '<', $now->copy()->subDays(7))
+                ->get();
+
+            foreach ($overdueVerified as $booking) {
+                $booking->update([
+                    'status' => 'expired',
+                    'expired_at' => $now,
+                    'canceled_reason' => 'Remaining balance not settled within 7 days of staff verification (auto-expired)',
+                ]);
+
+                PaymentSlip::where('booking_id', $booking->id)
+                    ->where('status', 'unpaid')
+                    ->update(['status' => 'expired']);
+            }
+            // 3. Clean up orphaned payment slips — booking already expired/cancelled but slip still unpaid
+            DB::connection('facilities_db')
+                ->table('payment_slips')
+                ->join('bookings', 'payment_slips.booking_id', '=', 'bookings.id')
+                ->where('payment_slips.status', 'unpaid')
+                ->whereIn('bookings.status', ['expired', 'cancelled'])
+                ->update(['payment_slips.status' => 'expired', 'payment_slips.updated_at' => $now]);
+        } catch (\Exception $e) {
+            \Log::error('Treasurer auto-expire bookings failed: ' . $e->getMessage());
+        }
+    }
+
     /**
      * Auto-generate Official Receipt number.
      * Format: OR-YYYY-NNNN (e.g., OR-2025-0001)

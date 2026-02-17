@@ -88,19 +88,29 @@
                         <td class="px-6 py-4">
                             @php
                                 $bidStatusColors = [
-                                    'open' => 'bg-blue-100 text-blue-800',
-                                    'pending' => 'bg-yellow-100 text-yellow-800',
+                                    'active' => 'bg-blue-100 text-blue-800',
+                                    'closed' => 'bg-gray-100 text-gray-800',
+                                    'awarded' => 'bg-green-100 text-green-800',
+                                    'submitted' => 'bg-blue-100 text-blue-800',
+                                    'under_review' => 'bg-purple-100 text-purple-800',
                                     'accepted' => 'bg-green-100 text-green-800',
                                     'rejected' => 'bg-red-100 text-red-800',
-                                    'receipts_submitted' => 'bg-purple-100 text-purple-800',
+                                    'receipts_submitted' => 'bg-indigo-100 text-indigo-800',
+                                    'receipts_approved' => 'bg-indigo-100 text-indigo-800',
+                                    'engineer_approved' => 'bg-teal-100 text-teal-800',
+                                    'ready_to_start' => 'bg-cyan-100 text-cyan-800',
+                                    'in_progress' => 'bg-orange-100 text-orange-800',
+                                    'pending_inspection' => 'bg-yellow-100 text-yellow-800',
+                                    'inspection_approved' => 'bg-emerald-100 text-emerald-800',
+                                    'completed' => 'bg-emerald-100 text-emerald-800',
                                 ];
                             @endphp
                             @if($request->bid_status)
-                            <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full {{ $bidStatusColors[$request->bid_status] ?? 'bg-gray-100 text-gray-800' }}">
+                            <span id="bid-status-badge-{{ $request->id }}" class="inline-flex px-2 py-1 text-xs font-medium rounded-full {{ $bidStatusColors[$request->bid_status] ?? 'bg-gray-100 text-gray-800' }}" data-bid-status="{{ $request->bid_status }}">
                                 {{ ucwords(str_replace('_', ' ', $request->bid_status)) }}
                             </span>
                             @else
-                            <span class="text-gray-400 text-sm">No bid</span>
+                            <span id="bid-status-badge-{{ $request->id }}" class="text-gray-400 text-sm" data-bid-status="">No bid</span>
                             @endif
                         </td>
                         <td class="px-6 py-4">
@@ -196,36 +206,66 @@
         'completed': 'bg-emerald-100 text-emerald-800',
     };
 
+    const bidStatusColors = {
+        'active': 'bg-blue-100 text-blue-800',
+        'closed': 'bg-gray-100 text-gray-800',
+        'awarded': 'bg-green-100 text-green-800',
+        'submitted': 'bg-blue-100 text-blue-800',
+        'under_review': 'bg-purple-100 text-purple-800',
+        'accepted': 'bg-green-100 text-green-800',
+        'rejected': 'bg-red-100 text-red-800',
+        'receipts_submitted': 'bg-indigo-100 text-indigo-800',
+        'receipts_approved': 'bg-indigo-100 text-indigo-800',
+        'engineer_approved': 'bg-teal-100 text-teal-800',
+        'ready_to_start': 'bg-cyan-100 text-cyan-800',
+        'in_progress': 'bg-orange-100 text-orange-800',
+        'pending_inspection': 'bg-yellow-100 text-yellow-800',
+        'inspection_approved': 'bg-emerald-100 text-emerald-800',
+        'completed': 'bg-emerald-100 text-emerald-800',
+    };
+
     function formatStatus(status) {
         return status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
     }
 
-    function updateStatusBadge(id, newStatus) {
-        const badge = document.getElementById('status-badge-' + id);
-        if (!badge) return;
-        
-        const currentStatus = badge.dataset.status;
-        if (currentStatus === newStatus) return;
-        
-        // Remove old color classes
-        Object.values(statusColors).forEach(colorClass => {
+    function updateBadge(badge, newValue, colorMap, dataAttr) {
+        const current = badge.dataset[dataAttr];
+        if (current === newValue) return;
+
+        // Remove old color classes from all color maps
+        Object.values(colorMap).forEach(colorClass => {
             colorClass.split(' ').forEach(cls => badge.classList.remove(cls));
         });
-        
+        badge.classList.remove('text-gray-400', 'text-sm');
+
         // Add new color classes
-        const newColorClass = statusColors[newStatus] || 'bg-gray-100 text-gray-800';
+        const newColorClass = colorMap[newValue] || 'bg-gray-100 text-gray-800';
         newColorClass.split(' ').forEach(cls => badge.classList.add(cls));
-        
+        badge.classList.add('inline-flex', 'px-2', 'py-1', 'text-xs', 'font-medium', 'rounded-full');
+
         // Update text and data attribute
-        badge.textContent = formatStatus(newStatus);
-        badge.dataset.status = newStatus;
-        
+        badge.textContent = formatStatus(newValue);
+        badge.dataset[dataAttr] = newValue;
+
         // Add a brief highlight animation
         badge.style.transform = 'scale(1.1)';
         badge.style.transition = 'transform 0.3s ease';
         setTimeout(() => {
             badge.style.transform = 'scale(1)';
         }, 300);
+    }
+
+    function updateStatusBadge(id, newStatus) {
+        const badge = document.getElementById('status-badge-' + id);
+        if (!badge) return;
+        updateBadge(badge, newStatus, statusColors, 'status');
+    }
+
+    function updateBidStatusBadge(id, newBidStatus) {
+        const badge = document.getElementById('bid-status-badge-' + id);
+        if (!badge) return;
+        if (!newBidStatus) return;
+        updateBadge(badge, newBidStatus, bidStatusColors, 'bidStatus');
     }
 
     function pollStatuses() {
@@ -235,6 +275,9 @@
                 if (data.success && data.statuses) {
                     Object.entries(data.statuses).forEach(([id, statusData]) => {
                         updateStatusBadge(id, statusData.status);
+                        if (statusData.bid_status) {
+                            updateBidStatusBadge(id, statusData.bid_status);
+                        }
                     });
                 }
             })

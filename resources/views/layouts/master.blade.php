@@ -10,6 +10,14 @@
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="{{ asset('assets/images/logo.png') }}">
     
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="{{ asset('manifest.json') }}">
+    <meta name="theme-color" content="#00473e">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="LGU1 PFRS">
+    <link rel="apple-touch-icon" href="{{ asset('assets/images/logo.png') }}">
+    
     <!-- Poppins Font (PROJECT_DESIGN_RULES.md requirement) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -19,13 +27,13 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     
     <!-- Alpine.js -->
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/alpinejs/3.14.3/cdn.min.js"></script>
     
     <!-- ApexCharts for dashboard graphs (per ARCHITECTURE.md) -->
-    <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.45.0/dist/apexcharts.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.45.0/apexcharts.min.js"></script>
     
     <!-- SweetAlert2 -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.14.5/sweetalert2.all.min.js"></script>
     
     <!-- Lucide Icons (PROJECT_DESIGN_RULES.md requirement) -->
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -64,6 +72,8 @@
     @stack('styles')
 </head>
 <body class="h-full">
+    @include('components.offline-indicator')
+
     <div class="min-h-full">
         @yield('content')
     </div>
@@ -126,6 +136,41 @@
         })();
     </script>
     @endif
+
+    <!-- Offline Support: IndexedDB Cache + Write Queue -->
+    <script src="{{ asset('js/offline-db.js') }}"></script>
+    <script src="{{ asset('js/offline-queue.js') }}"></script>
+
+    <!-- Service Worker Registration -->
+    <script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+            navigator.serviceWorker.register('/sw.js', { scope: '/' })
+                .then(function(registration) {
+                    console.log('[PWA] Service Worker registered, scope:', registration.scope);
+
+                    // Check for updates periodically
+                    setInterval(function() {
+                        registration.update();
+                    }, 60 * 60 * 1000); // Check every hour
+
+                    // Handle SW updates
+                    registration.addEventListener('updatefound', function() {
+                        var newWorker = registration.installing;
+                        newWorker.addEventListener('statechange', function() {
+                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                console.log('[PWA] New version available');
+                                newWorker.postMessage({ type: 'SKIP_WAITING' });
+                            }
+                        });
+                    });
+                })
+                .catch(function(error) {
+                    console.warn('[PWA] Service Worker registration failed:', error);
+                });
+        });
+    }
+    </script>
 </body>
 </html>
 

@@ -24,6 +24,9 @@ class ReservationController extends Controller
         
         // FIX: Use applicant_email for cross-system compatibility (local/cloud user IDs may differ)
 
+        // Auto-cancel awaiting_payment bookings that overlap with already-paid bookings (retroactive cleanup)
+        $this->autoCancelConflictingUnpaidBookings($userEmail);
+
         // Auto-complete past confirmed bookings in real-time (no scheduler needed)
         $this->autoCompletePastBookings($userId);
 
@@ -581,6 +584,55 @@ class ReservationController extends Controller
 
         return redirect()->route('citizen.reservations.show', $id)
             ->with('success', 'Booking rescheduled successfully! It has been resubmitted for staff review.');
+    }
+
+    /**
+     * Retroactively cancel awaiting_payment bookings that overlap with already-paid bookings.
+     * This catches cases where payment was confirmed before the auto-cancel logic was deployed.
+     */
+    private function autoCancelConflictingUnpaidBookings($userEmail)
+    {
+        // Get all awaiting_payment bookings for this citizen
+        $unpaidBookings = DB::connection('facilities_db')
+            ->table('bookings')
+            ->where('applicant_email', $userEmail)
+            ->where('status', 'awaiting_payment')
+            ->where('end_time', '>=', Carbon::now())
+            ->get();
+
+        foreach ($unpaidBookings as $unpaid) {
+            // Check if there's a paid/pending/confirmed booking for the same facility and overlapping time
+            $paidConflict = DB::connection('facilities_db')
+                ->table('bookings')
+                ->where('facility_id', $unpaid->facility_id)
+                ->where('id', '!=', $unpaid->id)
+                ->where('amount_paid', '>', 0)
+                ->whereNotIn('status', ['cancelled', 'canceled', 'expired', 'rejected'])
+                ->where('start_time', '<', $unpaid->end_time)
+                ->where('end_time', '>', $unpaid->start_time)
+                ->exists();
+
+            if ($paidConflict) {
+                DB::connection('facilities_db')
+                    ->table('bookings')
+                    ->where('id', $unpaid->id)
+                    ->update([
+                        'status' => 'cancelled',
+                        'canceled_at' => Carbon::now(),
+                        'canceled_reason' => 'Auto-cancelled: Another citizen completed payment first for the same time slot.',
+                        'updated_at' => Carbon::now(),
+                    ]);
+
+                // Expire unpaid payment slips
+                DB::connection('facilities_db')
+                    ->table('payment_slips')
+                    ->where('booking_id', $unpaid->id)
+                    ->where('status', 'unpaid')
+                    ->update(['status' => 'expired', 'updated_at' => Carbon::now()]);
+
+                \Log::info("RETROACTIVE_AUTO_CANCEL: Booking #{$unpaid->id} cancelled — overlapping paid booking exists for facility {$unpaid->facility_id}");
+            }
+        }
     }
 
     /**

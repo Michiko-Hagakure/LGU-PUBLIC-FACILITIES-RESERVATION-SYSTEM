@@ -267,6 +267,74 @@
     </div>
     @endif
 
+    {{-- Bid Status from API --}}
+    @if(!empty($apiStatus['bid_status']))
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+            </svg>
+            Bid Status
+        </h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {{-- Bid Announcement Status --}}
+            <div class="p-4 rounded-lg border bg-gray-50 border-gray-200">
+                <p class="text-sm text-gray-500">Bid Announcement</p>
+                @php
+                    $bidAnnouncementColors = [
+                        'active' => 'bg-blue-100 text-blue-800',
+                        'closed' => 'bg-gray-100 text-gray-800',
+                        'awarded' => 'bg-green-100 text-green-800',
+                    ];
+                @endphp
+                <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full mt-1 {{ $bidAnnouncementColors[$apiStatus['bid_status']] ?? 'bg-gray-100 text-gray-800' }}">
+                    {{ ucwords(str_replace('_', ' ', $apiStatus['bid_status'])) }}
+                </span>
+            </div>
+
+            {{-- Bid Application Count --}}
+            @if(isset($apiStatus['bid_application_count']))
+            <div class="p-4 rounded-lg border bg-gray-50 border-gray-200">
+                <p class="text-sm text-gray-500">Total Bid Applications</p>
+                <p class="text-2xl font-bold text-gray-900 mt-1">{{ $apiStatus['bid_application_count'] }}</p>
+            </div>
+            @endif
+
+            {{-- Bid Application Statuses --}}
+            @if(!empty($apiStatus['bid_application_statuses']))
+            <div class="p-4 rounded-lg border bg-gray-50 border-gray-200">
+                <p class="text-sm text-gray-500 mb-2">Application Statuses</p>
+                @php
+                    $appStatusColors = [
+                        'submitted' => 'bg-blue-100 text-blue-800',
+                        'under_review' => 'bg-purple-100 text-purple-800',
+                        'accepted' => 'bg-green-100 text-green-800',
+                        'rejected' => 'bg-red-100 text-red-800',
+                        'receipts_submitted' => 'bg-indigo-100 text-indigo-800',
+                        'receipts_approved' => 'bg-indigo-100 text-indigo-800',
+                        'engineer_approved' => 'bg-teal-100 text-teal-800',
+                        'ready_to_start' => 'bg-cyan-100 text-cyan-800',
+                        'in_progress' => 'bg-orange-100 text-orange-800',
+                        'pending_inspection' => 'bg-yellow-100 text-yellow-800',
+                        'inspection_approved' => 'bg-emerald-100 text-emerald-800',
+                        'completed' => 'bg-emerald-100 text-emerald-800',
+                    ];
+                    $appStatuses = array_map('trim', explode(',', $apiStatus['bid_application_statuses']));
+                @endphp
+                <div class="flex flex-wrap gap-1">
+                    @foreach($appStatuses as $appStatus)
+                    <span class="inline-flex px-2 py-0.5 text-xs font-medium rounded-full {{ $appStatusColors[$appStatus] ?? 'bg-gray-100 text-gray-800' }}">
+                        {{ ucwords(str_replace('_', ' ', $appStatus)) }}
+                    </span>
+                    @endforeach
+                </div>
+            </div>
+            @endif
+        </div>
+    </div>
+    @endif
+
     {{-- Bid & Contractor Information --}}
     @if(!empty($apiStatus['bid_information']))
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
@@ -293,15 +361,17 @@
                         <dt class="text-sm text-gray-500">Bid Status</dt>
                         <dd>
                             @php
-                                $bidStatusColors = [
-                                    'open' => 'bg-blue-100 text-blue-800',
+                                $bidDetailColors = [
+                                    'active' => 'bg-blue-100 text-blue-800',
                                     'closed' => 'bg-gray-100 text-gray-800',
+                                    'awarded' => 'bg-green-100 text-green-800',
+                                    'open' => 'bg-blue-100 text-blue-800',
                                     'accepted' => 'bg-green-100 text-green-800',
                                     'rejected' => 'bg-red-100 text-red-800',
                                 ];
                             @endphp
-                            <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full {{ $bidStatusColors[$apiStatus['bid_information']['bid_status']] ?? 'bg-gray-100 text-gray-800' }}">
-                                {{ ucfirst($apiStatus['bid_information']['bid_status']) }}
+                            <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full {{ $bidDetailColors[$apiStatus['bid_information']['bid_status']] ?? 'bg-gray-100 text-gray-800' }}">
+                                {{ ucwords(str_replace('_', ' ', $apiStatus['bid_information']['bid_status'])) }}
                             </span>
                         </dd>
                     </div>

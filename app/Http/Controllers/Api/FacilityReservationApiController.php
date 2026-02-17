@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
+use App\Models\PaymentSlip;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -75,6 +76,10 @@ class FacilityReservationApiController extends Controller
                 'valid_id_front' => 'nullable|string|max:500',
                 'valid_id_back' => 'nullable|string|max:500',
                 'valid_id_selfie' => 'nullable|string|max:500',
+                
+                // Payment fields (down payment system)
+                'payment_tier' => 'nullable|integer|in:25,50,75,100',
+                'payment_method' => 'nullable|string|in:cash,cashless',
                 
                 // Equipment (optional array)
                 'equipment' => 'nullable|array',
@@ -167,6 +172,19 @@ class FacilityReservationApiController extends Controller
             $totalDiscount = $residentDiscountAmount + $specialDiscountAmount;
             $totalAmount = $pricing['subtotal'] - $totalDiscount;
 
+            // Calculate down payment if payment_tier is provided
+            $paymentTier = $validated['payment_tier'] ?? null;
+            $paymentMethod = $validated['payment_method'] ?? null;
+            $downPaymentAmount = 0;
+            $amountRemaining = $totalAmount;
+            $bookingStatus = 'pending'; // default for legacy API calls without payment fields
+
+            if ($paymentTier) {
+                $downPaymentAmount = Booking::calculateDownPayment($totalAmount, $paymentTier);
+                $amountRemaining = $totalAmount - $downPaymentAmount;
+                $bookingStatus = 'awaiting_payment'; // requires payment before staff review
+            }
+
             DB::connection('facilities_db')->beginTransaction();
 
             try {
@@ -199,11 +217,18 @@ class FacilityReservationApiController extends Controller
                     'special_discount_amount' => $specialDiscountAmount,
                     'total_discount' => $totalDiscount,
                     'total_amount' => $totalAmount,
-                    'status' => 'pending',
+                    'status' => $bookingStatus,
                     'valid_id_type' => $validated['valid_id_type'] ?? null,
                     'valid_id_front_path' => $validated['valid_id_front'] ?? null,
                     'valid_id_back_path' => $validated['valid_id_back'] ?? null,
                     'valid_id_selfie_path' => $validated['valid_id_selfie'] ?? null,
+                    // Down payment system fields
+                    'payment_tier' => $paymentTier,
+                    'down_payment_amount' => $downPaymentAmount,
+                    'amount_paid' => 0,
+                    'amount_remaining' => $totalAmount,
+                    'payment_method' => $paymentMethod,
+                    'down_payment_paid_at' => null,
                     'staff_notes' => 'Submitted via API from: ' . $validated['source_system'] . 
                                     ($validated['external_reference_id'] ? ' (Ref: ' . $validated['external_reference_id'] . ')' : ''),
                 ]);
@@ -233,17 +258,32 @@ class FacilityReservationApiController extends Controller
                     }
                 }
 
+                // For cash bookings with payment tier: create a payment slip for the treasurer
+                if ($paymentTier && $paymentMethod === 'cash') {
+                    PaymentSlip::create([
+                        'slip_number' => PaymentSlip::generateSlipNumber(),
+                        'booking_id' => $booking->id,
+                        'amount_due' => $downPaymentAmount,
+                        'payment_deadline' => now()->addDays(3),
+                        'status' => 'unpaid',
+                        'payment_method' => 'cash',
+                        'notes' => 'Down payment (' . $paymentTier . '%) — pay at City Treasurer\'s Office to submit booking for staff review. Source: ' . $validated['source_system'],
+                    ]);
+                }
+
                 DB::connection('facilities_db')->commit();
 
                 Log::info('Facility Reservation API: Booking created', [
                     'booking_id' => $bookingId,
                     'booking_reference' => $bookingReference,
                     'source_system' => $validated['source_system'],
+                    'payment_tier' => $paymentTier,
+                    'payment_method' => $paymentMethod,
                 ]);
 
                 return response()->json([
                     'status' => 'success',
-                    'message' => 'Reservation request received and pending approval.',
+                    'message' => $paymentTier ? 'Reservation created. Down payment required to submit for review.' : 'Reservation request received and pending approval.',
                     'data' => [
                         'booking_id' => $bookingId,
                         'booking_reference' => $bookingReference,
@@ -251,7 +291,10 @@ class FacilityReservationApiController extends Controller
                         'booking_date' => $validated['booking_date'],
                         'start_time' => $startDateTime->format('h:i A'),
                         'end_time' => $endDateTime->format('h:i A'),
-                        'status' => 'pending',
+                        'status' => $bookingStatus,
+                        'payment_tier' => $paymentTier,
+                        'payment_method' => $paymentMethod,
+                        'down_payment_amount' => $downPaymentAmount > 0 ? round($downPaymentAmount, 2) : null,
                         'pricing' => [
                             'base_rate' => number_format($pricing['base_rate'], 2),
                             'extension_rate' => number_format($pricing['extension_rate'], 2),
@@ -407,8 +450,8 @@ class FacilityReservationApiController extends Controller
                 'facilities.address',
                 'facilities.capacity',
                 'facilities.min_capacity',
-                'facilities.per_person_rate',
-                'facilities.per_person_extension_rate',
+                'facilities.base_rate_3hrs',
+                'facilities.extension_rate_2hrs',
                 'facilities.base_hours',
                 'lgu_cities.city_name'
             )
@@ -535,6 +578,7 @@ class FacilityReservationApiController extends Controller
                 'bookings.start_time',
                 'bookings.end_time',
                 'bookings.total_amount',
+                'bookings.down_payment_amount',
                 'bookings.rejected_reason',
                 'bookings.created_at',
                 'facilities.name as facility_name'
@@ -557,6 +601,7 @@ class FacilityReservationApiController extends Controller
                 'start_time' => Carbon::parse($booking->start_time)->format('Y-m-d h:i A'),
                 'end_time' => Carbon::parse($booking->end_time)->format('Y-m-d h:i A'),
                 'total_amount' => number_format($booking->total_amount, 2),
+                'down_payment_amount' => number_format($booking->down_payment_amount ?? 0, 2),
                 'rejected_reason' => $booking->rejected_reason,
                 'submitted_at' => Carbon::parse($booking->created_at)->format('Y-m-d h:i A'),
             ],
@@ -589,6 +634,12 @@ class FacilityReservationApiController extends Controller
                     'bookings.applicant_email',
                     'bookings.rejected_reason',
                     'bookings.created_at',
+                    'bookings.payment_tier',
+                    'bookings.payment_method',
+                    'bookings.down_payment_amount',
+                    'bookings.amount_paid',
+                    'bookings.amount_remaining',
+                    'bookings.down_payment_paid_at',
                     'facilities.name as facility_name'
                 )
                 ->orderBy('bookings.created_at', 'desc')
@@ -596,6 +647,14 @@ class FacilityReservationApiController extends Controller
                 ->get();
 
             $data = $bookings->map(function ($booking) {
+                // Calculate amount due: for awaiting_payment, it's the down payment; otherwise remaining balance
+                $amountDue = $booking->total_amount;
+                if ($booking->status === 'awaiting_payment' && $booking->down_payment_amount > 0) {
+                    $amountDue = $booking->down_payment_amount;
+                } elseif ($booking->amount_remaining > 0 && $booking->down_payment_paid_at) {
+                    $amountDue = $booking->amount_remaining;
+                }
+
                 return [
                     'booking_reference' => 'BK' . str_pad($booking->id, 6, '0', STR_PAD_LEFT),
                     'facility_name' => $booking->facility_name,
@@ -603,6 +662,13 @@ class FacilityReservationApiController extends Controller
                     'start_time' => Carbon::parse($booking->start_time)->format('Y-m-d h:i A'),
                     'end_time' => Carbon::parse($booking->end_time)->format('Y-m-d h:i A'),
                     'total_amount' => number_format($booking->total_amount, 2),
+                    'amount_due' => number_format($amountDue, 2),
+                    'payment_tier' => $booking->payment_tier,
+                    'payment_method' => $booking->payment_method,
+                    'down_payment_amount' => $booking->down_payment_amount ? number_format($booking->down_payment_amount, 2) : null,
+                    'amount_paid' => number_format($booking->amount_paid ?? 0, 2),
+                    'amount_remaining' => $booking->amount_remaining ? number_format($booking->amount_remaining, 2) : null,
+                    'down_payment_paid' => !is_null($booking->down_payment_paid_at),
                     'applicant_name' => $booking->applicant_name,
                     'applicant_email' => $booking->applicant_email,
                     'rejected_reason' => $booking->rejected_reason,
@@ -625,6 +691,107 @@ class FacilityReservationApiController extends Controller
     }
 
     /**
+     * Get payment history/receipt for a specific booking.
+     * 
+     * GET /api/facility-reservation/payment-history/{reference}
+     */
+    public function paymentHistory($reference)
+    {
+        try {
+            $bookingId = (int) preg_replace('/[^0-9]/', '', $reference);
+
+            $booking = DB::connection('facilities_db')
+                ->table('bookings')
+                ->join('facilities', 'bookings.facility_id', '=', 'facilities.facility_id')
+                ->where('bookings.id', $bookingId)
+                ->select(
+                    'bookings.id',
+                    'bookings.status',
+                    'bookings.start_time',
+                    'bookings.end_time',
+                    'bookings.total_amount',
+                    'bookings.payment_tier',
+                    'bookings.down_payment_amount',
+                    'bookings.amount_paid',
+                    'bookings.amount_remaining',
+                    'bookings.payment_method',
+                    'bookings.down_payment_paid_at',
+                    'bookings.paymongo_checkout_id',
+                    'bookings.paymongo_payment_id',
+                    'bookings.applicant_name',
+                    'bookings.applicant_email',
+                    'bookings.created_at',
+                    'facilities.name as facility_name'
+                )
+                ->first();
+
+            if (!$booking) {
+                return response()->json(['status' => 'error', 'message' => 'Booking not found.'], 404);
+            }
+
+            $bookingRef = 'BK' . str_pad($booking->id, 6, '0', STR_PAD_LEFT);
+
+            // Build payment transactions list
+            $transactions = [];
+
+            // Down payment transaction
+            if ($booking->down_payment_paid_at) {
+                $transactions[] = [
+                    'type' => 'down_payment',
+                    'label' => 'Down Payment (' . ($booking->payment_tier ?? 25) . '%)',
+                    'amount' => number_format($booking->down_payment_amount ?? 0, 2),
+                    'method' => ucfirst($booking->payment_method ?? 'cashless'),
+                    'date' => Carbon::parse($booking->down_payment_paid_at)->format('F d, Y \\a\\t h:i A'),
+                    'reference' => $booking->paymongo_payment_id ?? $booking->paymongo_checkout_id ?? null,
+                    'status' => 'paid',
+                ];
+            }
+
+            // Check payment_slips for additional payments (remaining balance, etc.)
+            $slips = DB::connection('facilities_db')
+                ->table('payment_slips')
+                ->where('booking_id', $bookingId)
+                ->orderBy('created_at', 'asc')
+                ->get();
+
+            foreach ($slips as $slip) {
+                $transactions[] = [
+                    'type' => 'payment_slip',
+                    'label' => 'Payment Slip ' . $slip->slip_number,
+                    'amount' => number_format($slip->amount_due, 2),
+                    'method' => ucfirst($slip->payment_method ?? 'N/A'),
+                    'date' => $slip->paid_at ? Carbon::parse($slip->paid_at)->format('F d, Y \\a\\t h:i A') : null,
+                    'reference' => $slip->transaction_reference ?? $slip->slip_number,
+                    'status' => $slip->status,
+                    'deadline' => $slip->payment_deadline ? Carbon::parse($slip->payment_deadline)->format('F d, Y \\a\\t h:i A') : null,
+                ];
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'data' => [
+                    'booking_reference' => $bookingRef,
+                    'facility_name' => $booking->facility_name,
+                    'booking_status' => $booking->status,
+                    'applicant_name' => $booking->applicant_name,
+                    'applicant_email' => $booking->applicant_email,
+                    'start_time' => Carbon::parse($booking->start_time)->format('F d, Y h:i A'),
+                    'end_time' => Carbon::parse($booking->end_time)->format('F d, Y h:i A'),
+                    'total_amount' => number_format($booking->total_amount, 2),
+                    'amount_paid' => number_format($booking->amount_paid ?? 0, 2),
+                    'amount_remaining' => number_format($booking->amount_remaining ?? 0, 2),
+                    'payment_tier' => $booking->payment_tier,
+                    'submitted_at' => Carbon::parse($booking->created_at)->format('F d, Y h:i A'),
+                    'transactions' => $transactions,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Payment history API error: ' . $e->getMessage());
+            return response()->json(['status' => 'error', 'message' => 'An error occurred.'], 500);
+        }
+    }
+
+    /**
      * Calculate pricing for the booking
      */
     private function calculatePricing($facility, $validated, $startDateTime, $endDateTime)
@@ -635,18 +802,18 @@ class FacilityReservationApiController extends Controller
         $baseRate = 0;
         $extensionRate = 0;
 
-        if (isset($facility->per_person_rate) && $facility->per_person_rate > 0) {
-            // Per-person pricing
-            $perPersonRate = $facility->per_person_rate;
+        if (isset($facility->base_rate_3hrs) && $facility->base_rate_3hrs > 0) {
+            // Flat rate pricing
+            $baseRate3hrs = $facility->base_rate_3hrs;
             $baseHours = $facility->base_hours ?? 3;
-            $extensionRatePer2Hours = $facility->per_person_extension_rate ?? 0;
+            $extensionRate2hrs = $facility->extension_rate_2hrs ?? 0;
 
-            $baseRate = $perPersonRate * $expectedAttendees;
+            $baseRate = $baseRate3hrs;
 
             $extensionHours = max(0, $totalHours - $baseHours);
-            if ($extensionHours > 0 && $extensionRatePer2Hours > 0) {
+            if ($extensionHours > 0 && $extensionRate2hrs > 0) {
                 $extensionBlocks = ceil($extensionHours / 2);
-                $extensionRate = $extensionBlocks * $extensionRatePer2Hours * $expectedAttendees;
+                $extensionRate = $extensionBlocks * $extensionRate2hrs;
             }
         } else {
             // Default pricing
@@ -684,6 +851,9 @@ class FacilityReservationApiController extends Controller
 
     /**
      * Handle payment completion notification from external systems (e.g., pure PHP portal)
+     * 
+     * For cashless payments: marks down payment as paid, promotes to pending (staff review), skips treasurer
+     * For cash payments: goes through treasurer verification first
      */
     public function paymentComplete(Request $request)
     {
@@ -691,16 +861,14 @@ class FacilityReservationApiController extends Controller
             $validated = $request->validate([
                 'booking_reference' => 'required|string|max:20',
                 'paymongo_checkout_id' => 'required|string|max:100',
+                'payment_method' => 'nullable|string|in:cash,cashless',
                 'source_system' => 'nullable|string|max:100',
             ]);
 
             // Extract booking ID from reference (BK000001 -> 1)
             $bookingId = (int) preg_replace('/[^0-9]/', '', $validated['booking_reference']);
 
-            $booking = DB::connection('facilities_db')
-                ->table('bookings')
-                ->where('id', $bookingId)
-                ->first();
+            $booking = Booking::find($bookingId);
 
             if (!$booking) {
                 return response()->json([
@@ -709,17 +877,17 @@ class FacilityReservationApiController extends Controller
                 ], 404);
             }
 
-            // Get payment slip
-            $paymentSlip = DB::connection('facilities_db')
-                ->table('payment_slips')
-                ->where('booking_id', $bookingId)
-                ->first();
-
-            if (!$paymentSlip) {
+            // Already paid — skip
+            if ($booking->down_payment_paid_at) {
                 return response()->json([
-                    'status' => 'error',
-                    'message' => 'Payment slip not found.',
-                ], 404);
+                    'status' => 'success',
+                    'message' => 'Payment already confirmed.',
+                    'data' => [
+                        'booking_reference' => $validated['booking_reference'],
+                        'booking_status' => $booking->status,
+                        'payment_status' => 'paid',
+                    ]
+                ]);
             }
 
             // Verify payment with Paymongo
@@ -735,42 +903,61 @@ class FacilityReservationApiController extends Controller
 
             // Get payment details
             $paymentDetails = $paymongoService->getPaymentDetails($validated['paymongo_checkout_id']);
+            $isCashless = ($validated['payment_method'] ?? $booking->payment_method) === 'cashless';
 
-            // Update payment slip
-            DB::connection('facilities_db')
+            // Determine new status based on payment method:
+            // Cashless: awaiting_payment -> pending (for staff review, skip treasurer)
+            // Cash: handled via treasurer verification (not this endpoint)
+            $newStatus = $booking->status === 'awaiting_payment' ? 'pending' : $booking->status;
+
+            // Update booking with payment confirmation
+            $booking->update([
+                'status' => $newStatus,
+                'amount_paid' => $booking->down_payment_amount,
+                'amount_remaining' => $booking->total_amount - $booking->down_payment_amount,
+                'down_payment_paid_at' => Carbon::now(),
+                'paymongo_checkout_id' => $validated['paymongo_checkout_id'],
+                'paymongo_payment_id' => $paymentDetails['payment_id'] ?? null,
+                'payment_method' => 'cashless',
+                'updated_at' => Carbon::now(),
+            ]);
+
+            // Update or create payment slip record
+            $paymentSlip = DB::connection('facilities_db')
                 ->table('payment_slips')
-                ->where('id', $paymentSlip->id)
-                ->update([
-                    'status' => 'paid',
-                    'payment_method' => $paymentDetails['payment_method'] ?? 'paymongo',
-                    'payment_channel' => 'paymongo',
-                    'transaction_reference' => $paymentDetails['reference_number'] ?? $validated['paymongo_checkout_id'],
-                    'gateway_reference_number' => $paymentDetails['payment_id'] ?? $validated['paymongo_checkout_id'],
-                    'paymongo_checkout_id' => $validated['paymongo_checkout_id'],
-                    'paid_at' => now(),
-                    'updated_at' => now(),
-                ]);
+                ->where('booking_id', $bookingId)
+                ->first();
 
-            // Update booking status to confirmed
-            DB::connection('facilities_db')
-                ->table('bookings')
-                ->where('id', $bookingId)
-                ->update([
-                    'status' => 'confirmed',
-                    'updated_at' => now(),
-                ]);
+            if ($paymentSlip) {
+                DB::connection('facilities_db')
+                    ->table('payment_slips')
+                    ->where('id', $paymentSlip->id)
+                    ->update([
+                        'status' => 'paid',
+                        'payment_method' => $paymentDetails['payment_method'] ?? 'paymongo',
+                        'payment_channel' => 'paymongo',
+                        'transaction_reference' => $paymentDetails['reference_number'] ?? $validated['paymongo_checkout_id'],
+                        'gateway_reference_number' => $paymentDetails['payment_id'] ?? $validated['paymongo_checkout_id'],
+                        'paymongo_checkout_id' => $validated['paymongo_checkout_id'],
+                        'paid_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+            }
 
-            Log::info('Payment completed via API', [
+            Log::info('Payment completed via API (cashless — skip treasurer)', [
                 'booking_reference' => $validated['booking_reference'],
+                'booking_id' => $bookingId,
+                'new_status' => $newStatus,
+                'amount' => $booking->down_payment_amount,
                 'source_system' => $validated['source_system'] ?? 'unknown',
             ]);
 
             return response()->json([
                 'status' => 'success',
-                'message' => 'Payment confirmed successfully.',
+                'message' => 'Payment confirmed. Booking submitted for staff review.',
                 'data' => [
                     'booking_reference' => $validated['booking_reference'],
-                    'booking_status' => 'confirmed',
+                    'booking_status' => $newStatus,
                     'payment_status' => 'paid',
                 ]
             ]);
@@ -787,6 +974,122 @@ class FacilityReservationApiController extends Controller
                 'status' => 'error',
                 'message' => 'An error occurred processing payment.',
             ], 500);
+        }
+    }
+
+    /**
+     * Promote a booking from awaiting_payment to pending after cashless payment.
+     * Used by the PF payment-success page when the PayMongo checkout ID is not in session.
+     * The PayMongo webhook should have already confirmed payment; this just ensures the status is updated.
+     */
+    public function promoteAfterPayment(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'booking_reference' => 'required|string|max:20',
+                'payment_method' => 'nullable|string|in:cash,cashless',
+                'source_system' => 'nullable|string|max:100',
+            ]);
+
+            $bookingId = (int) preg_replace('/[^0-9]/', '', $validated['booking_reference']);
+            $booking = Booking::find($bookingId);
+
+            if (!$booking) {
+                return response()->json(['status' => 'error', 'message' => 'Booking not found.'], 404);
+            }
+
+            // Handle based on current booking status
+            if ($booking->status === 'awaiting_payment') {
+                // Down payment: promote to pending (staff review)
+                $booking->update([
+                    'status' => 'pending',
+                    'amount_paid' => $booking->down_payment_amount,
+                    'amount_remaining' => $booking->total_amount - $booking->down_payment_amount,
+                    'down_payment_paid_at' => Carbon::now(),
+                    'payment_method' => 'cashless',
+                ]);
+
+                Log::info('Booking promoted after down payment (cashless)', [
+                    'booking_reference' => $validated['booking_reference'],
+                    'booking_id' => $bookingId,
+                    'source_system' => $validated['source_system'] ?? 'unknown',
+                ]);
+
+                return response()->json([
+                    'status' => 'success',
+                    'message' => 'Booking promoted to pending for staff review.',
+                    'data' => [
+                        'booking_reference' => $validated['booking_reference'],
+                        'booking_status' => 'pending',
+                    ]
+                ]);
+            }
+
+            // Remaining balance payment: staff_verified / reserved / payment_pending
+            // Status goes to 'paid' (not 'confirmed') — admin must still verify before confirming
+            if (in_array($booking->status, ['staff_verified', 'reserved', 'payment_pending'])) {
+                $booking->update([
+                    'status' => 'paid',
+                    'amount_paid' => $booking->total_amount,
+                    'amount_remaining' => 0,
+                    'payment_method' => 'cashless',
+                ]);
+
+                // Generate Official Receipt number for the cashless payment
+                $year = now()->year;
+                $lastOR = DB::connection('facilities_db')
+                    ->table('payment_slips')
+                    ->where('or_number', 'like', "OR-{$year}-%")
+                    ->orderBy('or_number', 'desc')
+                    ->value('or_number');
+                $nextSeq = $lastOR ? str_pad(intval(substr($lastOR, -4)) + 1, 4, '0', STR_PAD_LEFT) : '0001';
+                $orNumber = "OR-{$year}-{$nextSeq}";
+
+                // Update the associated payment slip to 'paid'
+                DB::connection('facilities_db')
+                    ->table('payment_slips')
+                    ->where('booking_id', $bookingId)
+                    ->where('status', 'unpaid')
+                    ->update([
+                        'status' => 'paid',
+                        'payment_method' => 'paymongo',
+                        'paid_at' => Carbon::now(),
+                        'or_number' => $orNumber,
+                        'transaction_reference' => $validated['booking_reference'] . '-balance',
+                        'updated_at' => Carbon::now(),
+                    ]);
+
+                Log::info('Booking fully paid — remaining balance settled (cashless), awaiting admin confirmation', [
+                    'booking_reference' => $validated['booking_reference'],
+                    'booking_id' => $bookingId,
+                    'source_system' => $validated['source_system'] ?? 'unknown',
+                ]);
+
+                return response()->json([
+                    'status' => 'success',
+                    'message' => 'Remaining balance paid. Awaiting admin confirmation.',
+                    'data' => [
+                        'booking_reference' => $validated['booking_reference'],
+                        'booking_status' => 'paid',
+                    ]
+                ]);
+            }
+
+            // Already fully processed
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Booking already processed.',
+                'data' => [
+                    'booking_reference' => $validated['booking_reference'],
+                    'booking_status' => $booking->status,
+                ]
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json(['status' => 'error', 'message' => 'Validation failed.', 'errors' => $e->errors()], 422);
+        } catch (\Exception $e) {
+            Log::error('Promote after payment API error: ' . $e->getMessage());
+            return response()->json(['status' => 'error', 'message' => 'An error occurred.'], 500);
         }
     }
 

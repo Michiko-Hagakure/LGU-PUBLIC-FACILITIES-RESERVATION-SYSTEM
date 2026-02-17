@@ -52,20 +52,20 @@
             <i data-lucide="info" class="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5"></i>
             <div>
                 <p class="text-blue-800 font-medium">Community Infrastructure Maintenance Integration</p>
-                <p class="text-blue-700 text-sm mt-1">This form submits maintenance requests to the Community Infrastructure Maintenance Management system for severe facility damage that requires professional attention.</p>
+                <p class="text-blue-700 text-sm mt-1">This form submits general maintenance requests to the Community Infrastructure Maintenance Management system. Select the appropriate category and issue type for your request.</p>
             </div>
         </div>
     </div>
 
-    <form action="{{ URL::signedRoute('admin.community-maintenance.store') }}" method="POST" id="maintenanceRequestForm">
+    <form action="{{ URL::signedRoute('admin.community-maintenance.store') }}" method="POST" enctype="multipart/form-data" id="maintenanceRequestForm">
         @csrf
 
-        {{-- Section 1: Facility Selection --}}
+        {{-- Section 1: Facility & Category Selection --}}
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 mb-6 overflow-hidden">
             <div class="bg-gradient-to-r from-lgu-headline to-lgu-stroke px-6 py-4">
                 <h2 class="text-lg font-semibold text-white flex items-center gap-2">
                     <i data-lucide="building-2" class="w-5 h-5"></i>
-                    Facility Information
+                    Facility & Category
                 </h2>
             </div>
             <div class="p-6 space-y-6">
@@ -86,97 +86,97 @@
                     </select>
                 </div>
 
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="category" class="block text-sm font-medium text-gray-700 mb-2">
+                            Category <span class="text-red-500">*</span>
+                        </label>
+                        <select id="category" name="category" 
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-lgu-highlight focus:border-lgu-highlight transition-colors" required>
+                            <option value="">Select a category...</option>
+                            @foreach($categories as $cat)
+                            <option value="{{ $cat }}" {{ old('category', 'Facilities') == $cat ? 'selected' : '' }}>
+                                {{ $cat }}
+                            </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="issue_type" class="block text-sm font-medium text-gray-700 mb-2">
+                            Issue Type <span class="text-red-500">*</span>
+                        </label>
+                        <select id="issue_type" name="issue_type" 
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-lgu-highlight focus:border-lgu-highlight transition-colors" required>
+                            <option value="">Select an issue type...</option>
+                        </select>
+                    </div>
+                </div>
+
                 <div>
-                    <label for="unit_number" class="block text-sm font-medium text-gray-700 mb-2">
-                        Specific Location/Unit Number
+                    <label for="location" class="block text-sm font-medium text-gray-700 mb-2">
+                        Location <span class="text-red-500">*</span>
                     </label>
-                    <input type="text" id="unit_number" name="unit_number" 
-                        value="{{ old('unit_number') }}" 
+                    <input type="text" id="location" name="location" 
+                        value="{{ old('location') }}" 
                         class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-lgu-highlight focus:border-lgu-highlight transition-colors"
-                        placeholder="e.g., Building A - Room 101, Main Hall, Sports Court 2">
+                        placeholder="e.g., City Hall Building A, 3rd Floor" required>
                 </div>
             </div>
         </div>
 
-        {{-- Section 2: Contact Information --}}
+        {{-- Section 2: Reporter Information --}}
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 mb-6 overflow-hidden">
             <div class="bg-gradient-to-r from-lgu-headline to-lgu-stroke px-6 py-4">
                 <h2 class="text-lg font-semibold text-white flex items-center gap-2">
                     <i data-lucide="user" class="w-5 h-5"></i>
-                    Contact Information
+                    Reporter Information
                 </h2>
             </div>
             <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                    <label for="resident_name" class="block text-sm font-medium text-gray-700 mb-2">
+                    <label for="reporter_name" class="block text-sm font-medium text-gray-700 mb-2">
                         Reporter Name <span class="text-red-500">*</span>
                     </label>
-                    <input type="text" id="resident_name" name="resident_name" 
-                        value="{{ old('resident_name', session('user_name')) }}" 
+                    <input type="text" id="reporter_name" name="reporter_name" 
+                        value="{{ old('reporter_name', session('user_name')) }}" 
                         class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-lgu-highlight focus:border-lgu-highlight transition-colors"
                         placeholder="Your full name" required>
                 </div>
 
                 <div>
-                    <label for="contact_info" class="block text-sm font-medium text-gray-700 mb-2">
-                        Contact Information <span class="text-red-500">*</span>
+                    <label for="reporter_contact" class="block text-sm font-medium text-gray-700 mb-2">
+                        Contact Number <span class="text-red-500">*</span>
                     </label>
-                    <input type="text" id="contact_info" name="contact_info" 
-                        value="{{ old('contact_info') }}" 
+                    <input type="text" id="reporter_contact" name="reporter_contact" 
+                        value="{{ old('reporter_contact') }}" 
                         class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-lgu-highlight focus:border-lgu-highlight transition-colors"
-                        placeholder="Phone number or email address" required>
+                        placeholder="e.g., 09171234567" required>
                 </div>
             </div>
         </div>
 
-        {{-- Section 3: Report Details --}}
+        {{-- Section 3: Request Details --}}
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 mb-6 overflow-hidden">
             <div class="bg-gradient-to-r from-lgu-headline to-lgu-stroke px-6 py-4">
                 <h2 class="text-lg font-semibold text-white flex items-center gap-2">
                     <i data-lucide="file-text" class="w-5 h-5"></i>
-                    Report Details
+                    Request Details
                 </h2>
             </div>
             <div class="p-6 space-y-6">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label for="report_type" class="block text-sm font-medium text-gray-700 mb-2">
-                            Report Type
-                        </label>
-                        <select id="report_type" name="report_type" 
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-lgu-highlight focus:border-lgu-highlight transition-colors">
-                            @foreach($reportTypes as $type)
-                            <option value="{{ $type['value'] }}" {{ old('report_type', 'maintenance') == $type['value'] ? 'selected' : '' }}>
-                                {{ $type['label'] }}
-                            </option>
-                            @endforeach
-                        </select>
-                        <p class="mt-1 text-xs text-gray-500" id="reportTypeDescription">Facility maintenance issues</p>
-                    </div>
-
-                    <div>
-                        <label for="priority" class="block text-sm font-medium text-gray-700 mb-2">
-                            Priority Level
-                        </label>
-                        <select id="priority" name="priority" 
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-lgu-highlight focus:border-lgu-highlight transition-colors">
-                            @foreach($priorityLevels as $level)
-                            <option value="{{ $level['value'] }}" {{ old('priority', 'medium') == $level['value'] ? 'selected' : '' }}>
-                                {{ $level['label'] }} - {{ $level['description'] }}
-                            </option>
-                            @endforeach
-                        </select>
-                    </div>
-                </div>
-
                 <div>
-                    <label for="subject" class="block text-sm font-medium text-gray-700 mb-2">
-                        Subject <span class="text-red-500">*</span>
+                    <label for="priority" class="block text-sm font-medium text-gray-700 mb-2">
+                        Priority Level <span class="text-red-500">*</span>
                     </label>
-                    <input type="text" id="subject" name="subject" 
-                        value="{{ old('subject') }}" 
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-lgu-highlight focus:border-lgu-highlight transition-colors"
-                        placeholder="Brief summary of the issue" required>
+                    <select id="priority" name="priority" 
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-lgu-highlight focus:border-lgu-highlight transition-colors" required>
+                        @foreach($priorityLevels as $level)
+                        <option value="{{ $level['value'] }}" {{ old('priority', 'Medium') == $level['value'] ? 'selected' : '' }}>
+                            {{ $level['label'] }} - {{ $level['description'] }}
+                        </option>
+                        @endforeach
+                    </select>
                 </div>
 
                 <div>
@@ -186,6 +186,34 @@
                     <textarea id="description" name="description" rows="5" 
                         class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-lgu-highlight focus:border-lgu-highlight transition-colors resize-none"
                         placeholder="Provide a detailed description of the maintenance issue, including when it started, severity of damage, and any safety concerns..." required>{{ old('description') }}</textarea>
+                </div>
+
+                <div>
+                    <label for="photo" class="block text-sm font-medium text-gray-700 mb-2">
+                        Photo (Optional)
+                    </label>
+                    <div class="flex items-center gap-4">
+                        <label class="flex-1 flex items-center justify-center px-4 py-6 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-lgu-highlight hover:bg-gray-50 transition-colors" id="photoDropZone">
+                            <div class="text-center">
+                                <i data-lucide="camera" class="w-8 h-8 text-gray-400 mx-auto mb-2"></i>
+                                <p class="text-sm text-gray-600" id="photoLabel">Click to upload a photo of the issue</p>
+                                <p class="text-xs text-gray-400 mt-1">JPG, PNG, GIF up to 5MB</p>
+                            </div>
+                            <input type="file" id="photo" name="photo" accept="image/*" class="hidden">
+                        </label>
+                    </div>
+                    <div id="photoPreview" class="mt-3 hidden">
+                        <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                            <img id="photoPreviewImg" class="w-16 h-16 object-cover rounded" src="" alt="Preview">
+                            <div class="flex-1">
+                                <p class="text-sm font-medium text-gray-700" id="photoFileName"></p>
+                                <p class="text-xs text-gray-500" id="photoFileSize"></p>
+                            </div>
+                            <button type="button" id="removePhoto" class="text-red-500 hover:text-red-700">
+                                <i data-lucide="x-circle" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -201,23 +229,15 @@
             </div>
         </div>
 
-        <input type="hidden" name="payload_mode" id="payload_mode" value="standard">
-
         {{-- Submit Button --}}
-        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <label class="inline-flex items-center gap-2 text-sm text-gray-600">
-                <input type="checkbox" id="payloadModeToggle" class="rounded border-gray-300 text-lgu-highlight focus:ring-lgu-highlight">
-                Use test payload (omit facility ID/name; shorten location)
-            </label>
-            <div class="flex justify-end gap-4">
-                <a href="{{ URL::signedRoute('admin.community-maintenance.index') }}" class="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium">
-                    View My Reports
-                </a>
-                <button type="submit" id="submitBtn" class="px-8 py-3 bg-lgu-highlight text-white rounded-lg hover:bg-lgu-stroke transition-colors font-medium flex items-center gap-2">
-                    <i data-lucide="send" class="w-5 h-5"></i>
-                    Submit Maintenance Request
-                </button>
-            </div>
+        <div class="flex justify-end gap-4">
+            <a href="{{ URL::signedRoute('admin.community-maintenance.index') }}" class="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium">
+                View My Requests
+            </a>
+            <button type="submit" id="submitBtn" class="px-8 py-3 bg-lgu-highlight text-white rounded-lg hover:bg-lgu-stroke transition-colors font-medium flex items-center gap-2">
+                <i data-lucide="send" class="w-5 h-5"></i>
+                Submit Maintenance Request
+            </button>
         </div>
     </form>
 </div>
@@ -226,45 +246,52 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Report type descriptions
-    const reportTypeDescriptions = {
-        'maintenance': 'Facility maintenance issues',
-        'complaint': 'Complaints about facilities or services',
-        'suggestion': 'Suggestions for improvement',
-        'emergency': 'Emergency situations requiring immediate attention'
-    };
+    // Issue types by category from the General Request API
+    const issueTypesByCategory = @json($issueTypesByCategory);
 
     // Priority indicator settings
     const prioritySettings = {
-        'low': { bg: 'bg-green-50', border: 'border-green-200', text: 'text-green-800', icon: 'text-green-600', title: 'Low Priority', desc: 'This issue will be addressed during regular maintenance schedules.' },
-        'medium': { bg: 'bg-yellow-50', border: 'border-yellow-200', text: 'text-yellow-800', icon: 'text-yellow-600', title: 'Medium Priority', desc: 'This issue will be reviewed and addressed soon.' },
-        'high': { bg: 'bg-orange-50', border: 'border-orange-200', text: 'text-orange-800', icon: 'text-orange-600', title: 'High Priority', desc: 'This issue requires prompt attention and will be prioritized.' },
-        'urgent': { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-800', icon: 'text-red-600', title: 'Urgent Priority', desc: 'Emergency response team will be notified immediately.' }
+        'Low': { bg: 'bg-green-50', border: 'border-green-200', text: 'text-green-800', icon: 'text-green-600', title: 'Low Priority', desc: 'This issue will be addressed during regular maintenance schedules.' },
+        'Medium': { bg: 'bg-yellow-50', border: 'border-yellow-200', text: 'text-yellow-800', icon: 'text-yellow-600', title: 'Medium Priority', desc: 'This issue will be reviewed and addressed soon.' },
+        'High': { bg: 'bg-orange-50', border: 'border-orange-200', text: 'text-orange-800', icon: 'text-orange-600', title: 'High Priority', desc: 'This issue requires prompt attention and will be prioritized.' },
+        'Urgent': { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-800', icon: 'text-red-600', title: 'Urgent Priority', desc: 'Emergency response team will be notified immediately.' }
     };
+
+    // Category selection - populate issue types dynamically
+    const categorySelect = document.getElementById('category');
+    const issueTypeSelect = document.getElementById('issue_type');
+    const oldIssueType = '{{ old("issue_type") }}';
+
+    function updateIssueTypes() {
+        const category = categorySelect.value;
+        issueTypeSelect.innerHTML = '<option value="">Select an issue type...</option>';
+
+        if (category && issueTypesByCategory[category]) {
+            issueTypesByCategory[category].forEach(function(type) {
+                const option = document.createElement('option');
+                option.value = type;
+                option.textContent = type;
+                if (type === oldIssueType) {
+                    option.selected = true;
+                }
+                issueTypeSelect.appendChild(option);
+            });
+        }
+    }
+
+    categorySelect.addEventListener('change', updateIssueTypes);
+    // Initialize on page load
+    updateIssueTypes();
 
     // Auto-fill location when facility is selected
     const facilitySelect = document.getElementById('facility_id');
-    const unitNumberInput = document.getElementById('unit_number');
+    const locationInput = document.getElementById('location');
     
     facilitySelect.addEventListener('change', function() {
         const selectedOption = this.options[this.selectedIndex];
         const address = selectedOption.getAttribute('data-address');
-        if (address) {
-            unitNumberInput.value = address;
-        }
-    });
-
-    // Update report type description
-    const reportTypeSelect = document.getElementById('report_type');
-    const reportTypeDesc = document.getElementById('reportTypeDescription');
-    
-    reportTypeSelect.addEventListener('change', function() {
-        reportTypeDesc.textContent = reportTypeDescriptions[this.value] || '';
-        
-        // Auto-set priority to urgent for emergency reports
-        if (this.value === 'emergency') {
-            document.getElementById('priority').value = 'urgent';
-            updatePriorityIndicator('urgent');
+        if (address && !locationInput.value) {
+            locationInput.value = address;
         }
     });
 
@@ -292,17 +319,35 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize priority indicator
     updatePriorityIndicator(prioritySelect.value);
 
-    const payloadModeToggle = document.getElementById('payloadModeToggle');
-    const payloadModeInput = document.getElementById('payload_mode');
+    // Photo upload handling
+    const photoInput = document.getElementById('photo');
+    const photoPreview = document.getElementById('photoPreview');
+    const photoPreviewImg = document.getElementById('photoPreviewImg');
+    const photoFileName = document.getElementById('photoFileName');
+    const photoFileSize = document.getElementById('photoFileSize');
+    const photoLabel = document.getElementById('photoLabel');
+    const removePhoto = document.getElementById('removePhoto');
 
-    if (payloadModeToggle && payloadModeInput) {
-        const syncPayloadMode = () => {
-            payloadModeInput.value = payloadModeToggle.checked ? 'test' : 'standard';
-        };
+    photoInput.addEventListener('change', function() {
+        if (this.files && this.files[0]) {
+            const file = this.files[0];
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                photoPreviewImg.src = e.target.result;
+                photoFileName.textContent = file.name;
+                photoFileSize.textContent = (file.size / 1024 / 1024).toFixed(2) + ' MB';
+                photoPreview.classList.remove('hidden');
+                photoLabel.textContent = 'Photo selected - click to change';
+            };
+            reader.readAsDataURL(file);
+        }
+    });
 
-        payloadModeToggle.addEventListener('change', syncPayloadMode);
-        syncPayloadMode();
-    }
+    removePhoto.addEventListener('click', function() {
+        photoInput.value = '';
+        photoPreview.classList.add('hidden');
+        photoLabel.textContent = 'Click to upload a photo of the issue';
+    });
 
     // Form submission
     const form = document.getElementById('maintenanceRequestForm');

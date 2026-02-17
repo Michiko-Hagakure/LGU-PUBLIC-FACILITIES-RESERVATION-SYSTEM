@@ -18,40 +18,41 @@ class CommunityMaintenanceController extends Controller
         // Get facilities for dropdown
         $facilities = $this->getFacilities();
         
-        // Get report types
-        $reportTypes = $this->getReportTypes();
+        // Get categories and issue types for the General Request API
+        $categories = $this->getCategories();
+        $issueTypesByCategory = $this->getIssueTypesByCategory();
         
         // Get priority levels
         $priorityLevels = $this->getPriorityLevels();
         
         return view('admin.community-maintenance.create', compact(
             'facilities',
-            'reportTypes',
+            'categories',
+            'issueTypesByCategory',
             'priorityLevels'
         ));
     }
 
     /**
-     * Submit the facility maintenance request to the Community Infrastructure API
+     * Submit the facility maintenance request to the Community General Request API
      */
     public function store(Request $request)
     {
-        // Validate required fields
+        // Validate required fields matching General Request API
         $validated = $request->validate([
             'facility_id' => 'required|integer',
-            'resident_name' => 'required|string|max:255',
-            'contact_info' => 'required|string|max:255',
-            'subject' => 'required|string|max:500',
+            'category' => 'required|string|in:Facilities,Housing,Community,Urban Planning,Land Management,Road Infrastructure,Energy,Utilities',
+            'issue_type' => 'required|string|max:255',
             'description' => 'required|string',
-            'unit_number' => 'nullable|string|max:255',
-            'report_type' => 'nullable|string|in:maintenance,complaint,suggestion,emergency',
-            'priority' => 'nullable|string|in:low,medium,high,urgent',
+            'location' => 'required|string|max:500',
+            'priority' => 'required|string|in:Low,Medium,High,Urgent',
+            'reporter_name' => 'required|string|max:255',
+            'reporter_contact' => 'required|string|max:255',
+            'photo' => 'nullable|image|max:5120',
         ]);
 
         try {
-            $payloadMode = $request->input('payload_mode', 'standard');
-
-            // Get facility name for unit_number context
+            // Get facility name for local record
             $facility = DB::connection('facilities_db')
                 ->table('facilities')
                 ->where('facility_id', $validated['facility_id'])
@@ -59,66 +60,80 @@ class CommunityMaintenanceController extends Controller
 
             $facilityName = $facility ? $facility->name : 'Unknown Facility';
 
-            // Prepare the request payload (only fields specified in API documentation)
-            // Use facility name only for unit_number, remove special characters (CIM API has issues)
-            $unitNumber = preg_replace('/[^a-zA-Z0-9\s]/', '', $facilityName);
-            
-            // Use original resident name (don't append timestamp - causes sync issues)
+            // Prepare form-data payload for General Request API
+            // Note: priority is omitted from API payload - remote server uses its own default
+            // Priority is still stored locally for our tracking purposes
             $payload = [
-                'resident_name' => $validated['resident_name'],
-                'contact_info' => $validated['contact_info'],
-                'subject' => $validated['subject'],
+                'category' => $validated['category'],
+                'issue_type' => $validated['issue_type'],
                 'description' => $validated['description'],
-                'unit_number' => $unitNumber,
-                'report_type' => $validated['report_type'] ?? 'maintenance',
-                'priority' => $validated['priority'] ?? 'medium',
+                'location' => $validated['location'],
+                'reporter_name' => $validated['reporter_name'],
+                'reporter_contact' => $validated['reporter_contact'],
             ];
 
-            // Send request to Community Infrastructure Maintenance API
-            $response = $this->sendToCommunityCIM($payload, $payloadMode);
+            // Handle photo upload
+            $photoPath = null;
+            if ($request->hasFile('photo')) {
+                $photoPath = $request->file('photo')->getRealPath();
+                $photoName = $request->file('photo')->getClientOriginalName();
+            }
+
+            // Send request to Community General Request API
+            $response = $this->sendToGeneralRequestApi($payload, $photoPath ?? null, $photoName ?? null);
 
             if ($response['success']) {
                 // Log successful submission
-                Log::info('Community maintenance request submitted successfully', [
-                    'report_id' => $response['report_id'] ?? null,
+                Log::info('Community general maintenance request submitted successfully', [
+                    'request_id' => $response['request_id'] ?? null,
                     'user_id' => session('user_id'),
                     'facility_id' => $validated['facility_id'],
+                    'category' => $validated['category'],
                 ]);
 
                 // Store local record for tracking
-                $this->storeLocalRecord($validated, $response['report_id'] ?? null, $facilityName);
+                $this->storeLocalRecord($validated, $response['request_id'] ?? null, $facilityName, $request->file('photo'));
 
                 return redirect()
                     ->route('admin.community-maintenance.create')
-                    ->with('success', 'Facility maintenance report submitted successfully! Report ID: ' . ($response['report_id'] ?? 'Pending'));
+                    ->with('success', 'Maintenance request submitted successfully! Request ID: ' . ($response['request_id'] ?? 'Pending'));
             }
 
             return back()
                 ->withInput()
-                ->with('error', $response['message'] ?? 'Failed to submit maintenance report. Please try again.');
+                ->with('error', $response['message'] ?? 'Failed to submit maintenance request. Please try again.');
 
         } catch (\Exception $e) {
-            Log::error('Community maintenance request failed', [
+            Log::error('Community general maintenance request failed', [
                 'error' => $e->getMessage(),
                 'user_id' => session('user_id'),
             ]);
 
             return back()
                 ->withInput()
-                ->with('error', 'An error occurred while submitting the maintenance report: ' . $e->getMessage());
+                ->with('error', 'An error occurred while submitting the maintenance request: ' . $e->getMessage());
         }
     }
 
     /**
      * Display list of submitted maintenance requests
      */
-    public function index()
+    public function index(Request $request)
     {
         try {
-            $requests = DB::connection('facilities_db')
+            $query = DB::connection('facilities_db')
                 ->table('community_maintenance_requests')
-                ->orderBy('created_at', 'desc')
-                ->paginate(15);
+                ->orderBy('created_at', 'desc');
+
+            // Optional filters
+            if ($request->filled('category')) {
+                $query->where('category', $request->input('category'));
+            }
+            if ($request->filled('status')) {
+                $query->where('status', $request->input('status'));
+            }
+
+            $requests = $query->paginate(15);
         } catch (\Exception $e) {
             $requests = collect();
             Log::warning('Failed to fetch community maintenance requests', [
@@ -126,7 +141,9 @@ class CommunityMaintenanceController extends Controller
             ]);
         }
 
-        return view('admin.community-maintenance.index', compact('requests'));
+        $categories = $this->getCategories();
+
+        return view('admin.community-maintenance.index', compact('requests', 'categories'));
     }
 
     /**
@@ -147,15 +164,19 @@ class CommunityMaintenanceController extends Controller
             $stats = [
                 'pending' => DB::connection('facilities_db')
                     ->table('community_maintenance_requests')
-                    ->where('status', 'submitted')
+                    ->where('status', 'Pending')
                     ->count(),
                 'in_progress' => DB::connection('facilities_db')
                     ->table('community_maintenance_requests')
-                    ->whereIn('status', ['reviewed', 'in_progress'])
+                    ->where('status', 'In Progress')
                     ->count(),
-                'resolved' => DB::connection('facilities_db')
+                'completed' => DB::connection('facilities_db')
                     ->table('community_maintenance_requests')
-                    ->whereIn('status', ['resolved', 'closed'])
+                    ->where('status', 'Completed')
+                    ->count(),
+                'closed' => DB::connection('facilities_db')
+                    ->table('community_maintenance_requests')
+                    ->where('status', 'Closed')
                     ->count(),
             ];
 
@@ -179,20 +200,22 @@ class CommunityMaintenanceController extends Controller
     private function syncStatusesFromApi(): void
     {
         try {
-            $residentNames = DB::connection('facilities_db')
+            // Fetch requests from the General Request API filtered by category=Facilities
+            // to sync statuses for our facility-related requests
+            $categories = DB::connection('facilities_db')
                 ->table('community_maintenance_requests')
-                ->whereNotIn('status', ['resolved', 'closed'])
+                ->whereNotIn('status', ['Completed', 'Closed'])
                 ->distinct()
-                ->pluck('resident_name');
+                ->pluck('category');
 
-            foreach ($residentNames as $residentName) {
+            foreach ($categories as $category) {
                 try {
-                    $statusData = $this->fetchReportStatus($residentName);
+                    $statusData = $this->fetchGeneralRequests($category);
                     if ($statusData['success'] && !empty($statusData['data'])) {
                         $this->updateLocalStatuses($statusData['data']);
                     }
                 } catch (\Exception $e) {
-                    // Continue with next resident
+                    // Continue with next category
                 }
             }
         } catch (\Exception $e) {
@@ -201,12 +224,12 @@ class CommunityMaintenanceController extends Controller
     }
 
     /**
-     * Check status of reports from the Community Infrastructure API
+     * Check status of requests from the Community General Request API
      */
-    public function checkStatus($residentName)
+    public function checkStatus($category = null, $status = null)
     {
         try {
-            $statusData = $this->fetchReportStatus($residentName);
+            $statusData = $this->fetchGeneralRequests($category, $status);
 
             if ($statusData['success']) {
                 // Update local records with latest status
@@ -218,37 +241,38 @@ class CommunityMaintenanceController extends Controller
             return response()->json($statusData, 400);
 
         } catch (\Exception $e) {
-            Log::error('Failed to fetch report status', [
-                'resident_name' => $residentName,
+            Log::error('Failed to fetch request status', [
+                'category' => $category,
+                'status' => $status,
                 'error' => $e->getMessage(),
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to fetch report status: ' . $e->getMessage(),
+                'message' => 'Failed to fetch request status: ' . $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * Refresh status for all reports and return updated view
+     * Refresh status for all requests and return updated view
      */
     public function refreshStatuses()
     {
         try {
-            // Get unique resident names from local records
-            $residentNames = DB::connection('facilities_db')
+            // Get unique categories from local records that are not yet completed/closed
+            $categories = DB::connection('facilities_db')
                 ->table('community_maintenance_requests')
-                ->whereNotIn('status', ['resolved', 'closed'])
+                ->whereNotIn('status', ['Completed', 'Closed'])
                 ->distinct()
-                ->pluck('resident_name');
+                ->pluck('category');
 
             $synced = 0;
             $failed = 0;
 
-            foreach ($residentNames as $residentName) {
+            foreach ($categories as $category) {
                 try {
-                    $statusData = $this->fetchReportStatus($residentName);
+                    $statusData = $this->fetchGeneralRequests($category);
                     
                     if ($statusData['success'] && !empty($statusData['data'])) {
                         $this->updateLocalStatuses($statusData['data']);
@@ -259,7 +283,7 @@ class CommunityMaintenanceController extends Controller
                 }
             }
 
-            $message = "Synced {$synced} resident(s).";
+            $message = "Synced {$synced} category(ies).";
             if ($failed > 0) {
                 $message .= " {$failed} failed.";
             }
@@ -272,29 +296,33 @@ class CommunityMaintenanceController extends Controller
     }
 
     /**
-     * Send request to Community Infrastructure Maintenance API
+     * Send request to Community General Request API (POST with form-data)
      */
-    private function sendToCommunityCIM(array $payload, string $payloadMode = 'standard'): array
+    private function sendToGeneralRequestApi(array $payload, ?string $photoPath = null, ?string $photoName = null): array
     {
         $baseUrl = config('services.community_cim.base_url');
         $timeout = config('services.community_cim.timeout', 30);
 
-        $url = rtrim($baseUrl, '/') . '/api/integration/RequestFacilityMaintenance.php';
+        $url = rtrim($baseUrl, '/') . '/api/integration/CITIZEN/GeneralRequest.php';
 
-        // Use PHP curl - confirmed working via diagnostic
-        $jsonPayload = json_encode($payload);
-        
-        Log::info('Community CIM request starting', [
+        Log::info('Community General Request API - POST starting', [
             'url' => $url,
-            'payload_length' => strlen($jsonPayload),
-            'payload_json' => $jsonPayload,
+            'category' => $payload['category'],
+            'issue_type' => $payload['issue_type'],
         ]);
+
+        // Build form-data fields
+        $postFields = $payload;
+
+        // Attach photo if provided
+        if ($photoPath && file_exists($photoPath)) {
+            $postFields['photo'] = new \CURLFile($photoPath, mime_content_type($photoPath), $photoName ?? 'photo.jpg');
+        }
 
         $ch = curl_init($url);
         curl_setopt_array($ch, [
             CURLOPT_POST => true,
-            CURLOPT_POSTFIELDS => $jsonPayload,
-            CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+            CURLOPT_POSTFIELDS => $postFields,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_TIMEOUT => $timeout,
             CURLOPT_SSL_VERIFYPEER => false,
@@ -305,13 +333,13 @@ class CommunityMaintenanceController extends Controller
         $curlError = curl_error($ch);
         curl_close($ch);
         
-        Log::info('Community CIM response received', [
+        Log::info('Community General Request API - POST response', [
             'http_code' => $httpCode,
             'response' => $responseBody,
         ]);
         
         if ($curlError) {
-            Log::error('Community CIM curl error', ['error' => $curlError]);
+            Log::error('Community General Request API curl error', ['error' => $curlError]);
             return ['success' => false, 'message' => 'Connection error: ' . $curlError];
         }
 
@@ -321,16 +349,14 @@ class CommunityMaintenanceController extends Controller
             return $responseData;
         }
 
-        Log::warning('Community CIM request failed', [
-            'payload_mode' => $payloadMode,
+        Log::warning('Community General Request API POST failed', [
             'body' => $responseBody,
             'payload' => [
-                'resident_name' => $payload['resident_name'] ?? null,
-                'subject' => $payload['subject'] ?? null,
-                'report_type' => $payload['report_type'] ?? null,
-                'priority' => $payload['priority'] ?? null,
-                'unit_number' => $payload['unit_number'] ?? null,
-                'contact_info' => empty($payload['contact_info']) ? null : '[redacted]',
+                'category' => $payload['category'] ?? null,
+                'issue_type' => $payload['issue_type'] ?? null,
+                'location' => $payload['location'] ?? null,
+                'reporter_name' => $payload['reporter_name'] ?? null,
+                'reporter_contact' => empty($payload['reporter_contact']) ? null : '[redacted]',
                 'description' => empty($payload['description']) ? null : '[redacted]',
             ],
         ]);
@@ -342,20 +368,29 @@ class CommunityMaintenanceController extends Controller
     }
 
     /**
-     * Fetch report status from Community Infrastructure Maintenance API
+     * Fetch general requests from Community General Request API (GET)
      */
-    private function fetchReportStatus(string $residentName): array
+    private function fetchGeneralRequests(?string $category = null, ?string $status = null): array
     {
         $baseUrl = config('services.community_cim.base_url');
         $timeout = config('services.community_cim.timeout', 30);
 
-        $url = rtrim($baseUrl, '/') . '/api/integration/RequestFacilityMaintenance.php';
+        $url = rtrim($baseUrl, '/') . '/api/integration/CITIZEN/GeneralRequest.php';
+
+        $params = [];
+        if ($category) {
+            $params['category'] = $category;
+        }
+        if ($status) {
+            $params['status'] = $status;
+        }
 
         $response = Http::timeout($timeout)
             ->withHeaders([
                 'Accept' => 'application/json',
             ])
-            ->get($url, ['resident_name' => $residentName]);
+            ->withOptions(['verify' => false])
+            ->get($url, $params);
 
         if ($response->successful()) {
             return $response->json();
@@ -365,28 +400,41 @@ class CommunityMaintenanceController extends Controller
         
         return [
             'success' => false,
-            'message' => $errorData['message'] ?? 'Failed to fetch status: ' . $response->status(),
+            'message' => $errorData['message'] ?? 'Failed to fetch requests: ' . $response->status(),
         ];
     }
 
     /**
      * Store a local record of the submission for tracking
      */
-    private function storeLocalRecord(array $validated, ?int $externalReportId, string $facilityName): void
+    private function storeLocalRecord(array $validated, ?int $externalRequestId, string $facilityName, $photoFile = null): void
     {
         try {
+            // Store photo locally if provided
+            $localPhotoPath = null;
+            if ($photoFile) {
+                $localPhotoPath = $photoFile->store('community_maintenance_photos', 'public');
+            }
+
             DB::connection('facilities_db')->table('community_maintenance_requests')->insert([
-                'external_report_id' => $externalReportId,
+                'external_request_id' => $externalRequestId,
+                'external_report_id' => $externalRequestId,
+                'category' => $validated['category'],
+                'issue_type' => $validated['issue_type'],
                 'facility_id' => $validated['facility_id'],
                 'facility_name' => $facilityName,
-                'resident_name' => $validated['resident_name'],
-                'contact_info' => $validated['contact_info'],
-                'subject' => $validated['subject'],
+                'resident_name' => $validated['reporter_name'],
+                'contact_info' => $validated['reporter_contact'],
+                'reporter_name' => $validated['reporter_name'],
+                'reporter_contact' => $validated['reporter_contact'],
+                'subject' => $validated['issue_type'] . ' - ' . $validated['category'],
                 'description' => $validated['description'],
-                'unit_number' => $validated['unit_number'] ?? $facilityName,
-                'report_type' => $validated['report_type'] ?? 'maintenance',
-                'priority' => $validated['priority'] ?? 'medium',
-                'status' => 'submitted',
+                'location' => $validated['location'],
+                'unit_number' => $validated['location'],
+                'report_type' => 'maintenance',
+                'priority' => strtolower($validated['priority']),
+                'photo_path' => $localPhotoPath,
+                'status' => 'Pending',
                 'submitted_by_user_id' => session('user_id'),
                 'created_at' => now(),
                 'updated_at' => now(),
@@ -402,15 +450,18 @@ class CommunityMaintenanceController extends Controller
     /**
      * Update local records with statuses from API
      */
-    private function updateLocalStatuses(array $reports): void
+    private function updateLocalStatuses(array $requests): void
     {
         try {
-            foreach ($reports as $report) {
+            foreach ($requests as $request) {
+                $requestId = $request['request_id'] ?? null;
+                if (!$requestId) continue;
+
                 DB::connection('facilities_db')
                     ->table('community_maintenance_requests')
-                    ->where('external_report_id', $report['id'])
+                    ->where('external_request_id', $requestId)
                     ->update([
-                        'status' => $report['status'] ?? 'submitted',
+                        'status' => $request['status'] ?? 'Pending',
                         'updated_at' => now(),
                     ]);
             }
@@ -441,15 +492,84 @@ class CommunityMaintenanceController extends Controller
     }
 
     /**
-     * Get report types
+     * Get available categories for the General Request API
      */
-    private function getReportTypes(): array
+    private function getCategories(): array
     {
         return [
-            ['value' => 'maintenance', 'label' => 'Maintenance Issue', 'description' => 'Facility maintenance issues'],
-            ['value' => 'complaint', 'label' => 'Complaint', 'description' => 'Complaints about facilities or services'],
-            ['value' => 'suggestion', 'label' => 'Suggestion', 'description' => 'Suggestions for improvement'],
-            ['value' => 'emergency', 'label' => 'Emergency', 'description' => 'Emergency situations requiring immediate attention'],
+            'Facilities',
+            'Housing',
+            'Community',
+            'Urban Planning',
+            'Land Management',
+            'Road Infrastructure',
+            'Energy',
+            'Utilities',
+        ];
+    }
+
+    /**
+     * Get issue types grouped by category
+     */
+    private function getIssueTypesByCategory(): array
+    {
+        return [
+            'Facilities' => [
+                'Broken Equipment',
+                'Electrical Issues',
+                'Plumbing Problems',
+                'HVAC Issues',
+                'Structural Damage',
+            ],
+            'Housing' => [
+                'Building Repairs',
+                'Water Supply Issues',
+                'Electrical Problems',
+                'Sanitation Issues',
+                'Safety Concerns',
+            ],
+            'Community' => [
+                'Street Lighting',
+                'Road Damage',
+                'Drainage Issues',
+                'Public Facilities',
+                'Waste Management',
+            ],
+            'Urban Planning' => [
+                'Zoning Issues',
+                'Land Use Concerns',
+                'Infrastructure Development',
+                'Traffic Management',
+                'Environmental Issues',
+            ],
+            'Land Management' => [
+                'Land Titling Issues',
+                'Property Boundary Disputes',
+                'Illegal Occupation',
+                'Land Development',
+                'Soil Erosion',
+            ],
+            'Road Infrastructure' => [
+                'Potholes',
+                'Road Cracks',
+                'Missing Signage',
+                'Traffic Lights Malfunction',
+                'Bridge Damage',
+            ],
+            'Energy' => [
+                'Power Outages',
+                'Street Light Issues',
+                'Transformer Problems',
+                'Electrical Hazards',
+                'Solar Panel Issues',
+            ],
+            'Utilities' => [
+                'Water Supply Problems',
+                'Sewage Issues',
+                'Garbage Collection',
+                'Internet Connectivity',
+                'Telecommunications',
+            ],
         ];
     }
 
@@ -459,10 +579,10 @@ class CommunityMaintenanceController extends Controller
     private function getPriorityLevels(): array
     {
         return [
-            ['value' => 'low', 'label' => 'Low', 'color' => 'green', 'description' => 'Non-urgent, can wait'],
-            ['value' => 'medium', 'label' => 'Medium', 'color' => 'yellow', 'description' => 'Should be addressed soon'],
-            ['value' => 'high', 'label' => 'High', 'color' => 'orange', 'description' => 'Needs prompt attention'],
-            ['value' => 'urgent', 'label' => 'Urgent', 'color' => 'red', 'description' => 'Immediate attention required'],
+            ['value' => 'Low', 'label' => 'Low', 'color' => 'green', 'description' => 'Non-urgent, can wait'],
+            ['value' => 'Medium', 'label' => 'Medium', 'color' => 'yellow', 'description' => 'Should be addressed soon'],
+            ['value' => 'High', 'label' => 'High', 'color' => 'orange', 'description' => 'Needs prompt attention'],
+            ['value' => 'Urgent', 'label' => 'Urgent', 'color' => 'red', 'description' => 'Immediate attention required'],
         ];
     }
 }
