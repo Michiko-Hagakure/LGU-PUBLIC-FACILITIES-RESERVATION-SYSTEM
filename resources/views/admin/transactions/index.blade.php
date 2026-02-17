@@ -228,102 +228,122 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tensorflow/4.11.0/tf.min.js"></script>
 <script>
+    /**
+     * AI Audit Function: Evaluates transaction legitimacy and payment completion.
+     * This model prevents "Approved" status from being mistaken for "Fully Paid".
+     */
     async function runAIAudit() {
-        console.log("[AI Audit] Initializing Strict Security Model...");
+        console.log("[AI Audit] Initializing Financial Verification Model...");
 
+        /** * NEURAL NETWORK ARCHITECTURE
+         * Input Features [3]: Normalized Amount, Status Bit (Verified/Not), Payment Progress
+         * Output: Safety/Completion Score (0 to 1)
+         */
         const model = tf.sequential();
-        model.add(tf.layers.dense({units: 12, inputShape: [3], activation: 'relu'}));
-        model.add(tf.layers.dense({units: 1, activation: 'sigmoid'}));
+        model.add(tf.layers.dense({units: 16, inputShape: [3], activation: 'relu'}));
+        model.add(tf.layers.dense({units: 8, activation: 'relu'})); // Hidden layer for deeper pattern recognition
+        model.add(tf.layers.dense({units: 1, activation: 'sigmoid'})); // Returns a probability score
+        
         model.compile({optimizer: 'adam', loss: 'binaryCrossentropy'});
 
-        // 1. COLLECT REAL DATA FROM THE TABLE FOR TRAINING
+        // 1. DATA HARVESTING & PRE-PROCESSING
         const rows = document.querySelectorAll('.transaction-row');
         const trainingData = [];
         const labels = [];
 
         rows.forEach(row => {
-            const amt = (parseFloat(row.dataset.amount) || 0) / 100000;
-            const hist = parseInt(row.dataset.unpaidHistory) || 0;
-            const isPaid = ['paid', 'approved', 'verified'].includes(row.dataset.status.toLowerCase()) ? 1 : 0;
+            const amount = parseFloat(row.dataset.amount) || 0;
+            const totalPrice = parseFloat(row.dataset.totalPrice) || amount; 
+            const status = row.dataset.status.toLowerCase();
             
-            trainingData.push([amt, isPaid, hist]);
-            labels.push([isPaid]); // We teach the AI that 'Paid' is the target safety state
+            /**
+             * CALCULATE PAYMENT PROGRESS
+             * 1.0 = Full Payment
+             * 0.5 = Partial/Downpayment
+             * 0.0 = No Payment
+             */
+            let paymentProgress = 0;
+            if (amount >= totalPrice && ['paid', 'completed'].includes(status)) {
+                paymentProgress = 1.0; 
+            } else if (amount > 0 && amount < totalPrice) {
+                paymentProgress = 0.5; 
+            }
+
+            const amtNorm = amount / 100000; // Normalizing large currency values
+            const statusBit = ['paid', 'approved', 'verified'].includes(status) ? 1 : 0;
+            
+            trainingData.push([amtNorm, statusBit, paymentProgress]);
+            
+            // We teach the AI that "Safe/Verified" ONLY applies to 100% Payment Progress
+            labels.push([paymentProgress === 1.0 ? 1 : 0]); 
         });
 
-        // 2. COMBINE HARDCODED PATTERNS WITH REAL DATA
+        // 2. SYNTHETIC TRAINING (Reinforcement Patterns)
         const xs = tf.tensor2d([
-            [0.1, 1, 0], [0.9, 1, 0], [0.8, 0, 5], [0.05, 0, 10], [0.05, 0, 0],
-            ...trainingData // Add the real data from your database here
+            [0.1, 1, 1.0], // Pattern: Small amt, Verified status, Full progress -> SAFE (1)
+            [0.5, 1, 0.5], // Pattern: Large amt, Verified status, Partial progress -> NOT FULL (0)
+            [0.9, 0, 0.0], // Pattern: Large amt, Unpaid status -> RISK (0)
+            ...trainingData
         ]);
         const ys = tf.tensor2d([
-            [1], [1], [0], [0], [1],
+            [1], [0], [0],
             ...labels
         ]); 
 
-        await model.fit(xs, ys, {epochs: 50, verbose: 0});
-        console.log("[AI Audit] Training Complete using Real DB Data.");
+        // 3. MODEL TRAINING
+        await model.fit(xs, ys, {epochs: 100, verbose: 0}); 
+        console.log("[AI Audit] Training Complete.");
 
-        // 3. EXECUTE PREDICTION (STRICT ENFORCEMENT)
+        // 4. EXECUTE PREDICTION & UI UPDATE
         for (let row of rows) {
             const amount = parseFloat(row.dataset.amount) || 0;
+            const totalPrice = parseFloat(row.dataset.totalPrice) || amount;
             const status = (row.dataset.status || '').toLowerCase();
-            const unpaidHistory = parseInt(row.dataset.unpaidHistory || 0);
             const badge = row.querySelector('.ai-status-badge');
 
             if (!badge) continue;
 
-            const isPaid = (status === 'paid' || status === 'approved' || status === 'verified');
-            const normalizedAmount = amount / 100000;
+            const amtNorm = amount / 100000;
+            const statusBit = ['paid', 'approved', 'verified'].includes(status) ? 1 : 0;
+            let progress = (amount >= totalPrice) ? 1.0 : (amount > 0 ? 0.5 : 0.0);
 
-            const prediction = model.predict(tf.tensor2d([[normalizedAmount, isPaid ? 1 : 0, unpaidHistory]]));
+            // AI evaluates the combination of Status and Actual Progress
+            const prediction = model.predict(tf.tensor2d([[amtNorm, statusBit, progress]]));
             const scoreData = await prediction.data();
             const safetyScore = scoreData[0];
 
-            if (isPaid) {
+            // 5. SMART UI ASSIGNMENT
+            if (statusBit === 1 && progress === 1.0 && safetyScore > 0.8) {
+                // CASE: Verified by Staff AND Fully Paid
                 badge.className = "ai-status-badge inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700";
-                badge.innerHTML = '<i data-lucide="shield-check" class="w-3 h-3 mr-1"></i> Verified';
-            } else if (!isPaid && safetyScore < 0.5) {
+                badge.innerHTML = '<i data-lucide="shield-check" class="w-3 h-3 mr-1"></i> Fully Verified';
+            } 
+            else if (statusBit === 1 && progress < 1.0) {
+                // CASE: Staff Verified the transaction, but it is only a Downpayment
+                badge.className = "ai-status-badge inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700 border border-yellow-200";
+                badge.innerHTML = '<i data-lucide="info" class="w-3 h-3 mr-1"></i> Partial: Downpayment';
+            }
+            else if (safetyScore < 0.4 || (statusBit === 0 && progress === 0)) {
+                // CASE: Unpaid or AI detected high discrepancy
                 badge.className = "ai-status-badge inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700 animate-pulse";
-                badge.innerHTML = '<i data-lucide="shield-alert" class="w-3 h-3 mr-1"></i> High Risk';
-            } else {
-                badge.className = "ai-status-badge inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100";
-                badge.innerHTML = '<i data-lucide="user-check" class="w-3 h-3 mr-gr-3xs"></i> Safe to Proceed';
+                badge.innerHTML = '<i data-lucide="shield-alert" class="w-3 h-3 mr-1"></i> High Risk / Unpaid';
+            } 
+            else {
+                // CASE: Pending evaluation or staff review
+                badge.className = "ai-status-badge inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700";
+                badge.innerHTML = '<i data-lucide="loader" class="w-3 h-3 mr-1"></i> Awaiting Full Payment';
             }
         }
         
+        // Refresh icons for new badges
         if (window.lucide) lucide.createIcons();
-        console.log("Audit Finished.");
     }
 
+    // Initialize Audit on load
     document.addEventListener('DOMContentLoaded', () => {
         if (typeof tf !== 'undefined') {
             setTimeout(runAIAudit, 1500); 
         }
     });
-
-    function exportTransactions() {
-        const params = new URLSearchParams({
-            start_date: document.querySelector('input[name="start_date"]')?.value || '',
-            end_date: document.querySelector('input[name="end_date"]')?.value || '',
-            status: document.querySelector('select[name="status"]')?.value || '',
-            payment_method: document.querySelector('select[name="payment_method"]')?.value || ''
-        });
-        window.location.href = '{{ route("admin.transactions.export.csv") }}?' + params.toString();
-    }
-
-    // AJAX Polling for real-time updates
-    let lastTotal = {{ $transactions->total() }};
-    function refreshData() {
-        fetch('{{ route("admin.transactions.json") }}' + window.location.search)
-            .then(res => res.json())
-            .then(data => {
-                if (data.stats.total !== lastTotal) {
-                    location.reload();
-                    lastTotal = data.stats.total;
-                }
-            })
-            .catch(err => console.log('Refresh error:', err));
-    }
-    setInterval(refreshData, 5000);
 </script>
 @endsection
